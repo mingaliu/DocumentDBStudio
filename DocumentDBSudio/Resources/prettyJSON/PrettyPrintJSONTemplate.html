@@ -1,0 +1,72 @@
+<html>
+<head>
+    <title>PrettyPrintJSON</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Quicksand" />
+    <link rel="stylesheet" type="text/css" href="pretty-json.css" />
+
+    <!-- lib -->
+    <script type="text/javascript" src="jquery-1.11.1.min.js" ></script>
+    <script type="text/javascript" src="underscore-min.js" ></script>
+    <script type="text/javascript" src="backbone-min.js" ></script>
+
+    <!-- src dev 
+    <script type="text/javascript" src="/pretty-json-debug.js" ></script>
+    -->
+    <!-- src build  -->
+    <script type="text/javascript" src="pretty-json-min.js" ></script>
+
+    <!-- just css for this page example -->
+    <style type="text/css">
+        body{
+            width:700px;
+            border-style: none;
+            margin-left: 10px;
+            margin-right: auto;
+        }
+
+        textarea{
+            width:600px;
+            padding:4px 7px;
+            border:1px solid #ccc;
+            border-radius:4px;
+            background:#fff;
+            color:#333;
+            margin-bottom:7px;
+        }
+    </style>
+</head>
+
+<body>
+<script>
+    $(document).ready(function() {
+
+        var el = {
+            result: $('#result')
+        };
+
+        var jsonToRenderObject = &JSONSTRINGREPLACE&;
+		
+        var jsonToRender = JSON.stringify(jsonToRenderObject);
+
+        if (jsonToRender.length > 3) {
+            try {
+                var data;
+                data = JSON.parse(jsonToRender);
+
+                var node = new PrettyJSON.view.Node({
+                    el: el.result,
+                    data: data,
+                    dateFormat: "DD/MM/YYYY - HH24:MI:SS"
+                });
+            }
+            catch (e) {
+            }
+           
+        }
+    });
+</script>
+<span id="result"></span>
+<pre id="ExtraTextPre">&EXTRASTRINGREPLACE&</pre>
+</body>
+</html>

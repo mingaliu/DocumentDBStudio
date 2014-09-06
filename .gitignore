@@ -1,0 +1,8 @@
+# Nuget packages
+packages/
+
+# User-specific files
+*.suo
+*.user
+*.sln.docstates
+

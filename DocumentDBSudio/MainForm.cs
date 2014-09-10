@@ -585,9 +585,13 @@ namespace Microsoft.Azure.DocumentDBStudio
 
             this.tabControl.SelectedTab = this.tabCrudContext;
             this.ButtomSplitContainer.Panel1Collapsed = !commandContext.IsFeed;
-            this.btnExecuteNext.Enabled = commandContext.HasContinuation || !commandContext.QueryStarted;
+            this.SetNextPageVisibility(commandContext);
         }
 
+        public void SetNextPageVisibility(CommandContext commandContext)
+        {
+            this.btnExecuteNext.Enabled = commandContext.HasContinuation || !commandContext.QueryStarted;
+        }
 
         private void toolStripBtnExecute_Click(object sender, EventArgs e)
         {

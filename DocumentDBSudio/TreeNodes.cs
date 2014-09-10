@@ -416,9 +416,6 @@ namespace Microsoft.Azure.DocumentDBStudio
             MenuItem myMenuItem2 = new MenuItem("Query Documents");
             myMenuItem2.Click += new EventHandler(myMenuItemQueryDocument_Click);
             this.contextMenu.MenuItems.Add(myMenuItem2);
-
-            this.currentQueryCommandContext = new CommandContext();
-            this.currentQueryCommandContext.IsFeed = true;
         }
 
         void myMenuItemDeleteDocumentCollection_Click(object sender, EventArgs e)
@@ -477,7 +474,8 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         void myMenuItemQueryDocument_Click(object sender, EventArgs e)
         {
-            // 
+            this.currentQueryCommandContext = new CommandContext();
+            this.currentQueryCommandContext.IsFeed = true; 
             Program.GetMain().SetCrudContext(string.Format("Query Documents from Collection {0}", (this.Tag as Documents.DocumentCollection).Id),
                 false, "select * from c", this.QueryDocuments, this.currentQueryCommandContext);
             
@@ -561,6 +559,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 }
 
                 Program.GetMain().SetResultInBrowser(jsonarray, text, true, r.ResponseHeaders);
+                Program.GetMain().SetNextPageVisibility(this.currentQueryCommandContext);
             }
             catch (AggregateException e)
             {

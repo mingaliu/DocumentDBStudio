@@ -657,8 +657,23 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         void myMenuItemUpdate_Click(object sender, EventArgs e)
         {
-            string x = this.Tag.ToString();
-            Program.GetMain().SetCrudContext("Update " + this.resourceType.ToString(), false, x, this.UpdateNode);
+            if (this.resourceType == ResourceType.StoredProcedure)
+            {
+                Program.GetMain().SetCrudContext("Update " + this.resourceType.ToString(), true, (this.Tag as Documents.StoredProcedure).Body, this.UpdateNode);
+            }
+            else if (this.resourceType == ResourceType.Trigger)
+            {
+                Program.GetMain().SetCrudContext("Update " + this.resourceType.ToString(), true, (this.Tag as Documents.Trigger).Body, this.UpdateNode);
+            }
+            else if (this.resourceType == ResourceType.UserDefinedFunction)
+            {
+                Program.GetMain().SetCrudContext("Update " + this.resourceType.ToString(), true, (this.Tag as Documents.UserDefinedFunction).Body, this.UpdateNode);
+            }
+            else
+            {
+                string x = this.Tag.ToString();
+                Program.GetMain().SetCrudContext("Update " + this.resourceType.ToString(), false, x, this.UpdateNode);
+            }
         }
 
         void myMenuItemAttachment_Click(object sender, EventArgs e)
@@ -805,7 +820,9 @@ namespace Microsoft.Azure.DocumentDBStudio
                 }
                 else if (this.resourceType == ResourceType.StoredProcedure)
                 {
-                    Documents.StoredProcedure sp = (Documents.StoredProcedure)JsonConvert.DeserializeObject(text, typeof(Documents.StoredProcedure));
+                    Documents.StoredProcedure sp = this.Tag as Documents.StoredProcedure;
+                    sp.Body = text;
+                    if (!string.IsNullOrEmpty(optional)) { sp.Id = optional; }
                     ResourceResponse<Documents.StoredProcedure> rr = await this.client.ReplaceStoredProcedureAsync(sp);
                     json = rr.Resource.ToString();
                     this.Tag = rr.Resource;
@@ -825,7 +842,9 @@ namespace Microsoft.Azure.DocumentDBStudio
                 }
                 else if (this.resourceType == ResourceType.Trigger)
                 {
-                    Documents.Trigger sp = Documents.Resource.LoadFrom<Documents.Trigger>(new MemoryStream(Encoding.UTF8.GetBytes(text)));
+                    Documents.Trigger sp = this.Tag as Documents.Trigger;
+                    sp.Body = text;
+                    if (!string.IsNullOrEmpty(optional)) { sp.Id = optional; }
                     ResourceResponse<Documents.Trigger> rr = await this.client.ReplaceTriggerAsync(sp);
                     json = rr.Resource.ToString();
                     this.Tag = rr.Resource;
@@ -835,7 +854,9 @@ namespace Microsoft.Azure.DocumentDBStudio
                 }
                 else if (this.resourceType == ResourceType.UserDefinedFunction)
                 {
-                    Documents.UserDefinedFunction sp = (Documents.UserDefinedFunction)JsonConvert.DeserializeObject(text, typeof(Documents.UserDefinedFunction));
+                    Documents.UserDefinedFunction sp = this.Tag as Documents.UserDefinedFunction;
+                    sp.Body = text;
+                    if (!string.IsNullOrEmpty(optional)) { sp.Id = optional; }
                     ResourceResponse<Documents.UserDefinedFunction> rr = await this.client.ReplaceUserDefinedFunctionAsync(sp);
                     json = rr.Resource.ToString();
                     this.Tag = rr.Resource;

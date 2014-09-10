@@ -382,7 +382,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.btnExecuteNext.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.btnExecuteNext.Name = "btnExecuteNext";
             this.btnExecuteNext.Size = new System.Drawing.Size(79, 24);
-            this.btnExecuteNext.Text = "GetNextPage";
+            this.btnExecuteNext.Text = "Next Page";
             this.btnExecuteNext.Click += new System.EventHandler(this.btnExecuteNext_Click);
             // 
             // webBrowserResponse

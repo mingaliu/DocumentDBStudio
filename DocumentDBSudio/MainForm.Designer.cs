@@ -47,6 +47,10 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.tabResponse = new System.Windows.Forms.TabPage();
             this.tbResponse = new System.Windows.Forms.TextBox();
             this.tabPageRequestOptions = new System.Windows.Forms.TabPage();
+            this.ButtomSplitContainer = new System.Windows.Forms.SplitContainer();
+            this.feedToolStrip = new System.Windows.Forms.ToolStrip();
+            this.toolStripTextMaxItemCount = new System.Windows.Forms.ToolStripTextBox();
+            this.btnExecuteNext = new System.Windows.Forms.ToolStripButton();
             this.webBrowserResponse = new System.Windows.Forms.WebBrowser();
             this.tsMenu = new System.Windows.Forms.ToolStrip();
             this.btnBack = new System.Windows.Forms.ToolStripButton();
@@ -98,6 +102,11 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.splitContainerIntabPage.Panel2.SuspendLayout();
             this.splitContainerIntabPage.SuspendLayout();
             this.tabResponse.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.ButtomSplitContainer)).BeginInit();
+            this.ButtomSplitContainer.Panel1.SuspendLayout();
+            this.ButtomSplitContainer.Panel2.SuspendLayout();
+            this.ButtomSplitContainer.SuspendLayout();
+            this.feedToolStrip.SuspendLayout();
             this.tsMenu.SuspendLayout();
             this.tsAddress.SuspendLayout();
             this.menuStrip1.SuspendLayout();
@@ -183,7 +192,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             // 
             // splitContainerInner.Panel2
             // 
-            this.splitContainerInner.Panel2.Controls.Add(this.webBrowserResponse);
+            this.splitContainerInner.Panel2.Controls.Add(this.ButtomSplitContainer);
             this.splitContainerInner.Size = new System.Drawing.Size(947, 791);
             this.splitContainerInner.SplitterDistance = 161;
             this.splitContainerInner.SplitterWidth = 5;
@@ -328,6 +337,54 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.tabPageRequestOptions.Text = "RequestOptions";
             this.tabPageRequestOptions.UseVisualStyleBackColor = true;
             // 
+            // ButtomSplitContainer
+            // 
+            this.ButtomSplitContainer.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.ButtomSplitContainer.Location = new System.Drawing.Point(0, 0);
+            this.ButtomSplitContainer.Name = "ButtomSplitContainer";
+            this.ButtomSplitContainer.Orientation = System.Windows.Forms.Orientation.Horizontal;
+            // 
+            // ButtomSplitContainer.Panel1
+            // 
+            this.ButtomSplitContainer.Panel1.Controls.Add(this.feedToolStrip);
+            this.ButtomSplitContainer.Panel1MinSize = 0;
+            // 
+            // ButtomSplitContainer.Panel2
+            // 
+            this.ButtomSplitContainer.Panel2.Controls.Add(this.webBrowserResponse);
+            this.ButtomSplitContainer.Size = new System.Drawing.Size(947, 625);
+            this.ButtomSplitContainer.SplitterDistance = 34;
+            this.ButtomSplitContainer.TabIndex = 4;
+            // 
+            // feedToolStrip
+            // 
+            this.feedToolStrip.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.feedToolStrip.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden;
+            this.feedToolStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.toolStripTextMaxItemCount,
+            this.btnExecuteNext});
+            this.feedToolStrip.Location = new System.Drawing.Point(0, 0);
+            this.feedToolStrip.Name = "feedToolStrip";
+            this.feedToolStrip.Size = new System.Drawing.Size(947, 34);
+            this.feedToolStrip.TabIndex = 3;
+            this.feedToolStrip.Text = "toolStrip1";
+            // 
+            // toolStripTextMaxItemCount
+            // 
+            this.toolStripTextMaxItemCount.Name = "toolStripTextMaxItemCount";
+            this.toolStripTextMaxItemCount.Size = new System.Drawing.Size(50, 27);
+            this.toolStripTextMaxItemCount.Text = "10";
+            this.toolStripTextMaxItemCount.TextBoxTextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            // 
+            // btnExecuteNext
+            // 
+            this.btnExecuteNext.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.btnExecuteNext.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnExecuteNext.Name = "btnExecuteNext";
+            this.btnExecuteNext.Size = new System.Drawing.Size(79, 24);
+            this.btnExecuteNext.Text = "GetNextPage";
+            this.btnExecuteNext.Click += new System.EventHandler(this.btnExecuteNext_Click);
+            // 
             // webBrowserResponse
             // 
             this.webBrowserResponse.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -335,7 +392,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.webBrowserResponse.Margin = new System.Windows.Forms.Padding(4);
             this.webBrowserResponse.MinimumSize = new System.Drawing.Size(27, 26);
             this.webBrowserResponse.Name = "webBrowserResponse";
-            this.webBrowserResponse.Size = new System.Drawing.Size(947, 625);
+            this.webBrowserResponse.Size = new System.Drawing.Size(947, 587);
             this.webBrowserResponse.TabIndex = 0;
             // 
             // tsMenu
@@ -669,10 +726,10 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.ClientSize = new System.Drawing.Size(1428, 865);
             this.Controls.Add(this.splitContainerOuter);
             this.Controls.Add(this.tsAddress);
-            this.Controls.Add(this.tsTablesEntities);
             this.Controls.Add(this.tsMenu);
             this.Controls.Add(this.statusStrip);
             this.Controls.Add(this.menuStrip1);
+            this.Controls.Add(this.tsTablesEntities);
             this.Font = new System.Drawing.Font("Microsoft Sans Serif", 10.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MainMenuStrip = this.menuStrip1;
@@ -702,6 +759,13 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.splitContainerIntabPage.ResumeLayout(false);
             this.tabResponse.ResumeLayout(false);
             this.tabResponse.PerformLayout();
+            this.ButtomSplitContainer.Panel1.ResumeLayout(false);
+            this.ButtomSplitContainer.Panel1.PerformLayout();
+            this.ButtomSplitContainer.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.ButtomSplitContainer)).EndInit();
+            this.ButtomSplitContainer.ResumeLayout(false);
+            this.feedToolStrip.ResumeLayout(false);
+            this.feedToolStrip.PerformLayout();
             this.tsMenu.ResumeLayout(false);
             this.tsMenu.PerformLayout();
             this.tsAddress.ResumeLayout(false);
@@ -770,6 +834,10 @@ namespace Microsoft.Azure.DocumentDBStudio
         private System.Windows.Forms.SplitContainer splitContainerIntabPage;
         private System.Windows.Forms.Label labelid;
         private System.Windows.Forms.TabPage tabPageRequestOptions;
+        private System.Windows.Forms.ToolStrip feedToolStrip;
+        private System.Windows.Forms.ToolStripTextBox toolStripTextMaxItemCount;
+        private System.Windows.Forms.ToolStripButton btnExecuteNext;
+        private System.Windows.Forms.SplitContainer ButtomSplitContainer;
     }
 }
 

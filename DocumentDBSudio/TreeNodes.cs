@@ -24,6 +24,21 @@ namespace Microsoft.Azure.DocumentDBStudio
         public Protocol Protocol;
     }
 
+    public class CommandContext
+    {
+        public bool IsDelete;
+        public bool IsFeed;
+        public bool HasContinuation;
+        public bool QueryStarted;
+        public CommandContext()
+        {
+            this.IsDelete = false;
+            this.IsFeed = false;
+            this.HasContinuation = false;
+            this.QueryStarted = false;
+        }
+    }
+
     enum ResourceType
     {
         Document,
@@ -231,7 +246,9 @@ namespace Microsoft.Azure.DocumentDBStudio
         void myMenuItemDeleteDatabase_Click(object sender, EventArgs e)
         {
             string x = this.Tag.ToString();
-            Program.GetMain().SetCrudContext("Delete database", false, x, this.DeleteDatabase, true);
+            CommandContext context = new CommandContext();
+            context.IsDelete = true;
+            Program.GetMain().SetCrudContext("Delete database", false, x, this.DeleteDatabase, context);
         }
 
         void myMenuItemUpdateDatabase_Click(object sender, EventArgs e)
@@ -366,7 +383,8 @@ namespace Microsoft.Azure.DocumentDBStudio
     {
         private DocumentClient client;
         private ContextMenu contextMenu = new ContextMenu();
-
+        private string currentContinuation = null;
+        private CommandContext currentQueryCommandContext = null;
         public DocumentCollectionNode(DocumentClient client, Documents.DocumentCollection coll)
         {
             this.Text = coll.Id;
@@ -398,12 +416,17 @@ namespace Microsoft.Azure.DocumentDBStudio
             MenuItem myMenuItem2 = new MenuItem("Query Documents");
             myMenuItem2.Click += new EventHandler(myMenuItemQueryDocument_Click);
             this.contextMenu.MenuItems.Add(myMenuItem2);
+
+            this.currentQueryCommandContext = new CommandContext();
+            this.currentQueryCommandContext.IsFeed = true;
         }
 
         void myMenuItemDeleteDocumentCollection_Click(object sender, EventArgs e)
         {
             string x = this.Tag.ToString();
-            Program.GetMain().SetCrudContext("Delete DocumentCollection", false, x, this.DeleteDocumentCollection, true);
+            CommandContext context = new CommandContext();
+            context.IsDelete = true;
+            Program.GetMain().SetCrudContext("Delete DocumentCollection", false, x, this.DeleteDocumentCollection, context);
         }
 
         async void DeleteDocumentCollection(string text, string optional)
@@ -456,7 +479,8 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             // 
             Program.GetMain().SetCrudContext(string.Format("Query Documents from Collection {0}", (this.Tag as Documents.DocumentCollection).Id),
-                false, "select * from c", this.QueryDocuments);
+                false, "select * from c", this.QueryDocuments, this.currentQueryCommandContext);
+            
         }
 
 
@@ -491,9 +515,23 @@ namespace Microsoft.Azure.DocumentDBStudio
             try
             {
                 // text is the querytext.
-                IDocumentQuery<dynamic> q = this.client.CreateDocumentQuery((this.Tag as Documents.DocumentCollection).SelfLink,
-                    queryText, null).AsDocumentQuery();
+                IDocumentQuery<dynamic> q = null;
+                var maxItemCount = Program.GetMain().GetMaxItemCountValue();
+                if(!string.IsNullOrEmpty(this.currentContinuation))
+                {
+                    q = this.client.CreateDocumentQuery((this.Tag as Documents.DocumentCollection).SelfLink,
+                    queryText, new FeedOptions() { RequestContinuation = this.currentContinuation, MaxItemCount = maxItemCount }).AsDocumentQuery();
+                }
+                else
+                {
+                    q = this.client.CreateDocumentQuery((this.Tag as Documents.DocumentCollection).SelfLink,
+                    queryText, new FeedOptions() { MaxItemCount = maxItemCount }).AsDocumentQuery();
+                }
+
                 FeedResponse<dynamic> r = await q.ExecuteNextAsync();
+                this.currentContinuation = r.ResponseContinuation;
+                this.currentQueryCommandContext.HasContinuation = !string.IsNullOrEmpty(this.currentContinuation);
+                this.currentQueryCommandContext.QueryStarted = true;
 
                 // set the result window
                 string text = null;
@@ -523,7 +561,6 @@ namespace Microsoft.Azure.DocumentDBStudio
                 }
 
                 Program.GetMain().SetResultInBrowser(jsonarray, text, true, r.ResponseHeaders);
-
             }
             catch (AggregateException e)
             {
@@ -723,7 +760,9 @@ namespace Microsoft.Azure.DocumentDBStudio
         void myMenuItemDelete_Click(object sender, EventArgs e)
         {
             string x = this.Tag.ToString();
-            Program.GetMain().SetCrudContext("Delete " + this.resourceType.ToString(), false, x, this.DeleteNode, true);
+            CommandContext context = new CommandContext();
+            context.IsDelete = true;
+            Program.GetMain().SetCrudContext("Delete " + this.resourceType.ToString(), false, x, this.DeleteNode, context);
         }
 
         async void AddAttachment(string text, string optional)

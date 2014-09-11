@@ -64,6 +64,7 @@ namespace Microsoft.Azure.DocumentDBStudio
 
             this.splitContainerOuter.Panel1Collapsed = false;
             this.splitContainerInner.Panel1Collapsed = true;
+            this.ButtomSplitContainer.Panel1Collapsed = true;
 
             this.KeyPreview = true;
             this.PreviewKeyDown += new PreviewKeyDownEventHandler(MainForm_PreviewKeyDown);
@@ -95,7 +96,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.splitContainerIntabPage.Panel1Collapsed = true;
 
             this.toolStripBtnExecute.Enabled = false;
-
+            this.btnExecuteNext.Enabled = false;
             this.UnpackEmbeddedResources();
 
             this.tsbViewType.Checked = true;
@@ -456,6 +457,21 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
         }
 
+        public int GetMaxItemCountValue()
+        {
+            var maxItemCount = 10;
+            try 
+            {
+                maxItemCount = Convert.ToInt32(toolStripTextMaxItemCount.Text);
+            }
+            catch (Exception)
+            {
+                // Ignore the exception and use the defualt value
+            }
+
+            return maxItemCount;
+        }
+
         private void InitTreeView()
         {
             if (Settings.Default.AccountSettingsList == null)
@@ -548,14 +564,19 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
         }
 
-        public void SetCrudContext(string name, bool showId, string bodytext, Action<string, string> func, bool isDelete = false)
+        public void SetCrudContext(string name, bool showId, string bodytext, Action<string, string> func, CommandContext commandContext = null)
         {
+            if(commandContext == null)
+            {
+                commandContext = new CommandContext();
+            }
+
             this.currentOperation = func;
             this.tabCrudContext.Text = name;
             this.tbCrudContext.Text = bodytext;
 
             this.toolStripBtnExecute.Enabled = true;
-            this.tbCrudContext.ReadOnly = isDelete;
+            this.tbCrudContext.ReadOnly = commandContext.IsDelete;
 
             this.splitContainerInner.Panel1Collapsed = false;
             this.splitContainerIntabPage.Panel1Collapsed = !showId;
@@ -563,6 +584,13 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.tbResponse.Text = "";
 
             this.tabControl.SelectedTab = this.tabCrudContext;
+            this.ButtomSplitContainer.Panel1Collapsed = !commandContext.IsFeed;
+            this.SetNextPageVisibility(commandContext);
+        }
+
+        public void SetNextPageVisibility(CommandContext commandContext)
+        {
+            this.btnExecuteNext.Enabled = commandContext.HasContinuation || !commandContext.QueryStarted;
         }
 
         private void toolStripBtnExecute_Click(object sender, EventArgs e)
@@ -636,6 +664,19 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
         }
 
+        private void btnExecuteNext_Click(object sender, EventArgs e)
+        {
+            this.SetLoadingState();
+
+            if (!string.IsNullOrEmpty(this.tbCrudContext.SelectedText))
+            {
+                this.currentOperation(this.tbCrudContext.SelectedText, this.textBoxforId.Text);
+            }
+            else
+            {
+                this.currentOperation(this.tbCrudContext.Text, this.textBoxforId.Text);
+            }
+        }
     }
 
 

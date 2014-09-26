@@ -8,6 +8,7 @@ namespace Microsoft.Azure.DocumentDBStudio
     using System.Collections.Generic;
     using System.Drawing;
     using System.IO;
+    using System.Linq;
     using System.Threading.Tasks;
     using System.Windows.Forms;
     using Microsoft.Azure.DocumentDBStudio.Properties;
@@ -16,6 +17,7 @@ namespace Microsoft.Azure.DocumentDBStudio
     using Newtonsoft.Json;
     using Newtonsoft.Json.Serialization;
     using System.Text;
+    using Microsoft.Azure.Documents;
 
     internal class AccountSettings
     {
@@ -410,6 +412,9 @@ namespace Microsoft.Azure.DocumentDBStudio
             MenuItem myMenuItem9 = new MenuItem("Add Document From File");
             myMenuItem9.Click += new EventHandler(myMenuItemAddDocumentFromFile_Click);
             this.contextMenu.MenuItems.Add(myMenuItem9);
+            MenuItem myMenuItem4 = new MenuItem("Add Multiple Documents From Folder");
+            myMenuItem4.Click += new EventHandler(myMenuItemAddDocumentsFromFolder_Click);
+            this.contextMenu.MenuItems.Add(myMenuItem4);
             MenuItem myMenuItem1 = new MenuItem("Refresh Documents feed");
             myMenuItem1.Click += new EventHandler((sender, e) => Refresh(true));
             this.contextMenu.MenuItems.Add(myMenuItem1);
@@ -418,6 +423,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.contextMenu.MenuItems.Add(myMenuItem2);
         }
 
+       
         void myMenuItemDeleteDocumentCollection_Click(object sender, EventArgs e)
         {
             string x = this.Tag.ToString();
@@ -459,6 +465,47 @@ namespace Microsoft.Azure.DocumentDBStudio
                 string text = System.IO.File.ReadAllText(filename);
 
                 Program.GetMain().SetCrudContext("Add document", false, text, this.AddDocument);
+            }
+        }
+
+        async void myMenuItemAddDocumentsFromFolder_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog ofd = new OpenFileDialog();
+            ofd.Multiselect = true;
+
+            DialogResult dr = ofd.ShowDialog();
+
+            if (dr == DialogResult.OK)
+            {
+                string status = string.Format("Add {0} files in collection\r\n", ofd.FileNames.Length);
+                // Read the files 
+                foreach (String filename in ofd.FileNames)
+                {
+
+                    // right now assume every file is JSON content
+                    string jsonText = System.IO.File.ReadAllText(filename);
+                    string fileRootName = Path.GetFileName(filename);
+
+                    object document = JsonConvert.DeserializeObject(jsonText);
+
+                    try
+                    {
+                        ResourceResponse<Documents.Document> newdocument = await this.client.CreateDocumentAsync((this.Tag as Documents.DocumentCollection).SelfLink, document);
+                        status += string.Format("Succeed adding {0} \r\n", fileRootName);
+
+                    }
+                    catch (DocumentClientException ex)
+                    {
+                        status += string.Format("Failed adding {0}, statusCode={1} \r\n", fileRootName, ex.StatusCode);
+                    }
+                    catch (Exception ex)
+                    {
+                        status += string.Format("Failed adding {0}, unknown exception \r\n", fileRootName, ex.Message);
+                    }
+
+                    Program.GetMain().SetResultInBrowser(null, status, false);
+
+                }
             }
         }
 
@@ -547,14 +594,16 @@ namespace Microsoft.Azure.DocumentDBStudio
                 foreach (dynamic d in r)
                 {
                     index++;
+                    // currently Query.ToString() has Formatting.Indented, but the public release doesn't have yet.
                     jsonarray += d.ToString();
+
                     if (index == r.Count)
                     {
                         jsonarray += "]";
                     }
                     else
                     {
-                        jsonarray += ",";
+                        jsonarray += ",\r\n";
                     }
                 }
 
@@ -749,7 +798,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                         };
 
                         ResourceResponse<Documents.Attachment> rr = await this.client.CreateAttachmentAsync((this.Tag as Documents.Document).AttachmentsLink,
-                            stream);
+                            stream, options);
                         string json = rr.Resource.ToString();
 
                         Program.GetMain().SetResultInBrowser(json, null, false, rr.ResponseHeaders);
@@ -1204,7 +1253,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             myMenuItem.Click += new EventHandler(myMenuItemAddUDF_Click);
             this.contextMenu.MenuItems.Add(myMenuItem);
             MenuItem myMenuItem2 = new MenuItem("Add UserDefinedFunction from File");
-            myMenuItem2.Click += new EventHandler(myMenuItemAddUDF_Click);
+            myMenuItem2.Click += new EventHandler(myMenuItemAddUDFFromFile_Click);
             this.contextMenu.MenuItems.Add(myMenuItem2);
             MenuItem myMenuItem1 = new MenuItem("Refresh UserDefinedFunction feed");
             myMenuItem1.Click += new EventHandler((sender, e) => Refresh(true));

@@ -99,6 +99,10 @@ namespace Microsoft.Azure.DocumentDBStudio
             myMenuItem1.Click += new EventHandler((sender, e) => Refresh(true));
             this.contextMenu.MenuItems.Add(myMenuItem1);
 
+            MenuItem myMenuItem4 = new MenuItem("Query Database");
+            myMenuItem4.Click += new EventHandler(myMenuItemQueryDatabase_Click);
+            this.contextMenu.MenuItems.Add(myMenuItem4);
+
             this.contextMenu.MenuItems.Add("-");
 
             MenuItem myMenuItem2 = new MenuItem("Remove setting");
@@ -127,6 +131,12 @@ namespace Microsoft.Azure.DocumentDBStudio
             Program.GetMain().SetCrudContext("Add database", false, x, this.AddDatabase);
         }
 
+        void myMenuItemQueryDatabase_Click(object sender, EventArgs e)
+        {
+            Program.GetMain().SetCrudContext(string.Format("Query Database"),
+                false, "select * from c", this.QueryDatabases);
+        }
+
         void myMenuItemRemoveDatabaseAccount_Click(object sender, EventArgs e)
         {
             // 
@@ -134,6 +144,55 @@ namespace Microsoft.Azure.DocumentDBStudio
             Program.GetMain().RemoveAccountFromSettings(this.accountEndpoint);
         }
 
+        async void QueryDatabases(string queryText, string optional)
+        {
+            try
+            {
+                // text is the querytext.
+                IDocumentQuery<dynamic> q = this.client.CreateDatabaseQuery(queryText).AsDocumentQuery();
+
+                FeedResponse<Database> r = await q.ExecuteNextAsync<Database>();
+
+                // set the result window
+                string text = null;
+                if (r.Count > 1)
+                {
+                    text = string.Format("Returned {0} dataqbases", r.Count);
+                }
+                else
+                {
+                    text = string.Format("Returned {0} dataqbases", r.Count);
+                }
+
+                string jsonarray = "[";
+                int index = 0;
+                foreach (dynamic d in r)
+                {
+                    index++;
+                    // currently Query.ToString() has Formatting.Indented, but the public release doesn't have yet.
+                    jsonarray += d.ToString();
+
+                    if (index == r.Count)
+                    {
+                        jsonarray += "]";
+                    }
+                    else
+                    {
+                        jsonarray += ",\r\n";
+                    }
+                }
+
+                Program.GetMain().SetResultInBrowser(jsonarray, text, true, r.ResponseHeaders);
+            }
+            catch (AggregateException e)
+            {
+                Program.GetMain().SetResultInBrowser(null, e.InnerException.ToString(), true);
+            }
+            catch (Exception e)
+            {
+                Program.GetMain().SetResultInBrowser(null, e.ToString(), true);
+            }
+        }
         private async void FillWithChildren()
         {
             try
@@ -1686,11 +1745,72 @@ namespace Microsoft.Azure.DocumentDBStudio
             MenuItem myMenuItem1 = new MenuItem("Refresh Conflict feed");
             myMenuItem1.Click += new EventHandler((sender, e) => Refresh(true));
             this.contextMenu.MenuItems.Add(myMenuItem1);
+
+            // Query conflicts currrently fail due to gateway
+            //MenuItem myMenuItem2 = new MenuItem("Query Conflict feed");
+            //myMenuItem2.Click += new EventHandler(myMenuItemQueryConflicts_Click);
+            //this.contextMenu.MenuItems.Add(myMenuItem2);
         }
 
         override public void ShowContextMenu(TreeView treeview, Point p)
         {
             this.contextMenu.Show(treeview, p);
+        }
+
+        void myMenuItemQueryConflicts_Click(object sender, EventArgs e)
+        {
+            Program.GetMain().SetCrudContext(string.Format("Query Conflicts"),
+                false, "select * from c", this.QueryConflicts);
+        }
+
+        async void QueryConflicts(string queryText, string optional)
+        {
+            try
+            {
+                // text is the querytext.
+                IDocumentQuery<dynamic> q = this.client.CreateConflictQuery((this.Parent.Tag as Documents.DocumentCollection).ConflictsLink, queryText).AsDocumentQuery();
+
+                FeedResponse<Database> r = await q.ExecuteNextAsync<Database>();
+
+                // set the result window
+                string text = null;
+                if (r.Count > 1)
+                {
+                    text = string.Format("Returned {0} Conflict", r.Count);
+                }
+                else
+                {
+                    text = string.Format("Returned {0} Conflict", r.Count);
+                }
+
+                string jsonarray = "[";
+                int index = 0;
+                foreach (dynamic d in r)
+                {
+                    index++;
+                    // currently Query.ToString() has Formatting.Indented, but the public release doesn't have yet.
+                    jsonarray += d.ToString();
+
+                    if (index == r.Count)
+                    {
+                        jsonarray += "]";
+                    }
+                    else
+                    {
+                        jsonarray += ",\r\n";
+                    }
+                }
+
+                Program.GetMain().SetResultInBrowser(jsonarray, text, true, r.ResponseHeaders);
+            }
+            catch (AggregateException e)
+            {
+                Program.GetMain().SetResultInBrowser(null, e.InnerException.ToString(), true);
+            }
+            catch (Exception e)
+            {
+                Program.GetMain().SetResultInBrowser(null, e.ToString(), true);
+            }
         }
 
         override public void Refresh(bool forceRefresh)

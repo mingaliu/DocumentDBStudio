@@ -494,8 +494,9 @@ namespace Microsoft.Azure.DocumentDBStudio
                     new ConnectionPolicy { ConnectionMode = accountSettings.ConnectionMode, ConnectionProtocol = accountSettings.Protocol });
 
                 DatabaseAccountNode dbaNode = new DatabaseAccountNode(accountEndpoint, client);
-
                 this.treeView1.Nodes.Add(dbaNode);
+
+                dbaNode.Tag = client.GetDatabaseAccountAsync().Result;
             }
             catch (Exception e)
             {

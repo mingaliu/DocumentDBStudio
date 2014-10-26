@@ -18,6 +18,7 @@ namespace Microsoft.Azure.DocumentDBStudio
     using Newtonsoft.Json.Serialization;
     using System.Text;
     using Microsoft.Azure.Documents;
+    using System.Diagnostics;
 
     internal class AccountSettings
     {
@@ -632,7 +633,9 @@ namespace Microsoft.Azure.DocumentDBStudio
                     queryText, new FeedOptions() { MaxItemCount = maxItemCount }).AsDocumentQuery();
                 }
 
+                Stopwatch sw = Stopwatch.StartNew();
                 FeedResponse<dynamic> r = await q.ExecuteNextAsync();
+                sw.Stop();
                 this.currentContinuation = r.ResponseContinuation;
                 this.currentQueryCommandContext.HasContinuation = !string.IsNullOrEmpty(this.currentContinuation);
                 this.currentQueryCommandContext.QueryStarted = true;
@@ -641,11 +644,11 @@ namespace Microsoft.Azure.DocumentDBStudio
                 string text = null;
                 if (r.Count > 1)
                 {
-                    text = string.Format("Returned {0} documents", r.Count);
+                    text = string.Format("Returned {0} documents in {1} ms", r.Count, sw.ElapsedMilliseconds);
                 }
                 else
                 {
-                    text = string.Format("Returned {0} document", r.Count);
+                    text = string.Format("Returned {0} documents in {1} ms", r.Count, sw.ElapsedMilliseconds);
                 }
 
                 string jsonarray = "[";

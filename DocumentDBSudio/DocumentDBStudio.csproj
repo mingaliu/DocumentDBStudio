@@ -186,6 +186,7 @@
     <Content Include="Resources\database.png" />
     <Content Include="Resources\DocDB.png" />
     <Content Include="Resources\Feed.png" />
+    <Content Include="Resources\go_next_page.png" />
     <Content Include="Resources\Javascript.png" />
     <Content Include="Resources\Permission.png" />
     <EmbeddedResource Include="Resources\prettyJSON\backbone-min.js" />

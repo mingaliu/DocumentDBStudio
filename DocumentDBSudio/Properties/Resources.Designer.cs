@@ -163,6 +163,16 @@ namespace Microsoft.Azure.DocumentDBStudio.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap NextPagepng {
+            get {
+                object obj = ResourceManager.GetObject("NextPagepng", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap Permissionpng {
             get {
                 object obj = ResourceManager.GetObject("Permissionpng", resourceCulture);

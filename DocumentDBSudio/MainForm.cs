@@ -31,10 +31,14 @@ namespace Microsoft.Azure.DocumentDBStudio
         private string homepage;
 
         private string appTempPath;
-        Action<string, string> currentOperation;
+        Action<string, object> currentOperation;
 
         private RequestOptions requestOptions;
         CheckBox cbEnableScan;
+
+        private DocumentCollection collectionToCreate;
+
+        private String currentCrudName;
 
         public MainForm()
         {
@@ -79,7 +83,8 @@ namespace Microsoft.Azure.DocumentDBStudio
 
             this.tabControl.SelectedTab = this.tabCrudContext;
             this.tabControl.TabPages.Remove(this.tabRequest);
-
+            this.tabControl.TabPages.Remove(this.tabDocumentCollectionPolicy);
+            
             ImageList imageList = new ImageList();
             imageList.Images.Add("Default", Resources.DocDBpng);
             imageList.Images.Add("Feed", Resources.Feedpng);
@@ -106,12 +111,15 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.btnHeaders.Checked = false;
 
             this.cbRequestOptionsApply_CheckedChanged(null, null);
+            this.cbIndexingPolicyDefault_CheckedChanged(null, null);
 
             cbEnableScan = new CheckBox();
             cbEnableScan.Text = "EnableScanInQuery";
             cbEnableScan.CheckState = CheckState.Indeterminate;
             ToolStripControlHost host = new ToolStripControlHost(cbEnableScan);
             feedToolStrip.Items.Insert(1, host);
+
+            lbIncludedPath.Items.Add(new IndexingPath() { Path = "/", IndexType = IndexType.Hash });
         }
 
 
@@ -591,12 +599,14 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
         }
 
-        public void SetCrudContext(string name, bool showId, string bodytext, Action<string, string> func, CommandContext commandContext = null)
+        public void SetCrudContext(string name, bool showId, string bodytext, Action<string, object> func, CommandContext commandContext = null)
         {
             if(commandContext == null)
             {
                 commandContext = new CommandContext();
             }
+
+            this.currentCrudName = name;
 
             this.currentOperation = func;
             this.tabCrudContext.Text = name;
@@ -610,9 +620,27 @@ namespace Microsoft.Azure.DocumentDBStudio
 
             this.tbResponse.Text = "";
 
-            this.tabControl.SelectedTab = this.tabCrudContext;
             this.ButtomSplitContainer.Panel1Collapsed = !commandContext.IsFeed;
             this.SetNextPageVisibility(commandContext);
+
+            if (string.Compare(name, "Add documentCollection", true) == 0)
+            {
+                if (this.tabControl.TabPages.Contains(this.tabCrudContext))
+                {
+                    this.tabControl.TabPages.Insert(0, this.tabDocumentCollectionPolicy);
+                    this.tabControl.TabPages.Remove(this.tabCrudContext);
+                }
+                this.tabControl.SelectedTab = this.tabDocumentCollectionPolicy;
+            }
+            else
+            {
+                if (this.tabControl.TabPages.Contains(this.tabDocumentCollectionPolicy))
+                {
+                    this.tabControl.TabPages.Remove(this.tabDocumentCollectionPolicy);
+                    this.tabControl.TabPages.Insert(0, this.tabCrudContext);
+                }
+                this.tabControl.SelectedTab = this.tabCrudContext;
+            }
         }
 
         public void SetNextPageVisibility(CommandContext commandContext)
@@ -624,13 +652,35 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             this.SetLoadingState();
 
-            if (!string.IsNullOrEmpty(this.tbCrudContext.SelectedText))
+            if (string.Compare(this.currentCrudName, "Add documentCollection", true) == 0)
             {
-                this.currentOperation(this.tbCrudContext.SelectedText, this.textBoxforId.Text);
+                this.collectionToCreate.IndexingPolicy.IncludedPaths.Clear();
+                foreach (object item in lbIncludedPath.Items)
+                {
+                    IndexingPath path = item as IndexingPath;
+                    this.collectionToCreate.IndexingPolicy.IncludedPaths.Add(path);
+                }
+
+                this.collectionToCreate.IndexingPolicy.ExcludedPaths.Clear();
+                foreach (object item in lbExcludedPath.Items)
+                {
+                    String path = item as String;
+                    this.collectionToCreate.IndexingPolicy.ExcludedPaths.Add(path);
+                }
+
+                collectionToCreate.Id = tbCollectionId.Text;
+                this.currentOperation(null, collectionToCreate);
             }
             else
             {
-                this.currentOperation(this.tbCrudContext.Text, this.textBoxforId.Text);
+                if (!string.IsNullOrEmpty(this.tbCrudContext.SelectedText))
+                {
+                    this.currentOperation(this.tbCrudContext.SelectedText, this.textBoxforId.Text);
+                }
+                else
+                {
+                    this.currentOperation(this.tbCrudContext.Text, this.textBoxforId.Text);
+                }
             }
         }
 
@@ -694,6 +744,7 @@ namespace Microsoft.Azure.DocumentDBStudio
         private void btnExecuteNext_Click(object sender, EventArgs e)
         {
             this.SetLoadingState();
+
 
             if (!string.IsNullOrEmpty(this.tbCrudContext.SelectedText))
             {
@@ -892,6 +943,160 @@ namespace Microsoft.Azure.DocumentDBStudio
                 this.requestOptions.PostTriggerInclude = segments;
             }
         }
+
+        private void btnAddIncludePath_Click(object sender, EventArgs e)
+        {
+            IndexingPathForm dlg = new IndexingPathForm();
+            DialogResult dr = dlg.ShowDialog(this);
+            if (dr == DialogResult.OK)
+            {
+                this.lbIncludedPath.Items.Add(dlg.IndexingPath);
+            }
+        }
+
+        private void btnRemovePath_Click(object sender, EventArgs e)
+        {
+            this.lbIncludedPath.Items.RemoveAt(this.lbIncludedPath.SelectedIndex);
+        }
+
+        private void lbIncludedPath_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (this.lbIncludedPath.SelectedItem != null)
+            {
+                btnEdit.Enabled = true;
+                btnRemovePath.Enabled = true;
+            }
+            else
+            {
+                btnEdit.Enabled = false;
+                btnRemovePath.Enabled = false;
+            }
+        }
+
+        private void btnEdit_Click(object sender, EventArgs e)
+        {
+            IndexingPath path = this.lbIncludedPath.SelectedItem as IndexingPath ;
+
+            IndexingPathForm dlg = new IndexingPathForm();
+
+            dlg.SetIndexingPath(path);
+
+            DialogResult dr = dlg.ShowDialog(this);
+            if (dr == DialogResult.OK)
+            {
+                this.lbIncludedPath.Items[this.lbIncludedPath.SelectedIndex] = path;
+            }
+        }
+
+        private void btnAddExcludedPath_Click(object sender, EventArgs e)
+        {
+            ExcludedPathForm dlg = new ExcludedPathForm();
+            DialogResult dr = dlg.ShowDialog(this);
+            if (dr == DialogResult.OK)
+            {
+                this.lbExcludedPath.Items.Add(dlg.ExcludedPath);
+            }
+        }
+
+        private void btnRemoveExcludedPath_Click(object sender, EventArgs e)
+        {
+            this.lbExcludedPath.Items.RemoveAt(this.lbExcludedPath.SelectedIndex);
+        }
+
+        private void lbExcludedPath_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (this.lbExcludedPath.SelectedItem != null)
+            {
+                btnRemoveExcludedPath.Enabled = true;
+            }
+            else
+            {
+                btnRemoveExcludedPath.Enabled = false;
+            }
+        }
+
+        private void cbIndexingPolicyDefault_CheckedChanged(object sender, EventArgs e)
+        {
+            if (cbIndexingPolicyDefault.Checked)
+            {
+                cbAutomatic.Enabled = false;
+                rbConsistent.Enabled = false;
+                rbLazy.Enabled = false;
+
+                lbIncludedPath.Enabled = false;
+                btnAddIncludePath.Enabled = false;
+                btnRemovePath.Enabled = false;
+                btnEdit.Enabled = false;
+
+                lbExcludedPath.Enabled = false;
+                btnAddExcludedPath.Enabled = false;
+                btnRemoveExcludedPath.Enabled = false;
+
+                this.collectionToCreate = new DocumentCollection();
+            }
+            else
+            {
+                cbAutomatic.Enabled = true;
+                rbConsistent.Enabled = true;
+                rbLazy.Enabled = true;
+
+                lbIncludedPath.Enabled = true;
+                btnAddIncludePath.Enabled = true;
+                btnRemovePath.Enabled = false;
+                btnEdit.Enabled = false;
+
+                lbExcludedPath.Enabled = true;
+                btnAddExcludedPath.Enabled = true;
+                btnRemoveExcludedPath.Enabled = false;
+
+                this.CreateDefaultIndexingPolicy();
+            }
+        }
+
+
+        private void CreateDefaultIndexingPolicy()
+        {
+            this.collectionToCreate.IndexingPolicy.Automatic = cbAutomatic.Checked;
+
+            if (this.rbConsistent.Checked)
+            {
+                this.collectionToCreate.IndexingPolicy.IndexingMode = IndexingMode.Consistent;
+            }
+            else
+            {
+                this.collectionToCreate.IndexingPolicy.IndexingMode = IndexingMode.Lazy;
+            }
+        }
+
+        private void cbAutomatic_CheckedChanged(object sender, EventArgs e)
+        {
+            this.collectionToCreate.IndexingPolicy.Automatic = cbAutomatic.Checked;
+        }
+
+        private void rbConsistent_CheckedChanged(object sender, EventArgs e)
+        {
+            if (this.rbConsistent.Checked)
+            {
+                this.collectionToCreate.IndexingPolicy.IndexingMode = IndexingMode.Consistent;
+            }
+            else
+            {
+                this.collectionToCreate.IndexingPolicy.IndexingMode = IndexingMode.Lazy;
+            }
+        }
+
+        private void rbLazy_CheckedChanged(object sender, EventArgs e)
+        {
+            if (this.rbConsistent.Checked)
+            {
+                this.collectionToCreate.IndexingPolicy.IndexingMode = IndexingMode.Consistent;
+            }
+            else
+            {
+                this.collectionToCreate.IndexingPolicy.IndexingMode = IndexingMode.Lazy;
+            }
+        }
+
 
     }
 

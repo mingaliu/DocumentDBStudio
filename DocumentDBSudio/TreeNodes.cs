@@ -144,7 +144,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             Program.GetMain().RemoveAccountFromSettings(this.accountEndpoint);
         }
 
-        async void QueryDatabases(string queryText, string optional)
+        async void QueryDatabases(string queryText, object optional)
         {
             try
             {
@@ -241,7 +241,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
         }
 
-        async void AddDatabase(string text, string optional)
+        async void AddDatabase(string text, object optional)
         {
             try
             {
@@ -345,11 +345,11 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
         }
 
-        async void AddDocumentCollection(string text, string optional)
+        async void AddDocumentCollection(string text, object optional)
         {
             try
             {
-                Documents.DocumentCollection coll = (Documents.DocumentCollection)JsonConvert.DeserializeObject(text, typeof(Documents.DocumentCollection));
+                DocumentCollection coll = optional as DocumentCollection;
                 Documents.Database db = (Documents.Database)this.Tag;
 
                 ResourceResponse<Documents.DocumentCollection> newcoll = await this.client.CreateDocumentCollectionAsync(db.SelfLink, coll, Program.GetMain().GetRequestOptions());
@@ -371,7 +371,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
         }
 
-        async void UpdateDatabase(string text, string optional)
+        async void UpdateDatabase(string text, object optional)
         {
             try
             {
@@ -394,7 +394,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
         }
 
-        async void DeleteDatabase(string text, string optional)
+        async void DeleteDatabase(string text, object optional)
         {
             try
             {
@@ -491,7 +491,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             Program.GetMain().SetCrudContext("Delete DocumentCollection", false, x, this.DeleteDocumentCollection, context);
         }
 
-        async void DeleteDocumentCollection(string text, string optional)
+        async void DeleteDocumentCollection(string text, object optional)
         {
             try
             {
@@ -588,7 +588,7 @@ namespace Microsoft.Azure.DocumentDBStudio
         }
 
 
-        async void AddDocument(string text, string optional)
+        async void AddDocument(string text, object optional)
         {
             try
             {
@@ -614,7 +614,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
         }
 
-        async void QueryDocuments(string queryText, string optional)
+        async void QueryDocuments(string queryText, object optional)
         {
             try
             {
@@ -885,7 +885,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             Program.GetMain().SetCrudContext("Delete " + this.resourceType.ToString(), false, x, this.DeleteNode, context);
         }
 
-        async void AddAttachment(string text, string optional)
+        async void AddAttachment(string text, object optional)
         {
             try
             {
@@ -910,7 +910,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
         }
 
-        async void ExecuteStoredProcedure(string text, string optional)
+        async void ExecuteStoredProcedure(string text, object optional)
         {
             try
             {
@@ -946,8 +946,9 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
         }
 
-        async void UpdateNode(string text, string optional)
+        async void UpdateNode(string text, object optionalObject)
         {
+            string optional = optionalObject as string;
             try
             {
                 string json = null;
@@ -1039,7 +1040,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
         }
 
-        async void DeleteNode(string text, string optional)
+        async void DeleteNode(string text, object optional)
         {
             try
             {
@@ -1223,8 +1224,9 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
         }
 
-        async void AddStoredProcedure(string body, string id)
+        async void AddStoredProcedure(string body, object idobject)
         {
+            string id = idobject as string;
             try
             {
                 Documents.StoredProcedure sp = new Documents.StoredProcedure();
@@ -1338,8 +1340,9 @@ namespace Microsoft.Azure.DocumentDBStudio
                 Program.GetMain().SetCrudContext("Add UDF", false, text, this.AddUDF);
             }
         }
-        async void AddUDF(string body, string id)
+        async void AddUDF(string body, object idObject)
         {
+            string id = idObject as string;
             try
             {
                 Documents.UserDefinedFunction udf = new Documents.UserDefinedFunction();
@@ -1454,8 +1457,9 @@ namespace Microsoft.Azure.DocumentDBStudio
                 true, "function() { \r\n \r\n}", this.AddTrigger);
         }
 
-        async void AddTrigger(string body, string id)
+        async void AddTrigger(string body, object idObject)
         {
+            string id = idObject as string;
             try
             {
                 Documents.Trigger trigger = new Documents.Trigger();
@@ -1557,7 +1561,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 false, x, this.AddUser);
         }
 
-        async void AddUser(string body, string id)
+        async void AddUser(string body, object id)
         {
             try
             {
@@ -1659,7 +1663,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 false, x, this.AddPermission);
         }
 
-        async void AddPermission(string body, string id)
+        async void AddPermission(string body, object id)
         {
             try
             {
@@ -1761,7 +1765,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 false, "select * from c", this.QueryConflicts);
         }
 
-        async void QueryConflicts(string queryText, string optional)
+        async void QueryConflicts(string queryText, object optional)
         {
             try
             {

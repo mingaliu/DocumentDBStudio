@@ -65,6 +65,23 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.rbIndexingExclude = new System.Windows.Forms.RadioButton();
             this.rbIndexingInclude = new System.Windows.Forms.RadioButton();
             this.rbIndexingDefault = new System.Windows.Forms.RadioButton();
+            this.tabDocumentCollectionPolicy = new System.Windows.Forms.TabPage();
+            this.btnRemoveExcludedPath = new System.Windows.Forms.Button();
+            this.btnAddExcludedPath = new System.Windows.Forms.Button();
+            this.label3 = new System.Windows.Forms.Label();
+            this.lbExcludedPath = new System.Windows.Forms.ListBox();
+            this.btnEdit = new System.Windows.Forms.Button();
+            this.btnRemovePath = new System.Windows.Forms.Button();
+            this.label2 = new System.Windows.Forms.Label();
+            this.btnAddIncludePath = new System.Windows.Forms.Button();
+            this.lbIncludedPath = new System.Windows.Forms.ListBox();
+            this.labelCollectionId = new System.Windows.Forms.Label();
+            this.tbCollectionId = new System.Windows.Forms.TextBox();
+            this.cbIndexingPolicyDefault = new System.Windows.Forms.CheckBox();
+            this.groupBox4 = new System.Windows.Forms.GroupBox();
+            this.rbLazy = new System.Windows.Forms.RadioButton();
+            this.rbConsistent = new System.Windows.Forms.RadioButton();
+            this.cbAutomatic = new System.Windows.Forms.CheckBox();
             this.ButtomSplitContainer = new System.Windows.Forms.SplitContainer();
             this.feedToolStrip = new System.Windows.Forms.ToolStrip();
             this.toolStripTextMaxItemCount = new System.Windows.Forms.ToolStripTextBox();
@@ -124,6 +141,8 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.groupBox3.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.groupBox1.SuspendLayout();
+            this.tabDocumentCollectionPolicy.SuspendLayout();
+            this.groupBox4.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.ButtomSplitContainer)).BeginInit();
             this.ButtomSplitContainer.Panel1.SuspendLayout();
             this.ButtomSplitContainer.Panel2.SuspendLayout();
@@ -226,6 +245,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.tabControl.Controls.Add(this.tabCrudContext);
             this.tabControl.Controls.Add(this.tabResponse);
             this.tabControl.Controls.Add(this.tabPageRequestOptions);
+            this.tabControl.Controls.Add(this.tabDocumentCollectionPolicy);
             this.tabControl.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tabControl.Location = new System.Drawing.Point(0, 0);
             this.tabControl.Margin = new System.Windows.Forms.Padding(4);
@@ -563,6 +583,197 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.rbIndexingDefault.Text = "Default";
             this.rbIndexingDefault.UseVisualStyleBackColor = true;
             this.rbIndexingDefault.CheckedChanged += new System.EventHandler(this.rbIndexingDefault_CheckedChanged);
+            // 
+            // tabDocumentCollectionPolicy
+            // 
+            this.tabDocumentCollectionPolicy.Controls.Add(this.btnRemoveExcludedPath);
+            this.tabDocumentCollectionPolicy.Controls.Add(this.btnAddExcludedPath);
+            this.tabDocumentCollectionPolicy.Controls.Add(this.label3);
+            this.tabDocumentCollectionPolicy.Controls.Add(this.lbExcludedPath);
+            this.tabDocumentCollectionPolicy.Controls.Add(this.btnEdit);
+            this.tabDocumentCollectionPolicy.Controls.Add(this.btnRemovePath);
+            this.tabDocumentCollectionPolicy.Controls.Add(this.label2);
+            this.tabDocumentCollectionPolicy.Controls.Add(this.btnAddIncludePath);
+            this.tabDocumentCollectionPolicy.Controls.Add(this.lbIncludedPath);
+            this.tabDocumentCollectionPolicy.Controls.Add(this.labelCollectionId);
+            this.tabDocumentCollectionPolicy.Controls.Add(this.tbCollectionId);
+            this.tabDocumentCollectionPolicy.Controls.Add(this.cbIndexingPolicyDefault);
+            this.tabDocumentCollectionPolicy.Controls.Add(this.groupBox4);
+            this.tabDocumentCollectionPolicy.Controls.Add(this.cbAutomatic);
+            this.tabDocumentCollectionPolicy.Location = new System.Drawing.Point(4, 26);
+            this.tabDocumentCollectionPolicy.Name = "tabDocumentCollectionPolicy";
+            this.tabDocumentCollectionPolicy.Padding = new System.Windows.Forms.Padding(3);
+            this.tabDocumentCollectionPolicy.Size = new System.Drawing.Size(937, 131);
+            this.tabDocumentCollectionPolicy.TabIndex = 4;
+            this.tabDocumentCollectionPolicy.Text = "IndexingPolicy";
+            this.tabDocumentCollectionPolicy.UseVisualStyleBackColor = true;
+            // 
+            // btnRemoveExcludedPath
+            // 
+            this.btnRemoveExcludedPath.Enabled = false;
+            this.btnRemoveExcludedPath.Location = new System.Drawing.Point(856, 102);
+            this.btnRemoveExcludedPath.Name = "btnRemoveExcludedPath";
+            this.btnRemoveExcludedPath.Size = new System.Drawing.Size(75, 23);
+            this.btnRemoveExcludedPath.TabIndex = 13;
+            this.btnRemoveExcludedPath.Text = "Remove";
+            this.btnRemoveExcludedPath.UseVisualStyleBackColor = true;
+            this.btnRemoveExcludedPath.Click += new System.EventHandler(this.btnRemoveExcludedPath_Click);
+            // 
+            // btnAddExcludedPath
+            // 
+            this.btnAddExcludedPath.Location = new System.Drawing.Point(765, 102);
+            this.btnAddExcludedPath.Name = "btnAddExcludedPath";
+            this.btnAddExcludedPath.Size = new System.Drawing.Size(76, 23);
+            this.btnAddExcludedPath.TabIndex = 12;
+            this.btnAddExcludedPath.Text = "Add";
+            this.btnAddExcludedPath.UseVisualStyleBackColor = true;
+            this.btnAddExcludedPath.Click += new System.EventHandler(this.btnAddExcludedPath_Click);
+            // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Location = new System.Drawing.Point(652, 4);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(98, 17);
+            this.label3.TabIndex = 11;
+            this.label3.Text = "Excluded Path";
+            // 
+            // lbExcludedPath
+            // 
+            this.lbExcludedPath.FormattingEnabled = true;
+            this.lbExcludedPath.ItemHeight = 17;
+            this.lbExcludedPath.Location = new System.Drawing.Point(655, 24);
+            this.lbExcludedPath.Name = "lbExcludedPath";
+            this.lbExcludedPath.Size = new System.Drawing.Size(279, 72);
+            this.lbExcludedPath.TabIndex = 10;
+            this.lbExcludedPath.SelectedIndexChanged += new System.EventHandler(this.lbExcludedPath_SelectedIndexChanged);
+            // 
+            // btnEdit
+            // 
+            this.btnEdit.Enabled = false;
+            this.btnEdit.Location = new System.Drawing.Point(552, 102);
+            this.btnEdit.Name = "btnEdit";
+            this.btnEdit.Size = new System.Drawing.Size(81, 23);
+            this.btnEdit.TabIndex = 9;
+            this.btnEdit.Text = "Edit";
+            this.btnEdit.UseVisualStyleBackColor = true;
+            this.btnEdit.Click += new System.EventHandler(this.btnEdit_Click);
+            // 
+            // btnRemovePath
+            // 
+            this.btnRemovePath.Enabled = false;
+            this.btnRemovePath.Location = new System.Drawing.Point(444, 102);
+            this.btnRemovePath.Name = "btnRemovePath";
+            this.btnRemovePath.Size = new System.Drawing.Size(75, 23);
+            this.btnRemovePath.TabIndex = 8;
+            this.btnRemovePath.Text = "Remove";
+            this.btnRemovePath.UseVisualStyleBackColor = true;
+            this.btnRemovePath.Click += new System.EventHandler(this.btnRemovePath_Click);
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(332, 7);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(94, 17);
+            this.label2.TabIndex = 7;
+            this.label2.Text = "Included Path";
+            // 
+            // btnAddIncludePath
+            // 
+            this.btnAddIncludePath.Location = new System.Drawing.Point(335, 102);
+            this.btnAddIncludePath.Name = "btnAddIncludePath";
+            this.btnAddIncludePath.Size = new System.Drawing.Size(76, 23);
+            this.btnAddIncludePath.TabIndex = 6;
+            this.btnAddIncludePath.Text = "Add";
+            this.btnAddIncludePath.UseVisualStyleBackColor = true;
+            this.btnAddIncludePath.Click += new System.EventHandler(this.btnAddIncludePath_Click);
+            // 
+            // lbIncludedPath
+            // 
+            this.lbIncludedPath.FormattingEnabled = true;
+            this.lbIncludedPath.ItemHeight = 17;
+            this.lbIncludedPath.Location = new System.Drawing.Point(335, 24);
+            this.lbIncludedPath.Name = "lbIncludedPath";
+            this.lbIncludedPath.Size = new System.Drawing.Size(298, 72);
+            this.lbIncludedPath.TabIndex = 5;
+            this.lbIncludedPath.SelectedIndexChanged += new System.EventHandler(this.lbIncludedPath_SelectedIndexChanged);
+            // 
+            // labelCollectionId
+            // 
+            this.labelCollectionId.AutoSize = true;
+            this.labelCollectionId.Location = new System.Drawing.Point(17, 7);
+            this.labelCollectionId.Name = "labelCollectionId";
+            this.labelCollectionId.Size = new System.Drawing.Size(23, 17);
+            this.labelCollectionId.TabIndex = 4;
+            this.labelCollectionId.Text = "Id:";
+            // 
+            // tbCollectionId
+            // 
+            this.tbCollectionId.Location = new System.Drawing.Point(42, 4);
+            this.tbCollectionId.Name = "tbCollectionId";
+            this.tbCollectionId.Size = new System.Drawing.Size(267, 23);
+            this.tbCollectionId.TabIndex = 3;
+            this.tbCollectionId.Text = "DocumentCollection Id";
+            // 
+            // cbIndexingPolicyDefault
+            // 
+            this.cbIndexingPolicyDefault.AutoSize = true;
+            this.cbIndexingPolicyDefault.Checked = true;
+            this.cbIndexingPolicyDefault.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.cbIndexingPolicyDefault.Location = new System.Drawing.Point(20, 41);
+            this.cbIndexingPolicyDefault.Name = "cbIndexingPolicyDefault";
+            this.cbIndexingPolicyDefault.Size = new System.Drawing.Size(101, 21);
+            this.cbIndexingPolicyDefault.TabIndex = 2;
+            this.cbIndexingPolicyDefault.Text = "Use Default";
+            this.cbIndexingPolicyDefault.UseVisualStyleBackColor = true;
+            this.cbIndexingPolicyDefault.CheckedChanged += new System.EventHandler(this.cbIndexingPolicyDefault_CheckedChanged);
+            // 
+            // groupBox4
+            // 
+            this.groupBox4.Controls.Add(this.rbLazy);
+            this.groupBox4.Controls.Add(this.rbConsistent);
+            this.groupBox4.Location = new System.Drawing.Point(146, 41);
+            this.groupBox4.Name = "groupBox4";
+            this.groupBox4.Size = new System.Drawing.Size(163, 77);
+            this.groupBox4.TabIndex = 1;
+            this.groupBox4.TabStop = false;
+            this.groupBox4.Text = "IndexingMode";
+            // 
+            // rbLazy
+            // 
+            this.rbLazy.AutoSize = true;
+            this.rbLazy.Location = new System.Drawing.Point(28, 49);
+            this.rbLazy.Name = "rbLazy";
+            this.rbLazy.Size = new System.Drawing.Size(56, 21);
+            this.rbLazy.TabIndex = 1;
+            this.rbLazy.Text = "Lazy";
+            this.rbLazy.UseVisualStyleBackColor = true;
+            this.rbLazy.CheckedChanged += new System.EventHandler(this.rbLazy_CheckedChanged);
+            // 
+            // rbConsistent
+            // 
+            this.rbConsistent.AutoSize = true;
+            this.rbConsistent.Checked = true;
+            this.rbConsistent.Location = new System.Drawing.Point(28, 22);
+            this.rbConsistent.Name = "rbConsistent";
+            this.rbConsistent.Size = new System.Drawing.Size(92, 21);
+            this.rbConsistent.TabIndex = 0;
+            this.rbConsistent.TabStop = true;
+            this.rbConsistent.Text = "Consistent";
+            this.rbConsistent.UseVisualStyleBackColor = true;
+            this.rbConsistent.CheckedChanged += new System.EventHandler(this.rbConsistent_CheckedChanged);
+            // 
+            // cbAutomatic
+            // 
+            this.cbAutomatic.AutoSize = true;
+            this.cbAutomatic.Location = new System.Drawing.Point(20, 86);
+            this.cbAutomatic.Name = "cbAutomatic";
+            this.cbAutomatic.Size = new System.Drawing.Size(89, 21);
+            this.cbAutomatic.TabIndex = 0;
+            this.cbAutomatic.Text = "Automatic";
+            this.cbAutomatic.UseVisualStyleBackColor = true;
+            this.cbAutomatic.CheckedChanged += new System.EventHandler(this.cbAutomatic_CheckedChanged);
             // 
             // ButtomSplitContainer
             // 
@@ -995,6 +1206,10 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.groupBox2.PerformLayout();
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
+            this.tabDocumentCollectionPolicy.ResumeLayout(false);
+            this.tabDocumentCollectionPolicy.PerformLayout();
+            this.groupBox4.ResumeLayout(false);
+            this.groupBox4.PerformLayout();
             this.ButtomSplitContainer.Panel1.ResumeLayout(false);
             this.ButtomSplitContainer.Panel1.PerformLayout();
             this.ButtomSplitContainer.Panel2.ResumeLayout(false);
@@ -1092,6 +1307,23 @@ namespace Microsoft.Azure.DocumentDBStudio
         private System.Windows.Forms.RadioButton rbIndexingExclude;
         private System.Windows.Forms.RadioButton rbIndexingInclude;
         private System.Windows.Forms.RadioButton rbIndexingDefault;
+        private System.Windows.Forms.TabPage tabDocumentCollectionPolicy;
+        private System.Windows.Forms.CheckBox cbAutomatic;
+        private System.Windows.Forms.GroupBox groupBox4;
+        private System.Windows.Forms.RadioButton rbLazy;
+        private System.Windows.Forms.RadioButton rbConsistent;
+        private System.Windows.Forms.Label labelCollectionId;
+        private System.Windows.Forms.TextBox tbCollectionId;
+        private System.Windows.Forms.CheckBox cbIndexingPolicyDefault;
+        private System.Windows.Forms.ListBox lbIncludedPath;
+        private System.Windows.Forms.Button btnEdit;
+        private System.Windows.Forms.Button btnRemovePath;
+        private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.Button btnAddIncludePath;
+        private System.Windows.Forms.ListBox lbExcludedPath;
+        private System.Windows.Forms.Label label3;
+        private System.Windows.Forms.Button btnRemoveExcludedPath;
+        private System.Windows.Forms.Button btnAddExcludedPath;
     }
 }
 

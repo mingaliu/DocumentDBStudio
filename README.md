@@ -1,13 +1,16 @@
 Azure DocumentDB Studio
 ================
 
-A client management/viewer for Microsoft Azure DocumentDB.
+A client management viewer/explorer for Microsoft Azure DocumentDB.
 
 Currently it supports: 
 <br/> 1. Easyly browse DocumentDB resources and learn DocumentDB resource model.
-<br/> 2. Issue Insert, Replace, Delete, Read (CRUD) operations on every DocumentDB resource and resource feed. 
-<br/> 3. Issue SQL/UDF query. Execute Javascript storedprocedure. 
+<br/> 2. Issue Insert, Replace, Delete, Read (CRUD), Query operations on every DocumentDB resource and resource feed. 
+<br/> 3. Issue SQL/UDF query. Execute Javascript storedprocedure. Execute Trigger.
 <br/> 4. Inspect heads (for quota, usage, RG charge etc) for every operation.
+<br/> 5. Support RequestOptions(for pre/post trigger,  sessionToken, consistency model etc), FeedOptions(for paging, enableScanforQuery etc), IndexingPolicy (for indexingMode, indexingType, indexingPath etc).
+<br/> 6. PrettyPrint the output JSON.
+<br/> 7. Bulk import the JSON files. 
 
 To start:
 <br />   1. Add your account from File|Add account. You can provision and get your account endpoint and masterkey from  <a href="https://portal.azure.com">https://portal.azure.com</a>
@@ -16,13 +19,12 @@ To start:
 <br />
     The tool run on Windows and requires .Net Framework 4.0 installed on your machine.<br />
     
-I welcome everyone to contribue to this project.
+Future ideas to improve:
+<br /> 1. Richer intellisense support for editor (Syntax highlighting for SQL/Javascript, easy grid based editing for JSON).
 
-Here is some ideas to do next:
-<br /> 1. Another tab for RequestOptions (for pre/post trigger,  sessionToken etc).
-<br /> 2. Richer support for editor (Syntax highlighting for SQL/Javascript, easy grid based editing for JSON).
-<br /> 3. Some small update including: Paging for documents, Add option to refresh resource itself.
-<br /> 4. UI refinement.
+I welcome everyone to contribue to this project. Drop me a note (mingaliu@hotmail.com) if you have anyquestion.  
+
+
 
 
 

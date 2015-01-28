@@ -2,6 +2,7 @@
 // Copyright (c) Microsoft Corporation.  All rights reserved.
 //-----------------------------------------------------------------------------
 
+using Newtonsoft.Json.Linq;
 namespace Microsoft.Azure.DocumentDBStudio
 {
     using System;
@@ -929,9 +930,17 @@ namespace Microsoft.Azure.DocumentDBStudio
                         }//while
                     }//usi
                 }
-                StoredProcedureResponse<string> rr = await this.client.ExecuteStoredProcedureAsync<string>((this.Tag as Documents.Resource).SelfLink,
-                    inputParamters.ToArray());
-                string json = rr.Response;
+                var dynamicInputParams = new dynamic[inputParamters.Count];
+                for (var i = 0; i < inputParamters.Count; i++)
+                {
+                    var inputParamter = inputParamters[i];
+                    var jTokenParam = JToken.Parse(inputParamter);
+                    var dynamicParam = Helper.ConvertJTokenToDynamic(jTokenParam);
+                    dynamicInputParams[i] = dynamicParam;
+                }
+                StoredProcedureResponse<dynamic> rr = await this.client.ExecuteStoredProcedureAsync<dynamic>((this.Tag as Documents.Resource).SelfLink,
+                   dynamicInputParams);
+                string json = rr.Response.ToString();
 
                 Program.GetMain().SetResultInBrowser(json, null, true, rr.ResponseHeaders);
 

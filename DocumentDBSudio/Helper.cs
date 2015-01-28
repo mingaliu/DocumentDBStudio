@@ -6,10 +6,13 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Configuration;
+using System.Dynamic;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
 using Microsoft.Azure.DocumentDBStudio.Properties;
+using Newtonsoft.Json.Linq;
 
 namespace Microsoft.Azure.DocumentDBStudio
 {
@@ -27,7 +30,7 @@ namespace Microsoft.Azure.DocumentDBStudio
 
     /// <summary>
     /// </summary>
-    class Helper
+    public class Helper
     {
         static internal string FormatTextAsHtml(string text, bool encodeWhitespace)
         {
@@ -68,6 +71,35 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
 
             return html;
+        }
+
+        public static dynamic ConvertJTokenToDynamic(JToken token)
+        {
+            if (token is JValue)
+            {
+                return ((JValue)token).Value;
+            }
+            if (token is JObject)
+            {
+                ExpandoObject expando = new ExpandoObject();
+                (from childToken in ((JToken)token) where childToken is JProperty select childToken as JProperty).ToList().ForEach(property =>
+                {
+                    ((IDictionary<string, object>)expando).Add(property.Name, ConvertJTokenToDynamic(property.Value));
+                });
+                return expando;
+            }
+            if (token is JArray)
+            {
+                object[] array = new object[((JArray)token).Count];
+                int index = 0;
+                foreach (JToken arrayItem in ((JArray)token))
+                {
+                    array[index] = ConvertJTokenToDynamic(arrayItem);
+                    index++;
+                }
+                return array;
+            }
+            throw new ArgumentException(string.Format("Unknown token type '{0}'", token.GetType()), "token");
         }
     }
 

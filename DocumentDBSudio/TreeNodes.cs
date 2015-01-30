@@ -7,18 +7,19 @@ namespace Microsoft.Azure.DocumentDBStudio
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Drawing;
     using System.IO;
     using System.Linq;
+    using System.Text;
     using System.Threading.Tasks;
     using System.Windows.Forms;
+    using Microsoft.Azure.Documents;
     using Microsoft.Azure.DocumentDBStudio.Properties;
     using Microsoft.Azure.Documents.Client;
     using Microsoft.Azure.Documents.Linq;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Serialization;
-    using System.Text;
-    using Microsoft.Azure.Documents;
 
     internal class AccountSettings
     {
@@ -290,6 +291,10 @@ namespace Microsoft.Azure.DocumentDBStudio
             myMenuItem.Click += new EventHandler(myMenuItemDeleteDatabase_Click);
             this.contextMenu.MenuItems.Add(myMenuItem);
 
+            MenuItem myMenuItem3 = new MenuItem("Read Database");
+            myMenuItem3.Click += new EventHandler(myMenuItemReadDatabase_Click);
+            this.contextMenu.MenuItems.Add(myMenuItem3);
+
             this.contextMenu.MenuItems.Add("-");
             
             MenuItem myMenuItem2 = new MenuItem("Add DocumentCollection");
@@ -303,6 +308,28 @@ namespace Microsoft.Azure.DocumentDBStudio
         public DocumentClient DocumentClient
         {
             get { return this.client; }
+        }
+
+        async void myMenuItemReadDatabase_Click(object sender, EventArgs eArgs)
+        {
+            try
+            {
+                ResourceResponse<Documents.Database> database = await this.client.ReadDatabaseAsync(((Database)this.Tag).SelfLink, Program.GetMain().GetRequestOptions());
+
+                // set the result window
+                string json = JsonConvert.SerializeObject(database.Resource, Newtonsoft.Json.Formatting.Indented);
+
+                Program.GetMain().SetResultInBrowser(json, null, false, database.ResponseHeaders);
+
+            }
+            catch (AggregateException e)
+            {
+                Program.GetMain().SetResultInBrowser(null, e.InnerException.ToString(), true);
+            }
+            catch (Exception e)
+            {
+                Program.GetMain().SetResultInBrowser(null, e.ToString(), true);
+            }
         }
 
         void myMenuItemDeleteDatabase_Click(object sender, EventArgs e)
@@ -631,7 +658,9 @@ namespace Microsoft.Azure.DocumentDBStudio
 
                 q = this.client.CreateDocumentQuery((this.Tag as Documents.DocumentCollection).SelfLink, queryText, feedOptions).AsDocumentQuery();
 
+                Stopwatch sw = Stopwatch.StartNew();
                 FeedResponse<dynamic> r = await q.ExecuteNextAsync();
+                sw.Stop();
                 this.currentContinuation = r.ResponseContinuation;
                 this.currentQueryCommandContext.HasContinuation = !string.IsNullOrEmpty(this.currentContinuation);
                 this.currentQueryCommandContext.QueryStarted = true;
@@ -640,11 +669,11 @@ namespace Microsoft.Azure.DocumentDBStudio
                 string text = null;
                 if (r.Count > 1)
                 {
-                    text = string.Format("Returned {0} documents", r.Count);
+                    text = string.Format("Returned {0} documents in {1} ms", r.Count, sw.ElapsedMilliseconds);
                 }
                 else
                 {
-                    text = string.Format("Returned {0} document", r.Count);
+                    text = string.Format("Returned {0} document in {1} ms", r.Count, sw.ElapsedMilliseconds);
                 }
 
                 string jsonarray = "[";

@@ -314,7 +314,7 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             try
             {
-                ResourceResponse<Documents.Database> database = await this.client.ReadDatabaseAsync(((Database)this.Tag).SelfLink, Program.GetMain().GetRequestOptions());
+                ResourceResponse<Documents.Database> database = await this.client.ReadDatabaseAsync(((Database)this.Tag).GetLink(), Program.GetMain().GetRequestOptions());
 
                 // set the result window
                 string json = JsonConvert.SerializeObject(database.Resource, Newtonsoft.Json.Formatting.Indented);
@@ -380,7 +380,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 DocumentCollection coll = optional as DocumentCollection;
                 Documents.Database db = (Documents.Database)this.Tag;
 
-                ResourceResponse<Documents.DocumentCollection> newcoll = await this.client.CreateDocumentCollectionAsync(db.SelfLink, coll, Program.GetMain().GetRequestOptions());
+                ResourceResponse<Documents.DocumentCollection> newcoll = await this.client.CreateDocumentCollectionAsync(db.GetLink(), coll, Program.GetMain().GetRequestOptions());
 
                 // set the result window
                 string json = JsonConvert.SerializeObject(newcoll.Resource, Newtonsoft.Json.Formatting.Indented);
@@ -404,7 +404,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             try
             {
                 Documents.Database db = (Documents.Database)JsonConvert.DeserializeObject(text, typeof(Documents.Database));
-                ResourceResponse<Documents.Database> newdb = await this.client.ReplaceDatabaseAsync(db, Program.GetMain().GetRequestOptions());
+                ResourceResponse<Documents.Database> newdb = await this.client.ReplaceDatabaseExAsync(db, Program.GetMain().GetRequestOptions());
 
                 // set the result window
                 string json = JsonConvert.SerializeObject(newdb.Resource, Newtonsoft.Json.Formatting.Indented);
@@ -427,7 +427,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             try
             {
                 Documents.Database db = (Documents.Database)this.Tag;
-                ResourceResponse<Documents.Database> newdb = await this.client.DeleteDatabaseAsync(db.SelfLink, Program.GetMain().GetRequestOptions());
+                ResourceResponse<Documents.Database> newdb = await this.client.DeleteDatabaseAsync(db.GetLink(), Program.GetMain().GetRequestOptions());
 
                 Program.GetMain().SetResultInBrowser(null, "Delete database succeed!", false, newdb.ResponseHeaders);
 
@@ -447,7 +447,7 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             try
             {
-                FeedResponse<Documents.DocumentCollection> colls = await this.client.ReadDocumentCollectionFeedAsync(((Documents.Database)this.Tag).SelfLink);
+                FeedResponse<Documents.DocumentCollection> colls = await this.client.ReadDocumentCollectionFeedAsync(((Documents.Database)this.Tag).GetLink());
 
                 foreach (Documents.DocumentCollection coll in colls)
                 {
@@ -524,7 +524,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             try
             {
                 Documents.DocumentCollection coll = (Documents.DocumentCollection)JsonConvert.DeserializeObject(text, typeof(Documents.DocumentCollection));
-                ResourceResponse<Documents.DocumentCollection> newcoll = await this.client.DeleteDocumentCollectionAsync(coll.SelfLink, Program.GetMain().GetRequestOptions());
+                ResourceResponse<Documents.DocumentCollection> newcoll = await this.client.DeleteDocumentCollectionAsync(coll.GetLink(), Program.GetMain().GetRequestOptions());
 
                 Program.GetMain().SetResultInBrowser(null, "Delete DocumentCollection succeed!", false, newcoll.ResponseHeaders);
 
@@ -577,7 +577,7 @@ namespace Microsoft.Azure.DocumentDBStudio
 
                     try
                     {
-                        ResourceResponse<Documents.Document> newdocument = await this.client.CreateDocumentAsync((this.Tag as Documents.DocumentCollection).SelfLink, document, Program.GetMain().GetRequestOptions());
+                        ResourceResponse<Documents.Document> newdocument = await this.client.CreateDocumentAsync((this.Tag as Documents.DocumentCollection).GetLink(), document, Program.GetMain().GetRequestOptions());
                         status += string.Format("Succeed adding {0} \r\n", fileRootName);
 
                     }
@@ -622,7 +622,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             {
                 object document = JsonConvert.DeserializeObject(text);
 
-                ResourceResponse<Documents.Document> newdocument = await this.client.CreateDocumentAsync((this.Tag as Documents.DocumentCollection).SelfLink, document, Program.GetMain().GetRequestOptions());
+                ResourceResponse<Documents.Document> newdocument = await this.client.CreateDocumentAsync((this.Tag as Documents.DocumentCollection).GetLink(), document, Program.GetMain().GetRequestOptions());
 
                 this.Nodes.Add(new DocumentNode(this.client, newdocument.Resource, ResourceType.Document));
 
@@ -656,7 +656,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                     feedOptions.RequestContinuation = this.currentContinuation;
                 }
 
-                q = this.client.CreateDocumentQuery((this.Tag as Documents.DocumentCollection).SelfLink, queryText, feedOptions).AsDocumentQuery();
+                q = this.client.CreateDocumentQuery((this.Tag as Documents.DocumentCollection).GetLink(), queryText, feedOptions).AsDocumentQuery();
 
                 Stopwatch sw = Stopwatch.StartNew();
                 FeedResponse<dynamic> r = await q.ExecuteNextAsync();
@@ -731,7 +731,7 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             try
             {
-                FeedResponse<dynamic> docs = this.client.ReadDocumentFeedAsync(((Documents.DocumentCollection)this.Tag).SelfLink).Result;
+                FeedResponse<dynamic> docs = this.client.ReadDocumentFeedAsync(((Documents.DocumentCollection)this.Tag).GetLink()).Result;
 
                 foreach (var doc in docs)
                 {
@@ -921,7 +921,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             {
                 Documents.Attachment attachment = (Documents.Attachment)JsonConvert.DeserializeObject(text, typeof(Documents.Attachment));
 
-                ResourceResponse<Documents.Attachment> rr = await this.client.CreateAttachmentAsync((this.Tag as Documents.Resource).SelfLink,
+                ResourceResponse<Documents.Attachment> rr = await this.client.CreateAttachmentAsync((this.Tag as Documents.Resource).GetLink(),
                     attachment, Program.GetMain().GetRequestOptions());
 
                 string json = rr.Resource.ToString();
@@ -967,7 +967,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                     var dynamicParam = Helper.ConvertJTokenToDynamic(jTokenParam);
                     dynamicInputParams[i] = dynamicParam;
                 }
-                StoredProcedureResponse<dynamic> rr = await this.client.ExecuteStoredProcedureAsync<dynamic>((this.Tag as Documents.Resource).SelfLink,
+                StoredProcedureResponse<dynamic> rr = await this.client.ExecuteStoredProcedureAsync<dynamic>((this.Tag as Documents.Resource).GetLink(),
                    dynamicInputParams);
                 string json = rr.Response.ToString();
 
@@ -993,7 +993,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 if (this.resourceType == ResourceType.Document)
                 {
                     Documents.Document doc = (Documents.Document)JsonConvert.DeserializeObject(text, typeof(Documents.Document));
-                    ResourceResponse<Documents.Document> rr = await this.client.ReplaceDocumentAsync(doc.SelfLink, doc, Program.GetMain().GetRequestOptions());
+                    ResourceResponse<Documents.Document> rr = await this.client.ReplaceDocumentAsync(doc.GetLink(), doc, Program.GetMain().GetRequestOptions());
                     json = rr.Resource.ToString();
 
                     this.Tag = rr.Resource;
@@ -1006,7 +1006,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                     Documents.StoredProcedure sp = this.Tag as Documents.StoredProcedure;
                     sp.Body = text;
                     if (!string.IsNullOrEmpty(optional)) { sp.Id = optional; }
-                    ResourceResponse<Documents.StoredProcedure> rr = await this.client.ReplaceStoredProcedureAsync(sp, Program.GetMain().GetRequestOptions());
+                    ResourceResponse<Documents.StoredProcedure> rr = await this.client.ReplaceStoredProcedureExAsync(sp, Program.GetMain().GetRequestOptions());
                     json = rr.Resource.ToString();
                     this.Tag = rr.Resource;
                     this.Text = rr.Resource.Id;
@@ -1016,7 +1016,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 else if (this.resourceType == ResourceType.User)
                 {
                     Documents.User sp = (Documents.User)JsonConvert.DeserializeObject(text, typeof(Documents.User));
-                    ResourceResponse<Documents.User> rr = await this.client.ReplaceUserAsync(sp, Program.GetMain().GetRequestOptions());
+                    ResourceResponse<Documents.User> rr = await this.client.ReplaceUserExAsync(sp, Program.GetMain().GetRequestOptions());
                     json = rr.Resource.ToString();
                     this.Tag = rr.Resource;
                     this.Text = rr.Resource.Id;
@@ -1028,7 +1028,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                     Documents.Trigger sp = this.Tag as Documents.Trigger;
                     sp.Body = text;
                     if (!string.IsNullOrEmpty(optional)) { sp.Id = optional; }
-                    ResourceResponse<Documents.Trigger> rr = await this.client.ReplaceTriggerAsync(sp, Program.GetMain().GetRequestOptions());
+                    ResourceResponse<Documents.Trigger> rr = await this.client.ReplaceTriggerExAsync(sp, Program.GetMain().GetRequestOptions());
                     json = rr.Resource.ToString();
                     this.Tag = rr.Resource;
                     this.Text = rr.Resource.Id;
@@ -1040,7 +1040,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                     Documents.UserDefinedFunction sp = this.Tag as Documents.UserDefinedFunction;
                     sp.Body = text;
                     if (!string.IsNullOrEmpty(optional)) { sp.Id = optional; }
-                    ResourceResponse<Documents.UserDefinedFunction> rr = await this.client.ReplaceUserDefinedFunctionAsync(sp, Program.GetMain().GetRequestOptions());
+                    ResourceResponse<Documents.UserDefinedFunction> rr = await this.client.ReplaceUserDefinedFunctionExAsync(sp, Program.GetMain().GetRequestOptions());
                     json = rr.Resource.ToString();
                     this.Tag = rr.Resource;
                     this.Text = rr.Resource.Id;
@@ -1050,7 +1050,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 else if (this.resourceType == ResourceType.Permission)
                 {
                     Documents.Permission sp = Documents.Resource.LoadFrom<Documents.Permission>(new MemoryStream(Encoding.UTF8.GetBytes(text)));
-                    ResourceResponse<Documents.Permission> rr = await this.client.ReplacePermissionAsync(sp, Program.GetMain().GetRequestOptions());
+                    ResourceResponse<Documents.Permission> rr = await this.client.ReplacePermissionExAsync(sp, Program.GetMain().GetRequestOptions());
                     json = rr.Resource.ToString();
                     this.Tag = rr.Resource;
                     this.Text = rr.Resource.Id;
@@ -1060,7 +1060,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 else if (this.resourceType == ResourceType.Attachment)
                 {
                     Documents.Attachment sp = (Documents.Attachment)JsonConvert.DeserializeObject(text, typeof(Documents.Attachment));
-                    ResourceResponse<Documents.Attachment> rr = await this.client.ReplaceAttachmentAsync(sp, Program.GetMain().GetRequestOptions());
+                    ResourceResponse<Documents.Attachment> rr = await this.client.ReplaceAttachmentExAsync(sp, Program.GetMain().GetRequestOptions());
                     json = rr.Resource.ToString();
                     this.Tag = rr.Resource;
                     this.Text = rr.Resource.Id;
@@ -1085,50 +1085,50 @@ namespace Microsoft.Azure.DocumentDBStudio
                 if (this.resourceType == ResourceType.Document)
                 {
                     Documents.Document doc = (Documents.Document)JsonConvert.DeserializeObject(text, typeof(Documents.Document));
-                    ResourceResponse<Documents.Document> rr = await this.client.DeleteDocumentAsync(doc.SelfLink, Program.GetMain().GetRequestOptions());
+                    ResourceResponse<Documents.Document> rr = await this.client.DeleteDocumentAsync(doc.GetLink(), Program.GetMain().GetRequestOptions());
                     Program.GetMain().SetResultInBrowser(null, "Delete Document succeed!", false, rr.ResponseHeaders);
 
                 }
                 else if (this.resourceType == ResourceType.StoredProcedure)
                 {
                     Documents.StoredProcedure sp = (Documents.StoredProcedure)JsonConvert.DeserializeObject(text, typeof(Documents.StoredProcedure));
-                    ResourceResponse<Documents.StoredProcedure> rr = await this.client.DeleteStoredProcedureAsync(sp.SelfLink, Program.GetMain().GetRequestOptions());
+                    ResourceResponse<Documents.StoredProcedure> rr = await this.client.DeleteStoredProcedureAsync(sp.GetLink(), Program.GetMain().GetRequestOptions());
                     Program.GetMain().SetResultInBrowser(null, "Delete StoredProcedure succeed!", false, rr.ResponseHeaders);
                 }
                 else if (this.resourceType == ResourceType.User)
                 {
                     Documents.User sp = (Documents.User)JsonConvert.DeserializeObject(text, typeof(Documents.User));
-                    ResourceResponse<Documents.User> rr = await this.client.DeleteUserAsync(sp.SelfLink, Program.GetMain().GetRequestOptions());
+                    ResourceResponse<Documents.User> rr = await this.client.DeleteUserAsync(sp.GetLink(), Program.GetMain().GetRequestOptions());
                     Program.GetMain().SetResultInBrowser(null, "Delete User succeed!", false, rr.ResponseHeaders);
                 }
                 else if (this.resourceType == ResourceType.Trigger)
                 {
                     Documents.Trigger sp = (Documents.Trigger)JsonConvert.DeserializeObject(text, typeof(Documents.Trigger));
-                    ResourceResponse<Documents.Trigger> rr = await this.client.DeleteTriggerAsync(sp.SelfLink, Program.GetMain().GetRequestOptions());
+                    ResourceResponse<Documents.Trigger> rr = await this.client.DeleteTriggerAsync(sp.GetLink(), Program.GetMain().GetRequestOptions());
                     Program.GetMain().SetResultInBrowser(null, "Delete Trigger succeed!", false, rr.ResponseHeaders);
                 }
                 else if (this.resourceType == ResourceType.UserDefinedFunction)
                 {
                     Documents.UserDefinedFunction sp = (Documents.UserDefinedFunction)JsonConvert.DeserializeObject(text, typeof(Documents.UserDefinedFunction));
-                    ResourceResponse<Documents.UserDefinedFunction> rr = await this.client.DeleteUserDefinedFunctionAsync(sp.SelfLink, Program.GetMain().GetRequestOptions());
+                    ResourceResponse<Documents.UserDefinedFunction> rr = await this.client.DeleteUserDefinedFunctionAsync(sp.GetLink(), Program.GetMain().GetRequestOptions());
                     Program.GetMain().SetResultInBrowser(null, "Delete UserDefinedFunction succeed!", false, rr.ResponseHeaders);
                 }
                 else if (this.resourceType == ResourceType.Permission)
                 {
                     Documents.Permission sp = (Documents.Permission)JsonConvert.DeserializeObject(text, typeof(Documents.Permission));
-                    ResourceResponse<Documents.Permission> rr = await this.client.DeletePermissionAsync(sp.SelfLink, Program.GetMain().GetRequestOptions());
+                    ResourceResponse<Documents.Permission> rr = await this.client.DeletePermissionAsync(sp.GetLink(), Program.GetMain().GetRequestOptions());
                     Program.GetMain().SetResultInBrowser(null, "Delete Permission succeed!", false, rr.ResponseHeaders);
                 }
                 else if (this.resourceType == ResourceType.Attachment)
                 {
                     Documents.Attachment sp = (Documents.Attachment)JsonConvert.DeserializeObject(text, typeof(Documents.Attachment));
-                    ResourceResponse<Documents.Attachment> rr = await this.client.DeleteAttachmentAsync(sp.SelfLink, Program.GetMain().GetRequestOptions());
+                    ResourceResponse<Documents.Attachment> rr = await this.client.DeleteAttachmentAsync(sp.GetLink(), Program.GetMain().GetRequestOptions());
                     Program.GetMain().SetResultInBrowser(null, "Delete Attachment succeed!", false, rr.ResponseHeaders);
                 }
                 else if (this.resourceType == ResourceType.Conflict)
                 {
                     Documents.Conflict sp = (Documents.Conflict)JsonConvert.DeserializeObject(text, typeof(Documents.Conflict));
-                    ResourceResponse<Documents.Conflict> rr = await this.client.DeleteConflictAsync(sp.SelfLink, Program.GetMain().GetRequestOptions());
+                    ResourceResponse<Documents.Conflict> rr = await this.client.DeleteConflictAsync(sp.GetLink(), Program.GetMain().GetRequestOptions());
                     Program.GetMain().SetResultInBrowser(null, "Delete Conflict succeed!", false, rr.ResponseHeaders);
                 }
                 // Remove the node.
@@ -1271,7 +1271,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 sp.Body = body;
                 sp.Id = id;
 
-                ResourceResponse<Documents.StoredProcedure> newsp = await this.client.CreateStoredProcedureAsync((this.Parent.Tag as Documents.DocumentCollection).SelfLink, sp, Program.GetMain().GetRequestOptions());
+                ResourceResponse<Documents.StoredProcedure> newsp = await this.client.CreateStoredProcedureAsync((this.Parent.Tag as Documents.DocumentCollection).GetLink(), sp, Program.GetMain().GetRequestOptions());
 
                 this.Nodes.Add(new DocumentNode(this.client, newsp.Resource, ResourceType.StoredProcedure));
 
@@ -1311,7 +1311,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             try
             {
                 DocumentCollectionNode collnode = (DocumentCollectionNode)this.Parent;
-                FeedResponse<Documents.StoredProcedure> sps = this.client.ReadStoredProcedureFeedAsync((collnode.Tag as Documents.DocumentCollection).SelfLink).Result;
+                FeedResponse<Documents.StoredProcedure> sps = this.client.ReadStoredProcedureFeedAsync((collnode.Tag as Documents.DocumentCollection).GetLink()).Result;
 
                 foreach (var sp in sps)
                 {
@@ -1387,7 +1387,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 udf.Body = body;
                 udf.Id = id;
 
-                ResourceResponse<Documents.UserDefinedFunction> newudf = await this.client.CreateUserDefinedFunctionAsync((this.Parent.Tag as Documents.DocumentCollection).SelfLink, udf, Program.GetMain().GetRequestOptions());
+                ResourceResponse<Documents.UserDefinedFunction> newudf = await this.client.CreateUserDefinedFunctionAsync((this.Parent.Tag as Documents.DocumentCollection).GetLink(), udf, Program.GetMain().GetRequestOptions());
 
                 this.Nodes.Add(new DocumentNode(this.client, newudf.Resource, ResourceType.UserDefinedFunction));
 
@@ -1427,7 +1427,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             try
             {
                 DocumentCollectionNode collnode = (DocumentCollectionNode)this.Parent;
-                FeedResponse<Documents.UserDefinedFunction> sps = this.client.ReadUserDefinedFunctionFeedAsync((collnode.Tag as Documents.DocumentCollection).SelfLink).Result;
+                FeedResponse<Documents.UserDefinedFunction> sps = this.client.ReadUserDefinedFunctionFeedAsync((collnode.Tag as Documents.DocumentCollection).GetLink()).Result;
 
                 foreach (var sp in sps)
                 {
@@ -1506,7 +1506,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 trigger.TriggerOperation = Documents.TriggerOperation.All;
                 trigger.TriggerType = Documents.TriggerType.Pre;
 
-                ResourceResponse<Documents.Trigger> newtrigger = await this.client.CreateTriggerAsync((this.Parent.Tag as Documents.DocumentCollection).SelfLink, trigger, Program.GetMain().GetRequestOptions());
+                ResourceResponse<Documents.Trigger> newtrigger = await this.client.CreateTriggerAsync((this.Parent.Tag as Documents.DocumentCollection).GetLink(), trigger, Program.GetMain().GetRequestOptions());
 
                 this.Nodes.Add(new DocumentNode(this.client, newtrigger.Resource, ResourceType.Trigger));
 
@@ -1546,7 +1546,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             try
             {
                 DocumentCollectionNode collnode = (DocumentCollectionNode)this.Parent;
-                FeedResponse<Documents.Trigger> sps = this.client.ReadTriggerFeedAsync((collnode.Tag as Documents.DocumentCollection).SelfLink).Result;
+                FeedResponse<Documents.Trigger> sps = this.client.ReadTriggerFeedAsync((collnode.Tag as Documents.DocumentCollection).GetLink()).Result;
 
                 foreach (var sp in sps)
                 {
@@ -1605,7 +1605,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             {
                 Documents.User user = (Documents.User)JsonConvert.DeserializeObject(body, typeof(Documents.User));
 
-                ResourceResponse<Documents.User> newUser = await this.client.CreateUserAsync((this.Parent.Tag as Documents.Database).SelfLink, user, Program.GetMain().GetRequestOptions());
+                ResourceResponse<Documents.User> newUser = await this.client.CreateUserAsync((this.Parent.Tag as Documents.Database).GetLink(), user, Program.GetMain().GetRequestOptions());
 
                 this.Nodes.Add(new DocumentNode(this.client, newUser.Resource, ResourceType.User));
 
@@ -1644,7 +1644,7 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             try
             {
-                FeedResponse<Documents.User> sps = this.client.ReadUserFeedAsync((this.Parent.Tag as Documents.Database).SelfLink).Result;
+                FeedResponse<Documents.User> sps = this.client.ReadUserFeedAsync((this.Parent.Tag as Documents.Database).GetLink()).Result;
 
                 foreach (var sp in sps)
                 {
@@ -1707,7 +1707,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             {
                 Documents.Permission permission = Documents.Resource.LoadFrom<Documents.Permission>(new MemoryStream(Encoding.UTF8.GetBytes(body)));
 
-                ResourceResponse<Documents.Permission> newtpermission = await this.client.CreatePermissionAsync((this.Parent.Tag as Documents.Resource).SelfLink, permission, Program.GetMain().GetRequestOptions());
+                ResourceResponse<Documents.Permission> newtpermission = await this.client.CreatePermissionAsync((this.Parent.Tag as Documents.Resource).GetLink(), permission, Program.GetMain().GetRequestOptions());
 
                 this.Nodes.Add(new DocumentNode(this.client, newtpermission.Resource, ResourceType.Permission));
 
@@ -1746,7 +1746,7 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             try
             {
-                FeedResponse<Documents.Permission> sps = this.client.ReadPermissionFeedAsync((this.Parent.Tag as Documents.User).SelfLink).Result;
+                FeedResponse<Documents.Permission> sps = this.client.ReadPermissionFeedAsync((this.Parent.Tag as Documents.User).GetLink()).Result;
 
                 foreach (var sp in sps)
                 {

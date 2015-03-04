@@ -136,6 +136,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DocumentClientExtension.cs" />
     <Compile Include="ExcludedPathForm.cs">
       <SubType>Form</SubType>
     </Compile>

@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
 VisualStudioVersion = 12.0.30723.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DocumentDBStudio", "DocumentDBSudio\DocumentDBStudio.csproj", "{5EA467F3-F306-44CF-877B-7E593754F1B4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DocumentDBStudio", "DocumentDBStudio\DocumentDBStudio.csproj", "{5EA467F3-F306-44CF-877B-7E593754F1B4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

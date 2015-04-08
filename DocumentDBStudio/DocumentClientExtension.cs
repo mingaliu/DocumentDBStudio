@@ -14,7 +14,7 @@
         /// Only used in PCV and CTL test, configure to switch between selflink and altlink
         /// </summary>
         /// <returns></returns>
-        internal static string GetLink(this Resource resource)
+        internal static string GetLink(this Resource resource, DocumentClient client)
         {
             return resource.SelfLink;
         }
@@ -31,19 +31,6 @@
         public static Task<ResourceResponse<Attachment>> ReplaceAttachmentExAsync(this DocumentClient client, Attachment attachment, RequestOptions options = null)
         {
             return client.ReplaceAttachmentAsync(attachment, options);
-        }
-
-        /// <summary>
-        /// Replaces a database as an asynchronous operation.
-        /// </summary>
-        /// <param name="client">document client.</param>
-        /// <param name="databaseUri">the updated attachment.</param>
-        /// <param name="database">the updated database.</param>
-        /// <param name="options">the request options for the request.</param>
-        /// <returns>The task object representing the service response for the asynchronous operation.</returns>
-        public static Task<ResourceResponse<Database>> ReplaceDatabaseExAsync(this DocumentClient client, Database database, RequestOptions options = null)
-        {
-            return client.ReplaceDatabaseAsync(database, options);
         }
 
         /// <summary>

@@ -40,6 +40,7 @@
             this.radioButtonDirectTcp = new System.Windows.Forms.RadioButton();
             this.radioButtonDirectHttp = new System.Windows.Forms.RadioButton();
             this.radioButtonGateway = new System.Windows.Forms.RadioButton();
+            this.cbNameBased = new System.Windows.Forms.CheckBox();
             this.groupBox1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -54,20 +55,20 @@
             // 
             // tbAccountSecret
             // 
-            this.tbAccountSecret.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            this.tbAccountSecret.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this.tbAccountSecret.Location = new System.Drawing.Point(144, 80);
             this.tbAccountSecret.Name = "tbAccountSecret";
-            this.tbAccountSecret.Size = new System.Drawing.Size(247, 20);
+            this.tbAccountSecret.Size = new System.Drawing.Size(244, 20);
             this.tbAccountSecret.TabIndex = 2;
             // 
             // tbAccountName
             // 
-            this.tbAccountName.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            this.tbAccountName.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this.tbAccountName.Location = new System.Drawing.Point(144, 52);
             this.tbAccountName.Name = "tbAccountName";
-            this.tbAccountName.Size = new System.Drawing.Size(247, 20);
+            this.tbAccountName.Size = new System.Drawing.Size(244, 20);
             this.tbAccountName.TabIndex = 1;
             // 
             // label3
@@ -92,7 +93,7 @@
             // 
             this.btnOK.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.btnOK.DialogResult = System.Windows.Forms.DialogResult.OK;
-            this.btnOK.Location = new System.Drawing.Point(219, 173);
+            this.btnOK.Location = new System.Drawing.Point(216, 204);
             this.btnOK.Name = "btnOK";
             this.btnOK.Size = new System.Drawing.Size(75, 23);
             this.btnOK.TabIndex = 5;
@@ -104,7 +105,7 @@
             // 
             this.btnCancel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.btnCancel.Location = new System.Drawing.Point(316, 173);
+            this.btnCancel.Location = new System.Drawing.Point(313, 204);
             this.btnCancel.Name = "btnCancel";
             this.btnCancel.Size = new System.Drawing.Size(75, 23);
             this.btnCancel.TabIndex = 6;
@@ -117,11 +118,10 @@
             this.cbDevFabric.AutoSize = true;
             this.cbDevFabric.Location = new System.Drawing.Point(15, 179);
             this.cbDevFabric.Name = "cbDevFabric";
-            this.cbDevFabric.Size = new System.Drawing.Size(120, 17);
+            this.cbDevFabric.Size = new System.Drawing.Size(113, 17);
             this.cbDevFabric.TabIndex = 25;
-            this.cbDevFabric.Text = "Use local dev fabric";
+            this.cbDevFabric.Text = "Use local emulator";
             this.cbDevFabric.UseVisualStyleBackColor = true;
-            this.cbDevFabric.Visible = false;
             this.cbDevFabric.CheckedChanged += new System.EventHandler(this.cbDevFabric_CheckedChanged);
             // 
             // groupBox1
@@ -169,13 +169,27 @@
             this.radioButtonGateway.Text = "Gateway";
             this.radioButtonGateway.UseVisualStyleBackColor = true;
             // 
+            // cbNameBased
+            // 
+            this.cbNameBased.AllowDrop = true;
+            this.cbNameBased.AutoSize = true;
+            this.cbNameBased.Checked = true;
+            this.cbNameBased.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.cbNameBased.Location = new System.Drawing.Point(15, 208);
+            this.cbNameBased.Name = "cbNameBased";
+            this.cbNameBased.Size = new System.Drawing.Size(120, 17);
+            this.cbNameBased.TabIndex = 27;
+            this.cbNameBased.Text = "Use name based url";
+            this.cbNameBased.UseVisualStyleBackColor = true;
+            // 
             // SettingsForm
             // 
             this.AcceptButton = this.btnOK;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.CancelButton = this.btnCancel;
-            this.ClientSize = new System.Drawing.Size(403, 208);
+            this.ClientSize = new System.Drawing.Size(400, 239);
+            this.Controls.Add(this.cbNameBased);
             this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.cbDevFabric);
             this.Controls.Add(this.label4);
@@ -209,5 +223,6 @@
         private System.Windows.Forms.RadioButton radioButtonGateway;
         private System.Windows.Forms.RadioButton radioButtonDirectTcp;
         private System.Windows.Forms.RadioButton radioButtonDirectHttp;
+        private System.Windows.Forms.CheckBox cbNameBased;
     }
 }

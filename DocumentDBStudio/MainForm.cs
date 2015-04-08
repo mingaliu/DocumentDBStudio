@@ -7,16 +7,21 @@ namespace Microsoft.Azure.DocumentDBStudio
     using System;
     using System.Collections.Generic;
     using System.Collections.Specialized;
-    using System.Diagnostics;
+    using System.ComponentModel;
     using System.Drawing;
+    using System.Globalization;
     using System.IO;
+    using System.Net;
+    using System.Net.Http;
+    using System.Net.Http.Headers;
     using System.Reflection;
+    using System.Threading;
     using System.Windows.Forms;
     using Microsoft.Azure.DocumentDBStudio.Properties;
+    using Microsoft.Azure.Documents;
     using Microsoft.Azure.Documents.Client;
     using Newtonsoft.Json;
-    using System.Text;
-    using Microsoft.Azure.Documents;
+    using Newtonsoft.Json.Linq;
 
     public partial class MainForm : Form
     {
@@ -39,6 +44,7 @@ namespace Microsoft.Azure.DocumentDBStudio
         private DocumentCollection collectionToCreate;
 
         private String currentCrudName;
+        private String offerType;
 
         public MainForm()
         {
@@ -47,9 +53,12 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         private void MainForm_Load(object sender, EventArgs e)
         {
-            this.Height = Screen.GetWorkingArea(this).Height * 3 / 4 ;
+            ThreadPool.QueueUserWorkItem(arg => this.CheckCurrentRelease());
+
+            this.Height = Screen.GetWorkingArea(this).Height * 3 / 4;
             this.Width = Screen.GetWorkingArea(this).Width / 2;
             this.Top = 0;
+            this.Text = Constants.ApplicationName;
 
             using (Stream stm = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("Microsoft.Azure.DocumentDBStudio.Resources.home.html"))
             {
@@ -62,7 +71,7 @@ namespace Microsoft.Azure.DocumentDBStudio
 
             DateTime t = System.IO.File.GetLastWriteTime(Assembly.GetExecutingAssembly().Location);
             DateTimeOffset dateOffset = new DateTimeOffset(t, TimeZoneInfo.Local.GetUtcOffset(t));
-            this.homepage = this.homepage.Replace("&BUILDTIME&", t.ToString("f"));
+            this.homepage = this.homepage.Replace("&BUILDTIME&", t.ToString("f", CultureInfo.CurrentCulture));
 
             this.cbUrl.Items.Add("about:home");
             this.cbUrl.SelectedIndex = 0;
@@ -84,7 +93,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.tabControl.SelectedTab = this.tabCrudContext;
             this.tabControl.TabPages.Remove(this.tabRequest);
             this.tabControl.TabPages.Remove(this.tabDocumentCollectionPolicy);
-            
+
             ImageList imageList = new ImageList();
             imageList.Images.Add("Default", Resources.DocDBpng);
             imageList.Images.Add("Feed", Resources.Feedpng);
@@ -95,6 +104,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             imageList.Images.Add("SystemFeed", Resources.SystemFeedpng);
             imageList.Images.Add("Attachment", Resources.Attachmentpng);
             imageList.Images.Add("Conflict", Resources.Conflictpng);
+            imageList.Images.Add("Offer", Resources.Offerpng);
             this.treeView1.ImageList = imageList;
 
             this.InitTreeView();
@@ -196,7 +206,6 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         void webBrowserResponse_StatusTextChanged(object sender, EventArgs e)
         {
-            this.tsStatus.Text = this.webBrowserResponse.StatusText;
         }
 
         void cbUrl_KeyDown(object sender, KeyEventArgs e)
@@ -270,6 +279,12 @@ namespace Microsoft.Azure.DocumentDBStudio
                         }
                     }
                     break;
+                case Keys.A:
+                    if (e.Control)
+                    {
+                        tbCrudContext.SelectAll();
+                    }
+                    break;
             }
         }
 
@@ -332,7 +347,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                     break;
 
             }
-            this.tsButtonZoom.Text = this.fontScale.ToString() + "%";
+            this.tsButtonZoom.Text = this.fontScale.ToString(CultureInfo.CurrentCulture) + "%";
             this.tbRequest.Font = new Font(this.tbRequest.Font.FontFamily.Name, this.defaultFontPoint * (this.fontScale / 100.0f));
             this.tbResponse.Font = new Font(this.tbResponse.Font.FontFamily.Name, this.defaultFontPoint * (this.fontScale / 100.0f));
             this.Font = new Font(this.tbResponse.Font.FontFamily.Name, this.defaultFontPoint * (this.fontScale / 100.0f));
@@ -375,8 +390,8 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            MessageBox.Show(this, Constants.ApplicationName + "\nVersion " + Constants.ProductVersion, 
-                            "About", 
+            MessageBox.Show(this, Constants.ApplicationName + "\nVersion " + Constants.ProductVersion,
+                            "About",
                             MessageBoxButtons.OK);
         }
 
@@ -407,9 +422,11 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         public void ChangeAccountSettings(TreeNode thisNode, string accountEndpoint)
         {
-            for (int i = 0; i< Settings.Default.AccountSettingsList.Count; i=i+2)
+            this.treeView1.SelectedNode = thisNode;
+
+            for (int i = 0; i < Settings.Default.AccountSettingsList.Count; i = i + 2)
             {
-                if (string.Compare(accountEndpoint, Properties.Settings.Default.AccountSettingsList[i], true) == 0)
+                if (string.Compare(accountEndpoint, Properties.Settings.Default.AccountSettingsList[i], StringComparison.OrdinalIgnoreCase) == 0)
                 {
                     AccountSettings accountSettings = (AccountSettings)JsonConvert.DeserializeObject(Settings.Default.AccountSettingsList[i + 1], typeof(AccountSettings));
 
@@ -436,9 +453,9 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             bool found = false;
             // if the account is not in tree view top level, add it!
-            for (int i = 0; i< Settings.Default.AccountSettingsList.Count; i=i+2)
+            for (int i = 0; i < Settings.Default.AccountSettingsList.Count; i = i + 2)
             {
-                if (string.Compare(accountEndpoint, Properties.Settings.Default.AccountSettingsList[i], true) == 0)
+                if (string.Compare(accountEndpoint, Properties.Settings.Default.AccountSettingsList[i], StringComparison.OrdinalIgnoreCase) == 0)
                 {
                     found = true;
                     break;
@@ -448,13 +465,13 @@ namespace Microsoft.Azure.DocumentDBStudio
             if (!found)
             {
                 Settings.Default.AccountSettingsList.Add(accountEndpoint);
-                Settings.Default.AccountSettingsList.Add( JsonConvert.SerializeObject(accountSettings) );
+                Settings.Default.AccountSettingsList.Add(JsonConvert.SerializeObject(accountSettings));
 
                 Settings.Default.Save();
 
                 AddConnectionTreeNode(accountEndpoint, accountSettings);
             }
-         }
+        }
 
         public void RemoveAccountFromSettings(string accountEndpoint)
         {
@@ -462,7 +479,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             // if the account is not in tree view top level, add it!
             for (int i = 0; i < Settings.Default.AccountSettingsList.Count; i = i + 2)
             {
-                if (string.Compare(accountEndpoint, Properties.Settings.Default.AccountSettingsList[i], true) == 0)
+                if (string.Compare(accountEndpoint, Properties.Settings.Default.AccountSettingsList[i], StringComparison.OrdinalIgnoreCase) == 0)
                 {
                     index = i;
                     break;
@@ -480,9 +497,9 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             FeedOptions feedOptions = new FeedOptions();
 
-            try 
+            try
             {
-                feedOptions.MaxItemCount = Convert.ToInt32(toolStripTextMaxItemCount.Text);
+                feedOptions.MaxItemCount = Convert.ToInt32(toolStripTextMaxItemCount.Text, CultureInfo.InvariantCulture);
             }
             catch (Exception)
             {
@@ -501,9 +518,105 @@ namespace Microsoft.Azure.DocumentDBStudio
             return feedOptions;
         }
 
-        public RequestOptions GetRequestOptions()
+        public RequestOptions GetRequestOptions(bool isCollection = false)
         {
-            return this.requestOptions;
+            if (this.requestOptions != null)
+            {
+                if (tbPostTrigger.Modified)
+                {
+                    string postTrigger = tbPostTrigger.Text;
+                    if (!string.IsNullOrEmpty(postTrigger))
+                    {
+                        // split by ;
+                        string[] segments = postTrigger.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+                        this.requestOptions.PostTriggerInclude = segments;
+                    }
+                    tbPostTrigger.Modified = false;
+                }
+
+                if (tbPreTrigger.Modified)
+                {
+                    string preTrigger = tbPreTrigger.Text;
+                    if (!string.IsNullOrEmpty(preTrigger))
+                    {
+                        // split by ;
+                        string[] segments = preTrigger.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+                        this.requestOptions.PreTriggerInclude = segments;
+                    }
+                }
+                if (tbAccessConditionText.Modified)
+                {
+                    string condition = tbAccessConditionText.Text;
+                    if (!string.IsNullOrEmpty(condition))
+                    {
+                        this.requestOptions.AccessCondition.Condition = condition;
+                    }
+                }
+            }
+
+            RequestOptions requestOptions = this.requestOptions;
+
+            if (isCollection)
+            {
+                if (requestOptions != null)
+                {
+                    requestOptions.OfferType = this.offerType;
+                }
+                else
+                {
+                    requestOptions = new RequestOptions() { OfferType = this.offerType };
+                }
+            }
+
+            return requestOptions;
+        }
+
+        private delegate DialogResult MessageBoxDelegate(string msg, string title, MessageBoxButtons buttons, MessageBoxIcon icon);
+
+        private DialogResult ShowMessage(string msg, string title, MessageBoxButtons buttons, MessageBoxIcon icon)
+        {
+            return MessageBox.Show(this, msg, title, buttons, icon);
+        }
+
+        public void CheckCurrentRelease()
+        {
+            Thread.Sleep(3000);
+
+            Uri uri = new Uri("https://api.github.com/repos/mingaliu/documentdbstudio/releases");
+
+            using (HttpClient client = new HttpClient())
+            {
+                try
+                {
+                    HttpRequestMessage request = new HttpRequestMessage()
+                    {
+                        RequestUri = uri,
+                        Method = HttpMethod.Get,
+                    };
+                    request.Headers.UserAgent.Add(new ProductInfoHeaderValue("DocumentDBStudio", Constants.ProductVersion.ToString()));
+
+                    HttpResponseMessage response = client.SendAsync(request).Result;
+
+                    if (response.StatusCode == HttpStatusCode.OK)
+                    {
+                        JArray releaseJson = JArray.Parse(response.Content.ReadAsStringAsync().Result);
+                        JToken latestRelease = releaseJson.First;
+                        JToken latestReleaseTag = latestRelease["tag_name"];
+                        string latestReleaseString = latestReleaseTag.ToString();
+
+                        if (string.Compare(Constants.ProductVersion.ToString(), latestReleaseString, StringComparison.OrdinalIgnoreCase) < 0)
+                        {
+                            this.Invoke(new MessageBoxDelegate(ShowMessage),           
+                                string.Format(CultureInfo.InvariantCulture, "Please update the DocumentDB studio to the latest version {0} at https://github.com/mingaliu/DocumentDBStudio/releases", latestReleaseString),
+                                Constants.ApplicationName, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                    // ignore any exception here.
+                }
+            }
         }
 
         private void InitTreeView()
@@ -531,13 +644,11 @@ namespace Microsoft.Azure.DocumentDBStudio
                 this.treeView1.Nodes.Add(dbaNode);
 
                 dbaNode.Tag = client.GetDatabaseAccountAsync().Result;
+
             }
             catch (Exception e)
             {
                 Program.GetMain().SetResultInBrowser(null, e.ToString(), true);
-
-                // delete it.
-                this.RemoveAccountFromSettings(accountEndpoint);
             }
         }
 
@@ -555,7 +666,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             {
                 if (e.Node is FeedNode)
                 {
-                    (e.Node as FeedNode).ShowContextMenu( e.Node.TreeView, e.Location );
+                    (e.Node as FeedNode).ShowContextMenu(e.Node.TreeView, e.Location);
                 }
 
             }
@@ -575,7 +686,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                         this.currentText = body;
                     }
                 }
-                        
+
                 if (e.Node.Tag is string)
                 {
                     this.currentText = e.Node.Tag.ToString();
@@ -599,12 +710,14 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
         }
 
-        public void SetCrudContext(string name, bool showId, string bodytext, Action<string, object> func, CommandContext commandContext = null)
+        public void SetCrudContext(TreeNode node, string name, bool showId, string bodytext, Action<string, object> func, CommandContext commandContext = null)
         {
-            if(commandContext == null)
+            if (commandContext == null)
             {
                 commandContext = new CommandContext();
             }
+
+            this.treeView1.SelectedNode = node;
 
             this.currentCrudName = name;
 
@@ -615,16 +728,45 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.toolStripBtnExecute.Enabled = true;
             this.tbCrudContext.ReadOnly = commandContext.IsDelete;
 
+            // the whole left split panel.
             this.splitContainerInner.Panel1Collapsed = false;
+            //the split panel inside Tab. Panel1: Id, Panel2: Edit CRUD.
             this.splitContainerIntabPage.Panel1Collapsed = !showId;
 
             this.tbResponse.Text = "";
 
-            this.ButtomSplitContainer.Panel1Collapsed = !commandContext.IsFeed;
+            //the split panel at right bottom. Panel1: NextPage, Panel2: Browser.
+            if (commandContext.IsFeed)
+            {
+                this.ButtomSplitContainer.Panel1Collapsed = false;
+                this.ButtomSplitContainer.Panel1.Controls.Clear();
+                this.ButtomSplitContainer.Panel1.Controls.Add(this.feedToolStrip);
+            }
+            else if (commandContext.IsCreateTrigger)
+            {
+                this.ButtomSplitContainer.Panel1Collapsed = false;
+                this.ButtomSplitContainer.Panel1.Controls.Clear();
+                this.ButtomSplitContainer.Panel1.Controls.Add(this.triggerPanel);
+            }
+            else
+            {
+                this.ButtomSplitContainer.Panel1Collapsed = true;
+            }
+
             this.SetNextPageVisibility(commandContext);
 
-            if (string.Compare(name, "Add documentCollection", true) == 0)
+            if (string.Compare(name, "Create documentCollection", StringComparison.OrdinalIgnoreCase) == 0 ||
+                string.Compare(name, "Replace DocumentCollection", StringComparison.OrdinalIgnoreCase) == 0)
             {
+                if (string.Compare(name, "Create documentCollection", StringComparison.OrdinalIgnoreCase) == 0)
+                {
+                    cbIndexingPolicyDefault.Enabled = true;
+                }
+                else
+                {
+                    cbIndexingPolicyDefault.Enabled = false;
+                }
+
                 if (this.tabControl.TabPages.Contains(this.tabCrudContext))
                 {
                     this.tabControl.TabPages.Insert(0, this.tabDocumentCollectionPolicy);
@@ -652,7 +794,8 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             this.SetLoadingState();
 
-            if (string.Compare(this.currentCrudName, "Add documentCollection", true) == 0)
+            if (string.Compare(this.currentCrudName, "Create documentCollection", StringComparison.OrdinalIgnoreCase) == 0 ||
+                string.Compare(this.currentCrudName, "Replace documentCollection", StringComparison.OrdinalIgnoreCase) == 0)
             {
                 this.collectionToCreate.IndexingPolicy.IncludedPaths.Clear();
                 foreach (object item in lbIncludedPath.Items)
@@ -668,8 +811,21 @@ namespace Microsoft.Azure.DocumentDBStudio
                     this.collectionToCreate.IndexingPolicy.ExcludedPaths.Add(path);
                 }
 
-                collectionToCreate.Id = tbCollectionId.Text;
+                this.collectionToCreate.Id = tbCollectionId.Text;
                 this.currentOperation(null, collectionToCreate);
+            }
+            else if (this.currentCrudName.StartsWith("Create trigger", StringComparison.OrdinalIgnoreCase))
+            {
+                Trigger trigger = new Documents.Trigger();
+                trigger.Body = this.tbCrudContext.Text;
+                trigger.Id = this.textBoxforId.Text;
+                trigger.TriggerOperation = Documents.TriggerOperation.All;
+                if (rbPreTrigger.Checked)
+                    trigger.TriggerType = Documents.TriggerType.Pre;
+                else if (rbPostTrigger.Checked)
+                    trigger.TriggerType = Documents.TriggerType.Post;
+
+                this.currentOperation(null, trigger);
             }
             else
             {
@@ -679,7 +835,14 @@ namespace Microsoft.Azure.DocumentDBStudio
                 }
                 else
                 {
-                    this.currentOperation(this.tbCrudContext.Text, this.textBoxforId.Text);
+                    if (this.currentCrudName.StartsWith("Execute StoredProcedure", StringComparison.Ordinal) && !this.tbCrudContext.Modified)
+                    {
+                        this.currentOperation(null, this.textBoxforId.Text);
+                    }
+                    else
+                    {
+                        this.currentOperation(this.tbCrudContext.Text, this.textBoxforId.Text);
+                    }
                 }
             }
         }
@@ -688,6 +851,12 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             //
             this.webBrowserResponse.Url = new Uri(this.loadingGifPath);
+        }
+
+        public void RenderFile(string fileName)
+        {
+            //
+            this.webBrowserResponse.Url = new Uri(fileName);
         }
 
         public void SetResultInBrowser(string json, string text, bool executeButtonEnabled, NameValueCollection responseHeaders = null)
@@ -699,6 +868,11 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.toolStripBtnExecute.Enabled = executeButtonEnabled;
 
             this.SetResponseHeaders(responseHeaders);
+        }
+
+        public void SetStatus(string status)
+        {
+            this.tsStatus.Text = status;
         }
 
         private void PrettyPrintJson(string json, string extraText)
@@ -735,9 +909,15 @@ namespace Microsoft.Azure.DocumentDBStudio
                 string headers = "";
                 foreach (string key in responseHeaders.Keys)
                 {
-                    headers += string.Format("{0}: {1}\r\n", key, responseHeaders[key]);
+                    headers += string.Format(CultureInfo.InvariantCulture, "{0}: {1}\r\n", key, responseHeaders[key]);
+
+                    if (string.Compare("x-ms-request-charge", key, StringComparison.OrdinalIgnoreCase) == 0)
+                    {
+                        this.tsStatus.Text = this.tsStatus.Text + ", RequestChange: " + responseHeaders[key];
+                    }
                 }
                 this.tbResponse.Text = headers;
+
             }
         }
 
@@ -763,7 +943,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 rbIndexingDefault.Enabled = false;
                 rbIndexingExclude.Enabled = false;
                 rbIndexingInclude.Enabled = false;
-               
+
                 rbAccessConditionIfMatch.Enabled = false;
                 rbAccessConditionIfNoneMatch.Enabled = false;
                 tbAccessConditionText.Enabled = false;
@@ -808,7 +988,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             {
                 this.requestOptions.IndexingDirective = IndexingDirective.Default;
             }
-            else  if (rbIndexingExclude.Checked)
+            else if (rbIndexingExclude.Checked)
             {
                 this.requestOptions.IndexingDirective = IndexingDirective.Exclude;
             }
@@ -868,15 +1048,6 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         }
 
-        private void tbAccessConditionText_Leave(object sender, EventArgs e)
-        {
-            string condition = tbAccessConditionText.Text;
-            if (!string.IsNullOrEmpty(condition))
-            {
-                this.requestOptions.AccessCondition.Condition = condition;
-            }
-        }
-
         private void rbIndexingDefault_CheckedChanged(object sender, EventArgs e)
         {
             this.requestOptions.IndexingDirective = IndexingDirective.Default;
@@ -922,28 +1093,6 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.requestOptions.ConsistencyLevel = ConsistencyLevel.Eventual;
         }
 
-        private void tbPreTrigger_Leave(object sender, EventArgs e)
-        {
-            string preTrigger = tbPreTrigger.Text;
-            if (!string.IsNullOrEmpty(preTrigger))
-            {
-                // split by ;
-                string[] segments = preTrigger.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
-                this.requestOptions.PreTriggerInclude = segments;
-            }
-        }
-
-        private void tbPostTrigger_Leave(object sender, EventArgs e)
-        {
-            string postTrigger = labelPostTrigger.Text;
-            if (!string.IsNullOrEmpty(postTrigger))
-            {
-                // split by ;
-                string[] segments = postTrigger.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
-                this.requestOptions.PostTriggerInclude = segments;
-            }
-        }
-
         private void btnAddIncludePath_Click(object sender, EventArgs e)
         {
             IndexingPathForm dlg = new IndexingPathForm();
@@ -975,7 +1124,7 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         private void btnEdit_Click(object sender, EventArgs e)
         {
-            IndexingPath path = this.lbIncludedPath.SelectedItem as IndexingPath ;
+            IndexingPath path = this.lbIncludedPath.SelectedItem as IndexingPath;
 
             IndexingPathForm dlg = new IndexingPathForm();
 
@@ -1095,6 +1244,21 @@ namespace Microsoft.Azure.DocumentDBStudio
             {
                 this.collectionToCreate.IndexingPolicy.IndexingMode = IndexingMode.Lazy;
             }
+        }
+
+        private void rbOfferS1_CheckedChanged(object sender, EventArgs e)
+        {
+            this.offerType = "S1";
+        }
+
+        private void rbOfferS2_CheckedChanged(object sender, EventArgs e)
+        {
+            this.offerType = "S2";
+        }
+
+        private void rbOfferS3_CheckedChanged(object sender, EventArgs e)
+        {
+            this.offerType = "S3";
         }
 
 

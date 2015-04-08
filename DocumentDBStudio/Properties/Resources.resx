@@ -169,4 +169,7 @@
   <data name="NextPagepng" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\go_next_page.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="specialOfferpng" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\special_offer.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
 </root>

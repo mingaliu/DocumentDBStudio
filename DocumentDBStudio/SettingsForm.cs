@@ -34,13 +34,15 @@ namespace Microsoft.Azure.DocumentDBStudio
         }
         private void SettingsForm_Load(object sender, EventArgs e)
         {
-            if (!string.IsNullOrEmpty(AccountEndpoint))
+            if (!string.IsNullOrEmpty(this.AccountEndpoint))
             {
+                // load from change settings.
+                this.cbDevFabric.Enabled = false;
                 tbAccountName.Enabled = false;
-                tbAccountName.Text = AccountEndpoint;
-                tbAccountSecret.Text = AccountSettings.MasterKey;
+                tbAccountName.Text = this.AccountEndpoint;
+                tbAccountSecret.Text = this.AccountSettings.MasterKey;
 
-                if (AccountEndpoint == Constants.LocalEmulatorEndpoint)
+                if (this.AccountSettings.MasterKey == Constants.LocalEmulatorMasterkey)
                 {
                     cbDevFabric.Checked = true;
                 }
@@ -57,33 +59,33 @@ namespace Microsoft.Azure.DocumentDBStudio
                 {
                     radioButtonDirectTcp.Checked = true;
                 }
+
+                cbNameBased.Checked = this.AccountSettings.IsNameBased;
+                tbAccountName.Text = this.AccountEndpoint;
+                tbAccountSecret.Text = this.AccountSettings.MasterKey;
             }
             else
             {
                 radioButtonGateway.Checked = true;
+
+                // disable name based url for now.
+                this.cbNameBased.Checked = false;
+                ApplyDevFabricSettings();
             }
 
-            ApplyDevFabricSettings();
+            this.cbNameBased.Visible = false;
+            this.cbDevFabric.Visible = false;
         }
 
         private void btnOK_Click(object sender, EventArgs e)
         {
-            if (cbDevFabric.Checked)
+            if (string.IsNullOrEmpty(tbAccountName.Text) || string.IsNullOrEmpty(tbAccountSecret.Text))
             {
-                this.AccountEndpoint = Constants.LocalEmulatorEndpoint;
-                this.AccountSettings.MasterKey = Constants.LocalEmulatorMasterkey;
+                MessageBox.Show("Please input the valid account settings", Constants.ApplicationName);
+                this.DialogResult = DialogResult.None;
             }
-            else
-            {
-                if (string.IsNullOrEmpty(tbAccountName.Text) ||
-                string.IsNullOrEmpty(tbAccountSecret.Text))
-                {
-                    MessageBox.Show("Please input the valid account settings", Constants.ApplicationName);
-                    this.DialogResult = DialogResult.None;
-                }
-                this.AccountEndpoint = tbAccountName.Text;
-                this.AccountSettings.MasterKey = tbAccountSecret.Text;
-            }
+            this.AccountEndpoint = tbAccountName.Text;
+            this.AccountSettings.MasterKey = tbAccountSecret.Text;
 
             if (this.radioButtonGateway.Checked)
             {
@@ -99,6 +101,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 this.AccountSettings.ConnectionMode = ConnectionMode.Direct;
                 this.AccountSettings.Protocol = Protocol.Tcp;
             }
+            this.AccountSettings.IsNameBased = cbNameBased.Checked;
 
             Settings.Default.Save();
         }
@@ -111,13 +114,15 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             if (cbDevFabric.Checked)
             {
-                tbAccountName.Enabled = false;
                 tbAccountSecret.Enabled = false;
+                tbAccountName.Text = Constants.LocalEmulatorEndpoint;
+                tbAccountSecret.Text = Constants.LocalEmulatorMasterkey;
             }
             else
             {
-                tbAccountName.Enabled = true;
                 tbAccountSecret.Enabled = true;
+                tbAccountName.Text = "";
+                tbAccountSecret.Text = "";
             }
         }
     }

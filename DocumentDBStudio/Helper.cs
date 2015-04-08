@@ -13,12 +13,13 @@ using System.Text.RegularExpressions;
 using System.Xml;
 using Microsoft.Azure.DocumentDBStudio.Properties;
 using Newtonsoft.Json.Linq;
+using System.Globalization;
 
 namespace Microsoft.Azure.DocumentDBStudio
 {
     static class Constants
     {
-        public readonly static string ProductVersion = "0.31";
+        public readonly static string ProductVersion = "0.50";
         public readonly static string ApplicationName = "Azure DocumentDB Studio";
 
         /// <summary>
@@ -99,7 +100,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 }
                 return array;
             }
-            throw new ArgumentException(string.Format("Unknown token type '{0}'", token.GetType()), "token");
+            throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, "Unknown token type '{0}'", token.GetType()), "token");
         }
     }
 

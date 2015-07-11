@@ -96,14 +96,14 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Microsoft.Azure.Documents.Client, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+    <Reference Include="Microsoft.Azure.Documents.Client, Version=1.2.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\Microsoft.Azure.DocumentDB.1.0.0\lib\net40\Microsoft.Azure.Documents.Client.dll</HintPath>
+      <HintPath>..\packages\Microsoft.Azure.DocumentDB.1.2.0\lib\net40\Microsoft.Azure.Documents.Client.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.CSharp" />
-    <Reference Include="Newtonsoft.Json, Version=4.5.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+    <Reference Include="Newtonsoft.Json, Version=5.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\Newtonsoft.Json.4.5.11\lib\net40\Newtonsoft.Json.dll</HintPath>
+      <HintPath>..\packages\Newtonsoft.Json.5.0.7\lib\net40\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.configuration" />
@@ -134,11 +134,17 @@
     <Compile Include="ExcludedPathForm.Designer.cs">
       <DependentUpon>ExcludedPathForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="IndexingPathForm.cs">
+    <Compile Include="IncludedPathForm.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="IndexingPathForm.Designer.cs">
-      <DependentUpon>IndexingPathForm.cs</DependentUpon>
+    <Compile Include="IncludedPathForm.Designer.cs">
+      <DependentUpon>IncludedPathForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="IndexSpecsForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="IndexSpecsForm.Designer.cs">
+      <DependentUpon>IndexSpecsForm.cs</DependentUpon>
     </Compile>
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
@@ -164,8 +170,11 @@
     <EmbeddedResource Include="ExcludedPathForm.resx">
       <DependentUpon>ExcludedPathForm.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="IndexingPathForm.resx">
-      <DependentUpon>IndexingPathForm.cs</DependentUpon>
+    <EmbeddedResource Include="IncludedPathForm.resx">
+      <DependentUpon>IncludedPathForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="IndexSpecsForm.resx">
+      <DependentUpon>IndexSpecsForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="MainForm.resx">
       <SubType>Designer</SubType>

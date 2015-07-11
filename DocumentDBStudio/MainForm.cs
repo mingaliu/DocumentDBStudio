@@ -129,7 +129,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             ToolStripControlHost host = new ToolStripControlHost(cbEnableScan);
             feedToolStrip.Items.Insert(1, host);
 
-            lbIncludedPath.Items.Add(new IndexingPath() { Path = "/", IndexType = IndexType.Hash });
+            lbIncludedPath.Items.Add(new IncludedPath() { Path = "/" });
         }
 
 
@@ -606,7 +606,7 @@ namespace Microsoft.Azure.DocumentDBStudio
 
                         if (string.Compare(Constants.ProductVersion.ToString(), latestReleaseString, StringComparison.OrdinalIgnoreCase) < 0)
                         {
-                            this.Invoke(new MessageBoxDelegate(ShowMessage),           
+                            this.Invoke(new MessageBoxDelegate(ShowMessage),
                                 string.Format(CultureInfo.InvariantCulture, "Please update the DocumentDB studio to the latest version {0} at https://github.com/mingaliu/DocumentDBStudio/releases", latestReleaseString),
                                 Constants.ApplicationName, MessageBoxButtons.OK, MessageBoxIcon.Information);
                         }
@@ -800,15 +800,15 @@ namespace Microsoft.Azure.DocumentDBStudio
                 this.collectionToCreate.IndexingPolicy.IncludedPaths.Clear();
                 foreach (object item in lbIncludedPath.Items)
                 {
-                    IndexingPath path = item as IndexingPath;
-                    this.collectionToCreate.IndexingPolicy.IncludedPaths.Add(path);
+                    IncludedPath includedPath = item as IncludedPath;
+                    this.collectionToCreate.IndexingPolicy.IncludedPaths.Add(includedPath);
                 }
 
                 this.collectionToCreate.IndexingPolicy.ExcludedPaths.Clear();
                 foreach (object item in lbExcludedPath.Items)
                 {
-                    String path = item as String;
-                    this.collectionToCreate.IndexingPolicy.ExcludedPaths.Add(path);
+                    String excludedPath = item as String;
+                    this.collectionToCreate.IndexingPolicy.ExcludedPaths.Add(new ExcludedPath() { Path = excludedPath });
                 }
 
                 this.collectionToCreate.Id = tbCollectionId.Text;
@@ -1095,11 +1095,12 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         private void btnAddIncludePath_Click(object sender, EventArgs e)
         {
-            IndexingPathForm dlg = new IndexingPathForm();
+            IncludedPathForm dlg = new IncludedPathForm();
+            dlg.StartPosition = FormStartPosition.CenterParent;
             DialogResult dr = dlg.ShowDialog(this);
             if (dr == DialogResult.OK)
             {
-                this.lbIncludedPath.Items.Add(dlg.IndexingPath);
+                this.lbIncludedPath.Items.Add(dlg.IncludedPath);
             }
         }
 
@@ -1124,16 +1125,17 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         private void btnEdit_Click(object sender, EventArgs e)
         {
-            IndexingPath path = this.lbIncludedPath.SelectedItem as IndexingPath;
+            IncludedPath includedPath = this.lbIncludedPath.SelectedItem as IncludedPath;
 
-            IndexingPathForm dlg = new IndexingPathForm();
+            IncludedPathForm dlg = new IncludedPathForm();
+            dlg.StartPosition = FormStartPosition.CenterParent;
 
-            dlg.SetIndexingPath(path);
+            dlg.SetIncludedPath(includedPath);
 
             DialogResult dr = dlg.ShowDialog(this);
             if (dr == DialogResult.OK)
             {
-                this.lbIncludedPath.Items[this.lbIncludedPath.SelectedIndex] = path;
+                this.lbIncludedPath.Items[this.lbIncludedPath.SelectedIndex] = dlg.IncludedPath;
             }
         }
 

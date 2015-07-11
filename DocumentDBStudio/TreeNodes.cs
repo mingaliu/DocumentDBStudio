@@ -687,6 +687,10 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             this.currentQueryCommandContext = new CommandContext();
             this.currentQueryCommandContext.IsFeed = true;
+
+            // reset continuation token
+            this.currentContinuation = null;
+
             Program.GetMain().SetCrudContext(this, string.Format(CultureInfo.InvariantCulture, "Query Documents from Collection {0}", (this.Tag as Documents.DocumentCollection).Id),
                 false, "select * from c", this.QueryDocuments, this.currentQueryCommandContext);
 

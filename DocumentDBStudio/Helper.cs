@@ -19,7 +19,7 @@ namespace Microsoft.Azure.DocumentDBStudio
 {
     static class Constants
     {
-        public readonly static string ProductVersion = "0.50";
+        public readonly static string ProductVersion = "0.60";
         public readonly static string ApplicationName = "Azure DocumentDB Studio";
 
         /// <summary>

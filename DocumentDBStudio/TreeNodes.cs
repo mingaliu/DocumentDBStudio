@@ -499,9 +499,15 @@ namespace Microsoft.Azure.DocumentDBStudio
             MenuItem myMenuItem9 = new MenuItem("Create Document From File");
             myMenuItem9.Click += new EventHandler(myMenuItemAddDocumentFromFile_Click);
             this.contextMenu.MenuItems.Add(myMenuItem9);
+
             MenuItem myMenuItem4 = new MenuItem("Create Multiple Documents From Folder");
             myMenuItem4.Click += new EventHandler(myMenuItemAddDocumentsFromFolder_Click);
             this.contextMenu.MenuItems.Add(myMenuItem4);
+
+            MenuItem myMenuItem7 = new MenuItem("Save All Docuemnts to Folder");
+            myMenuItem7.Click += new EventHandler(myMenuItemSaveAllDocuemnts_Click);
+            this.contextMenu.MenuItems.Add(myMenuItem7);
+
             MenuItem myMenuItem1 = new MenuItem("Refresh Documents feed");
             myMenuItem1.Click += new EventHandler((sender, e) => Refresh(true));
             this.contextMenu.MenuItems.Add(myMenuItem1);
@@ -591,6 +597,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 Program.GetMain().SetResultInBrowser(null, e.ToString(), true);
             }
         }
+
         async void DeleteDocumentCollection(string text, object optional)
         {
             try
@@ -670,6 +677,39 @@ namespace Microsoft.Azure.DocumentDBStudio
                     Program.GetMain().SetResultInBrowser(null, status, false);
 
                 }
+            }
+        }
+
+        void myMenuItemSaveAllDocuemnts_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                FolderBrowserDialog ofd = new FolderBrowserDialog();
+
+                DialogResult dr = ofd.ShowDialog();
+
+                if (dr == DialogResult.OK)
+                {
+                    var query = this.client.CreateDocumentQuery<Document>((this.Tag as Documents.DocumentCollection).DocumentsLink).AsEnumerable();
+
+                    foreach(var doc in query)
+                    {
+                        string filename = ofd.SelectedPath + @"\" + doc.ResourceId + ".json";
+
+                        using (var fs = new FileStream(filename, FileMode.Create))
+                        {
+                            doc.SaveTo(fs, SerializationFormattingPolicy.Indented);
+                        }
+                    }
+                }
+            }
+            catch (AggregateException err)
+            {
+                Program.GetMain().SetResultInBrowser(null, err.InnerException.ToString(), true);
+            }
+            catch (Exception err)
+            {
+                Program.GetMain().SetResultInBrowser(null, err.ToString(), true);
             }
         }
 

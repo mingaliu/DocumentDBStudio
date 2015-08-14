@@ -637,14 +637,30 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             try
             {
+                string suffix = Constants.ApplicationName + "/" + Constants.ProductVersion;
+
                 DocumentClient client = new DocumentClient(new Uri(accountEndpoint), accountSettings.MasterKey,
-                    new ConnectionPolicy { ConnectionMode = accountSettings.ConnectionMode, ConnectionProtocol = accountSettings.Protocol });
+                    new ConnectionPolicy { ConnectionMode = accountSettings.ConnectionMode, 
+                                           ConnectionProtocol = accountSettings.Protocol,
+                                           UserAgentSuffix = suffix
+                    });
 
                 DatabaseAccountNode dbaNode = new DatabaseAccountNode(accountEndpoint, client);
                 this.treeView1.Nodes.Add(dbaNode);
 
-                dbaNode.Tag = client.GetDatabaseAccountAsync().Result;
+                // Update the map.
+                DocumentClientExtension.AddOrUpdate(client.ServiceEndpoint.Host, accountSettings.IsNameBased);
+                if (accountSettings.IsNameBased)
+                {
+                    dbaNode.ForeColor = Color.Green;
+                }
+                else
+                {
+                    dbaNode.ForeColor = Color.Blue;
+                }
 
+                // Set the tag to the DatabaseAccount resource object, this might fail if the service is not available.
+                dbaNode.Tag = client.GetDatabaseAccountAsync().Result;
             }
             catch (Exception e)
             {
@@ -760,11 +776,13 @@ namespace Microsoft.Azure.DocumentDBStudio
             {
                 if (string.Compare(name, "Create documentCollection", StringComparison.OrdinalIgnoreCase) == 0)
                 {
-                    cbIndexingPolicyDefault.Enabled = true;
+                    this.tbCollectionId.Enabled = true;
+                    this.tbCollectionId.Text = "DocumentCollection Id";
                 }
                 else
                 {
-                    cbIndexingPolicyDefault.Enabled = false;
+                    this.tbCollectionId.Enabled = false;
+                    this.tbCollectionId.Text = (node.Tag as Resource).Id;
                 }
 
                 if (this.tabControl.TabPages.Contains(this.tabCrudContext))

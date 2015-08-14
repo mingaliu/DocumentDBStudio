@@ -73,19 +73,19 @@ namespace Microsoft.Azure.DocumentDBStudio
                 ApplyDevFabricSettings();
             }
 
-            this.cbNameBased.Visible = false;
+            this.cbNameBased.Visible = true;
             this.cbDevFabric.Visible = false;
         }
 
         private void btnOK_Click(object sender, EventArgs e)
         {
             if (string.IsNullOrEmpty(tbAccountName.Text) || string.IsNullOrEmpty(tbAccountSecret.Text))
-            {
-                MessageBox.Show("Please input the valid account settings", Constants.ApplicationName);
-                this.DialogResult = DialogResult.None;
-            }
-            this.AccountEndpoint = tbAccountName.Text;
-            this.AccountSettings.MasterKey = tbAccountSecret.Text;
+                {
+                    MessageBox.Show("Please input the valid account settings", Constants.ApplicationName);
+                    this.DialogResult = DialogResult.None;
+                }
+                this.AccountEndpoint = tbAccountName.Text;
+                this.AccountSettings.MasterKey = tbAccountSecret.Text;
 
             if (this.radioButtonGateway.Checked)
             {

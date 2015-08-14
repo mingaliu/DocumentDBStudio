@@ -554,11 +554,11 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             try
             {
-                // todo: When we support collection put
-                DocumentCollection collToChanbge = optional as DocumentCollection;
-
-                Documents.DocumentCollection coll = (Documents.DocumentCollection)this.Tag;
                 RequestOptions requestionOptions = Program.GetMain().GetRequestOptions(true);
+
+                // #1: Update offer if necessary
+                Documents.DocumentCollection coll = (Documents.DocumentCollection)this.Tag;
+
                 // Find the offer object corresponding to the current offer.
                 IQueryable<Offer> offerQuery = from offer in client.CreateOfferQuery()
                                                where offer.ResourceLink == coll.SelfLink
@@ -574,13 +574,27 @@ namespace Microsoft.Azure.DocumentDBStudio
 
                 // change the Offer type of the document collection 
                 Offer offerToReplace = queryResults[0];
-                offerToReplace.OfferType = requestionOptions.OfferType;
-                ResourceResponse<Offer> replaceResponse;
-                using (PerfStatus.Start("ReplaceOffer"))
+                if (requestionOptions.OfferType != null && string.Compare(offerToReplace.OfferType, requestionOptions.OfferType, StringComparison.Ordinal) != 0)
                 {
-                     replaceResponse = await client.ReplaceOfferAsync(offerToReplace);
+                    offerToReplace.OfferType = requestionOptions.OfferType;
+                    ResourceResponse<Offer> replaceResponse;
+                    using (PerfStatus.Start("ReplaceOffer"))
+                    {
+                        replaceResponse = await client.ReplaceOfferAsync(offerToReplace);
+                    }
                 }
-                Program.GetMain().SetResultInBrowser(null, "Replace DocumentCollection succeed!", false, replaceResponse.ResponseHeaders);
+
+                // #2: Update collection if necessary
+                DocumentCollection collToChange = optional as DocumentCollection;
+                collToChange.IndexingPolicy = (IndexingPolicy)coll.IndexingPolicy.Clone();
+
+                ResourceResponse<DocumentCollection> response;
+                using (PerfStatus.Start("ReplaceDocumentCollection"))
+                {
+                    response = await client.ReplaceDocumentCollectionExAsync(coll, requestionOptions);
+                }
+
+                Program.GetMain().SetResultInBrowser(null, "Replace DocumentCollection succeed!", false, response.ResponseHeaders);
             }
             catch (AggregateException e)
             {
@@ -978,7 +992,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                     ResourceResponse<Offer> rr;
                     using (PerfStatus.Start("ReadOffer"))
                     {
-                        rr = await this.client.ReadOfferAsync(((Resource)this.Tag).GetLink(this.client));
+                        rr = await this.client.ReadOfferAsync(((Resource)this.Tag).SelfLink);
                     }
                     // set the result window
                     string json = JsonConvert.SerializeObject(rr.Resource, Newtonsoft.Json.Formatting.Indented);
@@ -1221,7 +1235,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                         ResourceResponse<Documents.Attachment> rr;
                         using (PerfStatus.Start("CreateAttachment"))
                         {
-                             rr = await this.client.CreateAttachmentAsync((this.Tag as Documents.Document).AttachmentsLink,
+                             rr = await this.client.CreateAttachmentAsync((this.Tag as Documents.Document).GetLink(this.client) + "/attachments",
                                        stream, options);
                         }
                         string json = rr.Resource.ToString();
@@ -1339,6 +1353,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 if (this.resourceType == ResourceType.Document)
                 {
                     Documents.Document doc = (Documents.Document)JsonConvert.DeserializeObject(text, typeof(Documents.Document));
+                    doc.SetReflectedPropertyValue("AltLink", (this.Tag as Document).GetAltLink());
                     ResourceResponse<Documents.Document> rr;
                     using (PerfStatus.Start("ReplaceDocument"))
                     {
@@ -1370,6 +1385,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 else if (this.resourceType == ResourceType.User)
                 {
                     Documents.User sp = (Documents.User)JsonConvert.DeserializeObject(text, typeof(Documents.User));
+                    sp.SetReflectedPropertyValue("AltLink", (this.Tag as User).GetAltLink());
                     ResourceResponse<Documents.User> rr;
                     using (PerfStatus.Start("ReplaceUser"))
                     {
@@ -1416,6 +1432,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 else if (this.resourceType == ResourceType.Permission)
                 {
                     Documents.Permission sp = Documents.Resource.LoadFrom<Documents.Permission>(new MemoryStream(Encoding.UTF8.GetBytes(text)));
+                    sp.SetReflectedPropertyValue("AltLink", (this.Tag as Permission).GetAltLink());
                     ResourceResponse<Documents.Permission> rr;
                     using (PerfStatus.Start("ReplacePermission"))
                     {
@@ -1430,6 +1447,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 else if (this.resourceType == ResourceType.Attachment)
                 {
                     Documents.Attachment sp = (Documents.Attachment)JsonConvert.DeserializeObject(text, typeof(Documents.Attachment));
+                    sp.SetReflectedPropertyValue("AltLink", (this.Tag as Attachment).GetAltLink());
                     ResourceResponse<Documents.Attachment> rr;
                     using (PerfStatus.Start("ReplaceAttachment"))
                     {
@@ -1458,7 +1476,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             {
                 if (this.resourceType == ResourceType.Document)
                 {
-                    Documents.Document doc = (Documents.Document)JsonConvert.DeserializeObject(text, typeof(Documents.Document));
+                    Documents.Document doc = (Documents.Document)this.Tag;
                     ResourceResponse<Documents.Document> rr;
                     using (PerfStatus.Start("DeleteDocument"))
                     {
@@ -1469,7 +1487,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 }
                 else if (this.resourceType == ResourceType.StoredProcedure)
                 {
-                    Documents.StoredProcedure sp = (Documents.StoredProcedure)JsonConvert.DeserializeObject(text, typeof(Documents.StoredProcedure));
+                    Documents.StoredProcedure sp = (Documents.StoredProcedure)this.Tag;
                     ResourceResponse<Documents.StoredProcedure> rr;
                     using (PerfStatus.Start("DeleteStoredProcedure"))
                     {
@@ -1479,7 +1497,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 }
                 else if (this.resourceType == ResourceType.User)
                 {
-                    Documents.User sp = (Documents.User)JsonConvert.DeserializeObject(text, typeof(Documents.User));
+                    Documents.User sp = (Documents.User)this.Tag;
                     ResourceResponse<Documents.User> rr;
                     using (PerfStatus.Start("DeleteUser"))
                     {
@@ -1489,7 +1507,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 }
                 else if (this.resourceType == ResourceType.Trigger)
                 {
-                    Documents.Trigger sp = (Documents.Trigger)JsonConvert.DeserializeObject(text, typeof(Documents.Trigger));
+                    Documents.Trigger sp = (Documents.Trigger)this.Tag;
                     ResourceResponse<Documents.Trigger> rr;
                     using (PerfStatus.Start("DeleteTrigger"))
                     {
@@ -1499,7 +1517,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 }
                 else if (this.resourceType == ResourceType.UserDefinedFunction)
                 {
-                    Documents.UserDefinedFunction sp = (Documents.UserDefinedFunction)JsonConvert.DeserializeObject(text, typeof(Documents.UserDefinedFunction));
+                    Documents.UserDefinedFunction sp = (Documents.UserDefinedFunction)this.Tag;
                     ResourceResponse<Documents.UserDefinedFunction> rr;
                     using (PerfStatus.Start("DeleteUDF"))
                     {
@@ -1509,7 +1527,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 }
                 else if (this.resourceType == ResourceType.Permission)
                 {
-                    Documents.Permission sp = (Documents.Permission)JsonConvert.DeserializeObject(text, typeof(Documents.Permission));
+                    Documents.Permission sp = (Documents.Permission)this.Tag;
                     ResourceResponse<Documents.Permission> rr;
                     using (PerfStatus.Start("DeletePermission"))
                     {
@@ -1519,7 +1537,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 }
                 else if (this.resourceType == ResourceType.Attachment)
                 {
-                    Documents.Attachment sp = (Documents.Attachment)JsonConvert.DeserializeObject(text, typeof(Documents.Attachment));
+                    Documents.Attachment sp = (Documents.Attachment)this.Tag;
                     ResourceResponse<Documents.Attachment> rr;
                     using (PerfStatus.Start("DeleteAttachment"))
                     {
@@ -1529,7 +1547,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 }
                 else if (this.resourceType == ResourceType.Conflict)
                 {
-                    Documents.Conflict sp = (Documents.Conflict)JsonConvert.DeserializeObject(text, typeof(Documents.Conflict));
+                    Documents.Conflict sp = (Documents.Conflict)this.Tag;
                     ResourceResponse<Documents.Conflict> rr;
                     using (PerfStatus.Start("DeleteConlict"))
                     {
@@ -1600,7 +1618,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 FeedResponse<Documents.Attachment> attachments;
                 using (PerfStatus.Start("ReadAttachmentFeed"))
                 {
-                     attachments = this.client.ReadAttachmentFeedAsync((this.Tag as Documents.Document).AttachmentsLink).Result;
+                     attachments = this.client.ReadAttachmentFeedAsync((this.Tag as Documents.Document).GetLink(this.client)).Result;
                 }
                 foreach (var attachment in attachments)
                 {
@@ -2252,7 +2270,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 FeedResponse<Database> r;
                 using (PerfStatus.Start("QueryConflicts"))
                 {
-                    IDocumentQuery<dynamic> q = this.client.CreateConflictQuery((this.Parent.Tag as Documents.DocumentCollection).ConflictsLink, queryText).AsDocumentQuery();
+                    IDocumentQuery<dynamic> q = this.client.CreateConflictQuery((this.Parent.Tag as Documents.DocumentCollection).GetLink(this.client), queryText).AsDocumentQuery();
                     r = await q.ExecuteNextAsync<Database>();
                 }
 
@@ -2314,7 +2332,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 FeedResponse<Documents.Conflict> feedConflicts;
                 using (PerfStatus.Start("ReadConflictsFeed"))
                 {
-                    feedConflicts = this.client.ReadConflictFeedAsync((this.Parent.Tag as Documents.DocumentCollection).ConflictsLink).Result;
+                    feedConflicts = this.client.ReadConflictFeedAsync((this.Parent.Tag as Documents.DocumentCollection).GetLink(this.client)).Result;
                 }
 
                 foreach (var sp in feedConflicts)

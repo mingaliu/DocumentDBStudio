@@ -60,15 +60,16 @@ namespace Microsoft.Azure.DocumentDBStudio
                     radioButtonDirectTcp.Checked = true;
                 }
 
-                cbNameBased.Checked = this.AccountSettings.IsNameBased;
+                cbNameBased.Checked = !this.AccountSettings.IsNameBased;
                 tbAccountName.Text = this.AccountEndpoint;
                 tbAccountSecret.Text = this.AccountSettings.MasterKey;
+                this.cbEnableAutomaticFailover.Checked = this.AccountSettings.EnableFailOver;
             }
             else
             {
                 radioButtonGateway.Checked = true;
+                cbEnableAutomaticFailover.Checked = false;
 
-                // disable name based url for now.
                 this.cbNameBased.Checked = false;
                 ApplyDevFabricSettings();
             }
@@ -101,7 +102,9 @@ namespace Microsoft.Azure.DocumentDBStudio
                 this.AccountSettings.ConnectionMode = ConnectionMode.Direct;
                 this.AccountSettings.Protocol = Protocol.Tcp;
             }
-            this.AccountSettings.IsNameBased = cbNameBased.Checked;
+
+            this.AccountSettings.EnableFailOver = cbEnableAutomaticFailover.Checked;
+            this.AccountSettings.IsNameBased = !cbNameBased.Checked;
 
             Settings.Default.Save();
         }

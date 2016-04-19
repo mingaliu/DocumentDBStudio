@@ -2,7 +2,6 @@
 // Copyright (c) Microsoft Corporation.  All rights reserved.
 //-----------------------------------------------------------------------------
 
-using Newtonsoft.Json.Linq;
 namespace Microsoft.Azure.DocumentDBStudio
 {
     using System;
@@ -19,8 +18,10 @@ namespace Microsoft.Azure.DocumentDBStudio
     using Microsoft.Azure.Documents.Client;
     using Microsoft.Azure.Documents.Linq;
     using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
     using Newtonsoft.Json.Serialization;
     using System.Globalization;
+    using System.Collections.Specialized;
 
     internal class AccountSettings
     {
@@ -28,6 +29,7 @@ namespace Microsoft.Azure.DocumentDBStudio
         public ConnectionMode ConnectionMode;
         public Protocol Protocol;
         public bool IsNameBased;
+        public bool EnableFailOver;
     }
 
     public class CommandContext
@@ -49,6 +51,9 @@ namespace Microsoft.Azure.DocumentDBStudio
 
     enum ResourceType
     {
+        DatabaseAccount,
+        Database,
+        DocumentCollection,
         Document,
         User,
         StoredProcedure,
@@ -60,17 +65,31 @@ namespace Microsoft.Azure.DocumentDBStudio
         Offer
     }
 
+    enum OperationType
+    {
+        Create,
+        Replace,
+        Read,
+        Delete,
+        Query,
+        Execute,
+    }
+
+    enum OfferType
+    {
+        S1,
+        S2,
+        S3,
+        StandardSingle,
+        StandardElastic
+    }
+
     abstract class FeedNode : TreeNode
     {
         protected bool isFirstTime = true;
         abstract public void ShowContextMenu(TreeView treeview, Point p);
 
         abstract public void Refresh(bool forceRefresh);
-    }
-
-    class TreeNodeConstants
-    {
-        static public string LoadingNode = "Loading";
     }
 
     class DatabaseAccountNode : FeedNode
@@ -91,32 +110,44 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.client = client;
             this.Tag = "This represents the DatabaseAccount. Right click to add Database";
 
-            this.Nodes.Add(new OffersNode(this.client));
+            this.Nodes.Add(new OfferNode(this.client));
+            {
+                MenuItem menuItem = new MenuItem("Read DatabaseAccount");
+                menuItem.Click += new EventHandler(myMenuItemReadDatabaseAccount_Click);
+                this.contextMenu.MenuItems.Add(menuItem);
+            }
 
-            MenuItem myMenuItem = new MenuItem("Create Database");
-            myMenuItem.Click += new EventHandler(myMenuItemAddDatabase_Click);
-            this.contextMenu.MenuItems.Add(myMenuItem);
+            {
+                MenuItem menuItem = new MenuItem("Create Database");
+                menuItem.Click += new EventHandler(myMenuItemCreateDatabase_Click);
+                this.contextMenu.MenuItems.Add(menuItem);
+            }
 
-            MenuItem myMenuItem1 = new MenuItem("Refresh Databases feed");
-            myMenuItem1.Click += new EventHandler((sender, e) => Refresh(true));
-            this.contextMenu.MenuItems.Add(myMenuItem1);
+            {
+                MenuItem menuItem = new MenuItem("Refresh Databases feed");
+                menuItem.Click += new EventHandler((sender, e) => Refresh(true));
+                this.contextMenu.MenuItems.Add(menuItem);
+            }
 
-            MenuItem myMenuItem4 = new MenuItem("Query Database");
-            myMenuItem4.Click += new EventHandler(myMenuItemQueryDatabase_Click);
-            this.contextMenu.MenuItems.Add(myMenuItem4);
+            {
+                MenuItem menuItem = new MenuItem("Query Database");
+                menuItem.Click += new EventHandler(myMenuItemQueryDatabase_Click);
+                this.contextMenu.MenuItems.Add(menuItem);
+            }
 
             this.contextMenu.MenuItems.Add("-");
 
-            MenuItem myMenuItem2 = new MenuItem("Remove setting");
-            myMenuItem2.Click += new EventHandler(myMenuItemRemoveDatabaseAccount_Click);
-            this.contextMenu.MenuItems.Add(myMenuItem2);
-            MenuItem myMenuItem3 = new MenuItem("Change setting");
-            myMenuItem3.Click += new EventHandler(myMenuItemChangeSetting_Click);
-            this.contextMenu.MenuItems.Add(myMenuItem3);
-        }
-        public DocumentClient DocumentClient
-        {
-            get { return this.client; }
+            {
+                MenuItem menuItem = new MenuItem("Remove setting");
+                menuItem.Click += new EventHandler(myMenuItemRemoveDatabaseAccount_Click);
+                this.contextMenu.MenuItems.Add(menuItem);
+            }
+
+            {
+                MenuItem menuItem = new MenuItem("Change setting");
+                menuItem.Click += new EventHandler(myMenuItemChangeSetting_Click);
+                this.contextMenu.MenuItems.Add(menuItem);
+            }
         }
 
         void myMenuItemChangeSetting_Click(object sender, EventArgs e)
@@ -124,19 +155,44 @@ namespace Microsoft.Azure.DocumentDBStudio
             Program.GetMain().ChangeAccountSettings(this, this.accountEndpoint);
         }
 
-        void myMenuItemAddDatabase_Click(object sender, EventArgs e)
+        async void myMenuItemReadDatabaseAccount_Click(object sender, EventArgs eArgs)
+        {
+            try
+            {
+                DatabaseAccount databaseAccount;
+                using (PerfStatus.Start("ReadDatabase"))
+                {
+                    databaseAccount = await this.client.GetDatabaseAccountAsync();
+                }
+                // set the result window
+                string json = JsonConvert.SerializeObject(databaseAccount, Newtonsoft.Json.Formatting.Indented);
+
+                this.Tag = databaseAccount;
+                Program.GetMain().SetResultInBrowser(json, null, false);
+
+            }
+            catch (AggregateException e)
+            {
+                Program.GetMain().SetResultInBrowser(null, e.InnerException.ToString(), true);
+            }
+            catch (Exception e)
+            {
+                Program.GetMain().SetResultInBrowser(null, e.ToString(), true);
+            }
+        }
+
+        void myMenuItemCreateDatabase_Click(object sender, EventArgs e)
         {
             // 
             dynamic d = new System.Dynamic.ExpandoObject();
             d.id = "Here is your Database Id";
             string x = JsonConvert.SerializeObject(d, Newtonsoft.Json.Formatting.Indented);
-            Program.GetMain().SetCrudContext(this, "Create database", false, x, this.AddDatabase);
+            Program.GetMain().SetCrudContext(this, OperationType.Create,  ResourceType.Database, x, this.CreateDatabaseAsync);
         }
 
         void myMenuItemQueryDatabase_Click(object sender, EventArgs e)
         {
-            Program.GetMain().SetCrudContext(this, "Query Database",
-                false, "select * from c", this.QueryDatabases);
+            Program.GetMain().SetCrudContext(this, OperationType.Query, ResourceType.Database, "select * from c", this.QueryDatabasesAsync);
         }
 
         void myMenuItemRemoveDatabaseAccount_Click(object sender, EventArgs e)
@@ -146,10 +202,12 @@ namespace Microsoft.Azure.DocumentDBStudio
             Program.GetMain().RemoveAccountFromSettings(this.accountEndpoint);
         }
 
-        async void QueryDatabases(string queryText, object optional)
+        async void QueryDatabasesAsync(object resource, RequestOptions requestOptions)
         {
             try
             {
+                string queryText = resource as string;
+
                 FeedResponse<Database> r;
                 using (PerfStatus.Start("QueryDatabase"))
                 {
@@ -198,19 +256,18 @@ namespace Microsoft.Azure.DocumentDBStudio
                 Program.GetMain().SetResultInBrowser(null, e.ToString(), true);
             }
         }
+
         private async void FillWithChildren()
         {
             try
             {
-                this.Tag = await client.GetDatabaseAccountAsync();
-
-                FeedResponse<Documents.Database> databases;
+                FeedResponse<Database> databases;
                 using (PerfStatus.Start("ReadDatabaseFeed"))
                 {
                     databases = await this.client.ReadDatabaseFeedAsync();
                 }
 
-                foreach (Documents.Database db in databases)
+                foreach (Database db in databases)
                 {
                     DatabaseNode node = new DatabaseNode(client, db);
                     this.Nodes.Add(node);
@@ -226,10 +283,6 @@ namespace Microsoft.Azure.DocumentDBStudio
             {
                 Program.GetMain().SetResultInBrowser(null, e.ToString(), true);
             }
-            finally
-            {
-            }
-
         }
 
         override public void ShowContextMenu(TreeView treeview, Point p)
@@ -244,22 +297,23 @@ namespace Microsoft.Azure.DocumentDBStudio
                 this.isFirstTime = false;
                 this.Nodes.Clear();
 
-                this.Nodes.Add(new OffersNode(this.client));
+                this.Nodes.Add(new OfferNode(this.client));
 
                 FillWithChildren();
             }
         }
 
-        async void AddDatabase(string text, object optional)
+        async void CreateDatabaseAsync(object resource, RequestOptions requestOptions)
         {
             try
             {
-                Documents.Database db = (Documents.Database)JsonConvert.DeserializeObject(text, typeof(Documents.Database));
+                string text = resource as string;
+                Database db = (Database)JsonConvert.DeserializeObject(text, typeof(Database));
 
-                ResourceResponse<Documents.Database> newdb;
+                ResourceResponse<Database> newdb;
                 using (PerfStatus.Start("CreateDatabase"))
                 {
-                     newdb = await this.client.CreateDatabaseAsync(db, Program.GetMain().GetRequestOptions());
+                    newdb = await this.client.CreateDatabaseAsync(db, requestOptions);
                 }
                 this.Nodes.Add(new DatabaseNode(this.client, newdb.Resource));
 
@@ -284,7 +338,7 @@ namespace Microsoft.Azure.DocumentDBStudio
         private DocumentClient client;
         private ContextMenu contextMenu = new ContextMenu();
 
-        public DatabaseNode(DocumentClient localclient, Documents.Database db)
+        public DatabaseNode(DocumentClient localclient, Database db)
         {
             this.Text = db.Id;
             this.Tag = db;
@@ -292,36 +346,41 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.ImageKey = "SystemFeed";
             this.SelectedImageKey = "SystemFeed";
 
-            this.Nodes.Add(new UsersNode(this.client));
+            this.Nodes.Add(new UserNode(this.client));
 
-            MenuItem myMenuItem3 = new MenuItem("Read Database");
-            myMenuItem3.Click += new EventHandler(myMenuItemReadDatabase_Click);
-            this.contextMenu.MenuItems.Add(myMenuItem3);
+            {
+                MenuItem menuItem = new MenuItem("Read Database");
+                menuItem.Click += new EventHandler(myMenuItemReadDatabase_Click);
+                this.contextMenu.MenuItems.Add(menuItem);
+            }
 
-            MenuItem myMenuItem = new MenuItem("Delete Database");
-            myMenuItem.Click += new EventHandler(myMenuItemDeleteDatabase_Click);
-            this.contextMenu.MenuItems.Add(myMenuItem);
+            {
+                MenuItem menuItem = new MenuItem("Delete Database");
+                menuItem.Click += new EventHandler(myMenuItemDeleteDatabase_Click);
+                this.contextMenu.MenuItems.Add(menuItem);
+            }
 
             this.contextMenu.MenuItems.Add("-");
 
-            MenuItem myMenuItem2 = new MenuItem("Create DocumentCollection");
-            myMenuItem2.Click += new EventHandler(myMenuItemAddDocumentCollection_Click);
-            this.contextMenu.MenuItems.Add(myMenuItem2);
-            MenuItem myMenuItem4 = new MenuItem("Refresh DocumentCollections Feed");
-            myMenuItem4.Click += new EventHandler((sender, e) => Refresh(true));
-            this.contextMenu.MenuItems.Add(myMenuItem4);
+            {
+                MenuItem menuItem = new MenuItem("Create DocumentCollection");
+                menuItem.Click += new EventHandler(myMenuItemCreateDocumentCollection_Click);
+                this.contextMenu.MenuItems.Add(menuItem);
+            }
 
-        }
-        public DocumentClient DocumentClient
-        {
-            get { return this.client; }
+            {
+                MenuItem menuItem = new MenuItem("Refresh DocumentCollections Feed");
+                menuItem.Click += new EventHandler((sender, e) => Refresh(true));
+                this.contextMenu.MenuItems.Add(menuItem);
+            }
+
         }
 
         async void myMenuItemReadDatabase_Click(object sender, EventArgs eArgs)
         {
             try
             {
-                ResourceResponse<Documents.Database> database;
+                ResourceResponse<Database> database;
                 using (PerfStatus.Start("ReadDatabase"))
                 {
                     database = await this.client.ReadDatabaseAsync(((Database)this.Tag).GetLink(this.client), Program.GetMain().GetRequestOptions());
@@ -330,7 +389,6 @@ namespace Microsoft.Azure.DocumentDBStudio
                 string json = JsonConvert.SerializeObject(database.Resource, Newtonsoft.Json.Formatting.Indented);
 
                 Program.GetMain().SetResultInBrowser(json, null, false, database.ResponseHeaders);
-
             }
             catch (AggregateException e)
             {
@@ -347,16 +405,16 @@ namespace Microsoft.Azure.DocumentDBStudio
             string x = this.Tag.ToString();
             CommandContext context = new CommandContext();
             context.IsDelete = true;
-            Program.GetMain().SetCrudContext(this, "Delete database", false, x, this.DeleteDatabase, context);
+            Program.GetMain().SetCrudContext(this, OperationType.Delete,  ResourceType.Database, x, this.DeleteDatabaseAsync, context);
         }
 
-        void myMenuItemAddDocumentCollection_Click(object sender, EventArgs e)
+        void myMenuItemCreateDocumentCollection_Click(object sender, EventArgs e)
         {
             dynamic d = new System.Dynamic.ExpandoObject();
             d.id = "Here is your DocumentCollection Id";
 
             string x = JsonConvert.SerializeObject(d, Newtonsoft.Json.Formatting.Indented);
-            Program.GetMain().SetCrudContext(this, "Create documentCollection", false, x, this.AddDocumentCollection);
+            Program.GetMain().SetCrudContext(this, OperationType.Create,  ResourceType.DocumentCollection, x, this.CreateDocumentCollectionAsync);
         }
 
         override public void ShowContextMenu(TreeView treeview, Point p)
@@ -371,22 +429,22 @@ namespace Microsoft.Azure.DocumentDBStudio
                 this.isFirstTime = false;
                 this.Nodes.Clear();
 
-                this.Nodes.Add(new UsersNode(this.client));
+                this.Nodes.Add(new UserNode(this.client));
 
                 FillWithChildren();
             }
         }
 
-        async void AddDocumentCollection(string text, object optional)
+        async void CreateDocumentCollectionAsync(object resource, RequestOptions requestOptions)
         {
             try
             {
-                DocumentCollection coll = optional as DocumentCollection;
-                Documents.Database db = (Documents.Database)this.Tag;
-                ResourceResponse<Documents.DocumentCollection> newcoll;
+                DocumentCollection coll = resource as DocumentCollection;
+                Database db = (Database)this.Tag;
+                ResourceResponse<DocumentCollection> newcoll;
                 using (PerfStatus.Start("CreateDocumentCollection"))
                 {
-                    newcoll = await this.client.CreateDocumentCollectionAsync(db.GetLink(this.client), coll, Program.GetMain().GetRequestOptions(true));
+                    newcoll = await this.client.CreateDocumentCollectionAsync(db.GetLink(this.client), coll, requestOptions);
                 }
 
                 // set the result window
@@ -406,15 +464,15 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
         }
 
-        async void DeleteDatabase(string text, object optional)
+        async void DeleteDatabaseAsync(object resource, RequestOptions requestOptions)
         {
             try
             {
-                Documents.Database db = (Documents.Database)this.Tag;
-                ResourceResponse<Documents.Database> newdb;
+                Database db = (Database)this.Tag;
+                ResourceResponse<Database> newdb;
                 using (PerfStatus.Start("DeleteDatabase"))
                 {
-                    newdb = await this.client.DeleteDatabaseAsync(db.GetLink(this.client), Program.GetMain().GetRequestOptions());
+                    newdb = await this.client.DeleteDatabaseAsync(db.GetLink(this.client), requestOptions);
                 }
 
                 Program.GetMain().SetResultInBrowser(null, "Delete database succeed!", false, newdb.ResponseHeaders);
@@ -435,13 +493,13 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             try
             {
-                FeedResponse<Documents.DocumentCollection> colls;
+                FeedResponse<DocumentCollection> colls;
                 using (PerfStatus.Start("ReadDocumentCollectionFeed"))
                 {
-                    colls = await this.client.ReadDocumentCollectionFeedAsync(((Documents.Database)this.Tag).GetLink(this.client));
+                    colls = await this.client.ReadDocumentCollectionFeedAsync(((Database)this.Tag).GetLink(this.client));
                 }
 
-                foreach (Documents.DocumentCollection coll in colls)
+                foreach (DocumentCollection coll in colls)
                 {
                     DocumentCollectionNode node = new DocumentCollectionNode(client, coll);
                     this.Nodes.Add(node);
@@ -466,7 +524,7 @@ namespace Microsoft.Azure.DocumentDBStudio
         private ContextMenu contextMenu = new ContextMenu();
         private string currentContinuation = null;
         private CommandContext currentQueryCommandContext = null;
-        public DocumentCollectionNode(DocumentClient client, Documents.DocumentCollection coll)
+        public DocumentCollectionNode(DocumentClient client, DocumentCollection coll)
         {
             this.Text = coll.Id;
             this.Tag = coll;
@@ -474,40 +532,52 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.ImageKey = "SystemFeed";
             this.SelectedImageKey = "SystemFeed";
 
-            this.Nodes.Add(new StoredProceduresNode(this.client));
-            this.Nodes.Add(new UDFsNode(this.client));
-            this.Nodes.Add(new TriggersNode(this.client));
-            this.Nodes.Add(new ConflictsNode(this.client));
+            this.Nodes.Add(new StoredProcedureNode(this.client));
+            this.Nodes.Add(new UserDefinedFunctionNode(this.client));
+            this.Nodes.Add(new TriggerNode(this.client));
+            this.Nodes.Add(new ConflictNode(this.client));
 
-            MenuItem myMenuItem5 = new MenuItem("Read DocumentCollection");
-            myMenuItem5.Click += new EventHandler(myMenuItemReadDocumentCollection_Click);
-            this.contextMenu.MenuItems.Add(myMenuItem5);
-
-            MenuItem myMenuItem3 = new MenuItem("Replace DocumentCollection");
-            myMenuItem3.Click += new EventHandler(myMenuItemUpdateDocumentCollection_Click);
-            this.contextMenu.MenuItems.Add(myMenuItem3);
-
-            MenuItem myMenuItem6 = new MenuItem("Delete DocumentCollection");
-            myMenuItem6.Click += new EventHandler(myMenuItemDeleteDocumentCollection_Click);
-            this.contextMenu.MenuItems.Add(myMenuItem6);
-
+            {
+                MenuItem menuItem = new MenuItem("Read DocumentCollection");
+                menuItem.Click += new EventHandler(myMenuItemReadDocumentCollection_Click);
+                this.contextMenu.MenuItems.Add(menuItem);
+            }
+            {
+                MenuItem menuItem = new MenuItem("Replace DocumentCollection");
+                menuItem.Click += new EventHandler(myMenuItemReplaceDocumentCollection_Click);
+                this.contextMenu.MenuItems.Add(menuItem);
+            }
+            {
+                MenuItem menuItem = new MenuItem("Delete DocumentCollection");
+                menuItem.Click += new EventHandler(myMenuItemDeleteDocumentCollection_Click);
+                this.contextMenu.MenuItems.Add(menuItem);
+            }
             this.contextMenu.MenuItems.Add("-");
-
-            MenuItem myMenuItem = new MenuItem("Create Document");
-            myMenuItem.Click += new EventHandler(myMenuItemAddDocument_Click);
-            this.contextMenu.MenuItems.Add(myMenuItem);
-            MenuItem myMenuItem9 = new MenuItem("Create Document From File");
-            myMenuItem9.Click += new EventHandler(myMenuItemAddDocumentFromFile_Click);
-            this.contextMenu.MenuItems.Add(myMenuItem9);
-            MenuItem myMenuItem4 = new MenuItem("Create Multiple Documents From Folder");
-            myMenuItem4.Click += new EventHandler(myMenuItemAddDocumentsFromFolder_Click);
-            this.contextMenu.MenuItems.Add(myMenuItem4);
-            MenuItem myMenuItem1 = new MenuItem("Refresh Documents feed");
-            myMenuItem1.Click += new EventHandler((sender, e) => Refresh(true));
-            this.contextMenu.MenuItems.Add(myMenuItem1);
-            MenuItem myMenuItem2 = new MenuItem("Query Documents");
-            myMenuItem2.Click += new EventHandler(myMenuItemQueryDocument_Click);
-            this.contextMenu.MenuItems.Add(myMenuItem2);
+            {
+                MenuItem menuItem = new MenuItem("Create Document");
+                menuItem.Click += new EventHandler(myMenuItemCreateDocument_Click);
+                this.contextMenu.MenuItems.Add(menuItem);
+            }
+            {
+                MenuItem menuItem = new MenuItem("Create Document From File");
+                menuItem.Click += new EventHandler(myMenuItemCreateDocumentFromFile_Click);
+                this.contextMenu.MenuItems.Add(menuItem);
+            }
+            {
+                MenuItem menuItem = new MenuItem("Create Multiple Documents From Folder");
+                menuItem.Click += new EventHandler(myMenuItemCreateDocumentsFromFolder_Click);
+                this.contextMenu.MenuItems.Add(menuItem);
+            }
+            {
+                MenuItem menuItem = new MenuItem("Refresh Documents feed");
+                menuItem.Click += new EventHandler((sender, e) => Refresh(true));
+                this.contextMenu.MenuItems.Add(menuItem);
+            }
+            {
+                MenuItem menuItem = new MenuItem("Query Documents");
+                menuItem.Click += new EventHandler(myMenuItemQueryDocument_Click);
+                this.contextMenu.MenuItems.Add(menuItem);
+            }
         }
 
         async void myMenuItemReadDocumentCollection_Click(object sender, EventArgs eArgs)
@@ -540,24 +610,22 @@ namespace Microsoft.Azure.DocumentDBStudio
             string x = this.Tag.ToString();
             CommandContext context = new CommandContext();
             context.IsDelete = true;
-            Program.GetMain().SetCrudContext(this, "Delete DocumentCollection", false, x, this.DeleteDocumentCollection, context);
+            Program.GetMain().SetCrudContext(this, OperationType.Delete,  ResourceType.DocumentCollection, x, this.DeleteDocumentCollectionAsync, context);
         }
 
-        void myMenuItemUpdateDocumentCollection_Click(object sender, EventArgs e)
+        void myMenuItemReplaceDocumentCollection_Click(object sender, EventArgs e)
         {
             string x = this.Tag.ToString();
             CommandContext context = new CommandContext();
-            Program.GetMain().SetCrudContext(this, "Replace DocumentCollection", false, x, this.UpdateDocumentCollection, context);
+            Program.GetMain().SetCrudContext(this, OperationType.Replace, ResourceType.DocumentCollection, x, this.ReplaceDocumentCollectionAsync, context);
         }
 
-        async void UpdateDocumentCollection(string text, object optional)
+        async void ReplaceDocumentCollectionAsync(object resource, RequestOptions requestOptions)
         {
             try
             {
-                RequestOptions requestionOptions = Program.GetMain().GetRequestOptions(true);
-
                 // #1: Update offer if necessary
-                Documents.DocumentCollection coll = (Documents.DocumentCollection)this.Tag;
+                DocumentCollection coll = (DocumentCollection)this.Tag;
 
                 // Find the offer object corresponding to the current offer.
                 IQueryable<Offer> offerQuery = from offer in client.CreateOfferQuery()
@@ -574,9 +642,9 @@ namespace Microsoft.Azure.DocumentDBStudio
 
                 // change the Offer type of the document collection 
                 Offer offerToReplace = queryResults[0];
-                if (requestionOptions.OfferType != null && string.Compare(offerToReplace.OfferType, requestionOptions.OfferType, StringComparison.Ordinal) != 0)
+                if (requestOptions.OfferType != null && string.Compare(offerToReplace.OfferType, requestOptions.OfferType, StringComparison.Ordinal) != 0)
                 {
-                    offerToReplace.OfferType = requestionOptions.OfferType;
+                    offerToReplace.OfferType = requestOptions.OfferType;
                     ResourceResponse<Offer> replaceResponse;
                     using (PerfStatus.Start("ReplaceOffer"))
                     {
@@ -585,13 +653,13 @@ namespace Microsoft.Azure.DocumentDBStudio
                 }
 
                 // #2: Update collection if necessary
-                DocumentCollection collToChange = optional as DocumentCollection;
+                DocumentCollection collToChange = resource as DocumentCollection;
                 collToChange.IndexingPolicy = (IndexingPolicy)coll.IndexingPolicy.Clone();
 
                 ResourceResponse<DocumentCollection> response;
                 using (PerfStatus.Start("ReplaceDocumentCollection"))
                 {
-                    response = await client.ReplaceDocumentCollectionExAsync(coll, requestionOptions);
+                    response = await client.ReplaceDocumentCollectionExAsync(coll, requestOptions);
                 }
 
                 Program.GetMain().SetResultInBrowser(null, "Replace DocumentCollection succeed!", false, response.ResponseHeaders);
@@ -605,12 +673,13 @@ namespace Microsoft.Azure.DocumentDBStudio
                 Program.GetMain().SetResultInBrowser(null, e.ToString(), true);
             }
         }
-        async void DeleteDocumentCollection(string text, object optional)
+
+        async void DeleteDocumentCollectionAsync(object resource, RequestOptions requestOptions)
         {
             try
             {
-                Documents.DocumentCollection coll = (Documents.DocumentCollection)this.Tag;
-                ResourceResponse<Documents.DocumentCollection> newcoll;
+                DocumentCollection coll = (DocumentCollection)this.Tag;
+                ResourceResponse<DocumentCollection> newcoll;
                 using (PerfStatus.Start("DeleteDocumentCollection"))
                 {
                     newcoll = await this.client.DeleteDocumentCollectionAsync(coll.GetLink(this.client), Program.GetMain().GetRequestOptions());
@@ -629,7 +698,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
         }
 
-        void myMenuItemAddDocumentFromFile_Click(object sender, EventArgs e)
+        void myMenuItemCreateDocumentFromFile_Click(object sender, EventArgs e)
         {
             OpenFileDialog ofd = new OpenFileDialog();
             DialogResult dr = ofd.ShowDialog();
@@ -640,11 +709,11 @@ namespace Microsoft.Azure.DocumentDBStudio
                 // 
                 string text = System.IO.File.ReadAllText(filename);
 
-                Program.GetMain().SetCrudContext(this, "Create document", false, text, this.AddDocument);
+                Program.GetMain().SetCrudContext(this, OperationType.Create, ResourceType.Document, text, this.CreateDocumentAsync);
             }
         }
 
-        async void myMenuItemAddDocumentsFromFolder_Click(object sender, EventArgs e)
+        async void myMenuItemCreateDocumentsFromFolder_Click(object sender, EventArgs e)
         {
             OpenFileDialog ofd = new OpenFileDialog();
             ofd.Multiselect = true;
@@ -668,7 +737,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                     {
                         using (PerfStatus.Start("CreateDocument"))
                         {
-                            ResourceResponse<Documents.Document> newdocument = await this.client.CreateDocumentAsync((this.Tag as Documents.DocumentCollection).GetLink(this.client), document, Program.GetMain().GetRequestOptions());
+                            ResourceResponse<Document> newdocument = await this.client.CreateDocumentAsync((this.Tag as DocumentCollection).GetLink(this.client), document, Program.GetMain().GetRequestOptions());
                             status += string.Format(CultureInfo.InvariantCulture, "Succeed adding {0} \r\n", fileRootName);
                         }
                     }
@@ -687,13 +756,13 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
         }
 
-        void myMenuItemAddDocument_Click(object sender, EventArgs e)
+        void myMenuItemCreateDocument_Click(object sender, EventArgs e)
         {
             // 
             dynamic d = new System.Dynamic.ExpandoObject();
             d.id = "Here is your Document Id";
             string x = JsonConvert.SerializeObject(d, Newtonsoft.Json.Formatting.Indented);
-            Program.GetMain().SetCrudContext(this, "Create document", false, x, this.AddDocument);
+            Program.GetMain().SetCrudContext(this, OperationType.Create,  ResourceType.Document, x, this.CreateDocumentAsync);
         }
 
 
@@ -705,25 +774,23 @@ namespace Microsoft.Azure.DocumentDBStudio
             // reset continuation token
             this.currentContinuation = null;
 
-            Program.GetMain().SetCrudContext(this, string.Format(CultureInfo.InvariantCulture, "Query Documents from Collection {0}", (this.Tag as Documents.DocumentCollection).Id),
-                false, "select * from c", this.QueryDocuments, this.currentQueryCommandContext);
+            Program.GetMain().SetCrudContext(this, OperationType.Query, ResourceType.Document, "select * from c", this.QueryDocumentsAsync, this.currentQueryCommandContext);
 
         }
 
-
-        async void AddDocument(string text, object optional)
+        async void CreateDocumentAsync(object resource, RequestOptions requestOptions)
         {
             try
             {
-                object document = JsonConvert.DeserializeObject(text);
+                object document = JsonConvert.DeserializeObject(resource as string);
 
-                ResourceResponse<Documents.Document> newdocument;
+                ResourceResponse<Document> newdocument;
                 using (PerfStatus.Start("CreateDocument"))
                 {
-                    newdocument = await this.client.CreateDocumentAsync((this.Tag as Documents.DocumentCollection).GetLink(this.client), document, Program.GetMain().GetRequestOptions());
+                    newdocument = await this.client.CreateDocumentAsync((this.Tag as DocumentCollection).GetLink(this.client), document, requestOptions);
                 }
 
-                this.Nodes.Add(new DocumentNode(this.client, newdocument.Resource, ResourceType.Document));
+                this.Nodes.Add(new ResourceNode(this.client, newdocument.Resource, ResourceType.Document, ((DocumentCollection)this.Tag).PartitionKey));
 
                 // set the result window
                 string json = newdocument.Resource.ToString();
@@ -741,21 +808,26 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
         }
 
-        async void QueryDocuments(string queryText, object optional)
+        async void QueryDocumentsAsync(object resource, RequestOptions requestOptions)
         {
             try
             {
+                string queryText = resource as string;
                 // text is the querytext.
                 IDocumentQuery<dynamic> q = null;
 
                 FeedOptions feedOptions = Program.GetMain().GetFeedOptions();
 
-                if (!string.IsNullOrEmpty(this.currentContinuation) && string.IsNullOrEmpty(feedOptions.RequestContinuation))
+                if (requestOptions == null)
                 {
-                    feedOptions.RequestContinuation = this.currentContinuation;
+                    // requestOptions = null means it is from the next page. We only attempt to continue using the RequestContinuation for next page button
+                    if (!string.IsNullOrEmpty(this.currentContinuation) && string.IsNullOrEmpty(feedOptions.RequestContinuation))
+                    {
+                        feedOptions.RequestContinuation = this.currentContinuation;
+                    }
                 }
 
-                q = this.client.CreateDocumentQuery((this.Tag as Documents.DocumentCollection).GetLink(this.client), queryText, feedOptions).AsDocumentQuery();
+                q = this.client.CreateDocumentQuery((this.Tag as DocumentCollection).GetLink(this.client), queryText, feedOptions).AsDocumentQuery();
 
                 Stopwatch sw = Stopwatch.StartNew();
 
@@ -773,11 +845,16 @@ namespace Microsoft.Azure.DocumentDBStudio
                 string text = null;
                 if (r.Count > 1)
                 {
-                    text = string.Format(CultureInfo.InvariantCulture, "Returned {0} documents in {1} ms", r.Count, sw.ElapsedMilliseconds);
+                    text = string.Format(CultureInfo.InvariantCulture, "Returned {0} documents in {1} ms.", r.Count, sw.ElapsedMilliseconds);
                 }
                 else
                 {
-                    text = string.Format(CultureInfo.InvariantCulture, "Returned {0} document in {1} ms", r.Count, sw.ElapsedMilliseconds);
+                    text = string.Format(CultureInfo.InvariantCulture, "Returned {0} document in {1} ms.", r.Count, sw.ElapsedMilliseconds);
+                }
+
+                if (r.ResponseContinuation != null)
+                {
+                    text += " (more results might be available)";
                 }
 
                 string jsonarray = "[";
@@ -822,10 +899,10 @@ namespace Microsoft.Azure.DocumentDBStudio
             {
                 isFirstTime = false;
                 this.Nodes.Clear();
-                this.Nodes.Add(new StoredProceduresNode(this.client));
-                this.Nodes.Add(new UDFsNode(this.client));
-                this.Nodes.Add(new TriggersNode(this.client));
-                this.Nodes.Add(new ConflictsNode(this.client));
+                this.Nodes.Add(new StoredProcedureNode(this.client));
+                this.Nodes.Add(new UserDefinedFunctionNode(this.client));
+                this.Nodes.Add(new TriggerNode(this.client));
+                this.Nodes.Add(new ConflictNode(this.client));
 
                 FillWithChildren();
             }
@@ -835,19 +912,28 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             try
             {
-                FeedResponse<dynamic> docs;
+                List<dynamic> docs = new List<dynamic>();
+                NameValueCollection responseHeaders = null;
+
                 using (PerfStatus.Start("ReadDocumentFeed"))
                 {
-                     docs = this.client.ReadDocumentFeedAsync(((Documents.DocumentCollection)this.Tag).GetLink(this.client)).Result;
+                    ResourceFeedReader<Document> feedReader = this.client.CreateDocumentFeedReader(((DocumentCollection)this.Tag).GetLink(this.client), new FeedOptions { EnableCrossPartitionQuery = true });
+                    while (feedReader.HasMoreResults && docs.Count() < 100)
+                    {
+                        FeedResponse<Document> response = feedReader.ExecuteNextAsync().Result;
+                        docs.AddRange(response);
+
+                        responseHeaders = response.ResponseHeaders;
+                    }
                 }
 
                 foreach (var doc in docs)
                 {
-                    DocumentNode node = new DocumentNode(client, doc, ResourceType.Document);
+                    ResourceNode node = new ResourceNode(client, doc, ResourceType.Document, ((DocumentCollection)this.Tag).PartitionKey);
                     this.Nodes.Add(node);
                 }
-                Program.GetMain().SetResponseHeaders(docs.ResponseHeaders);
 
+                Program.GetMain().SetResponseHeaders(responseHeaders);
             }
             catch (AggregateException e)
             {
@@ -860,44 +946,68 @@ namespace Microsoft.Azure.DocumentDBStudio
         }
     }
 
-
-    class DocumentNode : FeedNode
+    class ResourceNode : FeedNode
     {
         private DocumentClient client;
         private ContextMenu contextMenu = new ContextMenu();
         private ResourceType resourceType = 0;
 
-        public DocumentNode(DocumentClient client, dynamic document, ResourceType resoureType)
+        public ResourceNode(DocumentClient client, dynamic document, ResourceType resoureType, PartitionKeyDefinition partitionKey = null)
         {
             this.resourceType = resoureType;
-            if (this.resourceType != ResourceType.Offer)
+            if (this.resourceType == ResourceType.Document)
             {
-                this.Text = (document as Documents.Resource).Id;
+                string prefix = string.Empty;
+                if (partitionKey !=null)
+                {
+                    if (partitionKey.Paths.Count > 0)
+                    {
+                        string path = partitionKey.Paths[0];
+                        prefix = document.GetPropertyValue<String>(path.Substring(1));
+                        prefix = prefix + "_";
+                    }
+                }
+                this.Text = prefix  + (document as Resource).Id;
+            }
+            else if (this.resourceType == ResourceType.Offer)
+            {
+                string version = document.GetPropertyValue<String>("offerVersion");
+                if (string.IsNullOrEmpty(version))
+                {
+                    Offer offer = document as Offer;
+                    this.Text = offer.OfferType + "_" + offer.GetPropertyValue<String>("offerResourceId");
+                }
+                else
+                {
+                    OfferV2 offer = document as OfferV2;
+                    this.Text = offer.Content.OfferThroughput + "_" + offer.GetPropertyValue<String>("offerResourceId");
+                }
             }
             else
             {
-                Offer offer = document as Offer;
-                this.Text = offer.OfferType + "_" + offer.GetPropertyValue<String>("offerResourceId");
+                this.Text = (document as Resource).Id;
             }
+
             this.Tag = document;
             this.client = client;
 
-            MenuItem myMenuItem0 = new MenuItem("Read " + this.resourceType.ToString());
-            myMenuItem0.Click += new EventHandler(myMenuItemRead_Click);
-            this.contextMenu.MenuItems.Add(myMenuItem0);
+            {
+                MenuItem menuItem = new MenuItem("Read " + this.resourceType.ToString());
+                menuItem.Click += new EventHandler(myMenuItemRead_Click);
+                this.contextMenu.MenuItems.Add(menuItem);
+            }
 
             if (this.resourceType != ResourceType.Conflict && this.resourceType != ResourceType.Offer)
             {
-                MenuItem myMenuItem1 = new MenuItem("Replace " + this.resourceType.ToString());
-                myMenuItem1.Click += new EventHandler(myMenuItemUpdate_Click);
-                this.contextMenu.MenuItems.Add(myMenuItem1);
+                MenuItem menuItem = new MenuItem("Replace " + this.resourceType.ToString());
+                menuItem.Click += new EventHandler(myMenuItemUpdate_Click);
+                this.contextMenu.MenuItems.Add(menuItem);
             }
-
             if (this.resourceType != ResourceType.Offer)
             {
-                MenuItem myMenuItem = new MenuItem("Delete " + this.resourceType.ToString());
-                myMenuItem.Click += new EventHandler(myMenuItemDelete_Click);
-                this.contextMenu.MenuItems.Add(myMenuItem);
+                MenuItem menuItem = new MenuItem("Delete " + this.resourceType.ToString());
+                menuItem.Click += new EventHandler(myMenuItemDelete_Click);
+                this.contextMenu.MenuItems.Add(menuItem);
             }
 
             if (this.resourceType == ResourceType.Permission)
@@ -910,13 +1020,16 @@ namespace Microsoft.Azure.DocumentDBStudio
                 this.ImageKey = "Attachment";
                 this.SelectedImageKey = "Attachment";
 
-                MenuItem myMenuItem2 = new MenuItem("Download media");
-                myMenuItem2.Click += new EventHandler(myMenuItemDownloadMedia_Click);
-                this.contextMenu.MenuItems.Add(myMenuItem2);
-
-                MenuItem myMenuItem3 = new MenuItem("Render media");
-                myMenuItem3.Click += new EventHandler(myMenuItemRenderMedia_Click);
-                this.contextMenu.MenuItems.Add(myMenuItem3);
+                {
+                    MenuItem menuItem = new MenuItem("Download media");
+                    menuItem.Click += new EventHandler(myMenuItemDownloadMedia_Click);
+                    this.contextMenu.MenuItems.Add(menuItem);
+                }
+                {
+                    MenuItem menuItem = new MenuItem("Render media");
+                    menuItem.Click += new EventHandler(myMenuItemRenderMedia_Click);
+                    this.contextMenu.MenuItems.Add(menuItem);
+                }
             }
             else if (this.resourceType == ResourceType.StoredProcedure || this.resourceType == ResourceType.Trigger || this.resourceType == ResourceType.UserDefinedFunction)
             {
@@ -924,9 +1037,9 @@ namespace Microsoft.Azure.DocumentDBStudio
                 this.SelectedImageKey = "Javascript";
                 if (this.resourceType == ResourceType.StoredProcedure)
                 {
-                    MenuItem myMenuItem2 = new MenuItem("Execute " + this.resourceType.ToString());
-                    myMenuItem2.Click += new EventHandler(myMenuItemExecuteSP_Click);
-                    this.contextMenu.MenuItems.Add(myMenuItem2);
+                    MenuItem menuItem = new MenuItem("Execute " + this.resourceType.ToString());
+                    menuItem.Click += new EventHandler(myMenuItemExecuteStoredProcedure_Click);
+                    this.contextMenu.MenuItems.Add(menuItem);
                 }
             }
             else if (this.resourceType == ResourceType.User)
@@ -934,7 +1047,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 this.ImageKey = "User";
                 this.SelectedImageKey = "User";
 
-                this.Nodes.Add(new PermissionsNode(this.client));
+                this.Nodes.Add(new PermissionNode(this.client));
             }
             else if (this.resourceType == ResourceType.Document)
             {
@@ -942,13 +1055,16 @@ namespace Microsoft.Azure.DocumentDBStudio
 
                 this.contextMenu.MenuItems.Add("-");
 
-                MenuItem myMenuItem3 = new MenuItem("Create attachment");
-                myMenuItem3.Click += new EventHandler(myMenuItemAttachment_Click);
-                this.contextMenu.MenuItems.Add(myMenuItem3);
-
-                MenuItem myMenuItem4 = new MenuItem("Create attachment from file");
-                myMenuItem4.Click += new EventHandler(myMenuItemAttachmentFromFile_Click);
-                this.contextMenu.MenuItems.Add(myMenuItem4);
+                {
+                    MenuItem menuItem = new MenuItem("Create attachment");
+                    menuItem.Click += new EventHandler(myMenuItemCreateAttachment_Click);
+                    this.contextMenu.MenuItems.Add(menuItem);
+                }
+                {
+                    MenuItem menuItem = new MenuItem("Create attachment from file");
+                    menuItem.Click += new EventHandler(myMenuItemAttachmentFromFile_Click);
+                    this.contextMenu.MenuItems.Add(menuItem);
+                }
             }
             else if (this.resourceType == ResourceType.Conflict)
             {
@@ -966,20 +1082,20 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             if (this.resourceType == ResourceType.StoredProcedure)
             {
-                Program.GetMain().SetCrudContext(this, "Replace " + this.resourceType.ToString(), true, (this.Tag as Documents.StoredProcedure).Body, this.UpdateNode);
+                Program.GetMain().SetCrudContext(this, OperationType.Replace, this.resourceType, (this.Tag as StoredProcedure).Body, this.ReplaceResourceAsync);
             }
             else if (this.resourceType == ResourceType.Trigger)
             {
-                Program.GetMain().SetCrudContext(this, "Replace " + this.resourceType.ToString(), true, (this.Tag as Documents.Trigger).Body, this.UpdateNode);
+                Program.GetMain().SetCrudContext(this, OperationType.Replace, this.resourceType, (this.Tag as Trigger).Body, this.ReplaceResourceAsync);
             }
             else if (this.resourceType == ResourceType.UserDefinedFunction)
             {
-                Program.GetMain().SetCrudContext(this, "Replace " + this.resourceType.ToString(), true, (this.Tag as Documents.UserDefinedFunction).Body, this.UpdateNode);
+                Program.GetMain().SetCrudContext(this, OperationType.Replace, this.resourceType, (this.Tag as UserDefinedFunction).Body, this.ReplaceResourceAsync);
             }
             else
             {
                 string x = this.Tag.ToString();
-                Program.GetMain().SetCrudContext(this, "Replace " + this.resourceType.ToString(), false, x, this.UpdateNode);
+                Program.GetMain().SetCrudContext(this, OperationType.Replace, this.resourceType, x, this.ReplaceResourceAsync);
             }
         }
 
@@ -1001,10 +1117,19 @@ namespace Microsoft.Azure.DocumentDBStudio
                 }
                 else if (this.resourceType == ResourceType.Document)
                 {
+                    Document document = ((Document)this.Tag);
+                    DocumentCollection collection = ((DocumentCollection)this.Parent.Tag);
+
+                    RequestOptions requestOptions = Program.GetMain().GetRequestOptions();
+                    if (collection.PartitionKey != null && collection.PartitionKey.Paths.Count > 0)
+                    {
+                        requestOptions.PartitionKey = new PartitionKey(DocumentAnalyzer.ExtractPartitionKeyValue(document, collection.PartitionKey));
+                    }
+
                     ResourceResponse<Document> rr;
                     using (PerfStatus.Start("ReadDocument"))
                     {
-                        rr = await this.client.ReadDocumentAsync(((Resource)this.Tag).GetLink(this.client), Program.GetMain().GetRequestOptions());
+                        rr = await this.client.ReadDocumentAsync(document.GetLink(this.client), requestOptions);
                     }
                     // set the result window
                     string json = JsonConvert.SerializeObject(rr.Resource, Newtonsoft.Json.Formatting.Indented);
@@ -1026,10 +1151,20 @@ namespace Microsoft.Azure.DocumentDBStudio
                 else if (this.resourceType == ResourceType.Attachment)
                 {
                     ResourceResponse<Attachment> rr;
+                    Document document = ((Document)this.Tag);
+                    DocumentCollection collection = ((DocumentCollection)this.Parent.Tag);
+
+                    RequestOptions requestOptions = Program.GetMain().GetRequestOptions();
+                    if (collection.PartitionKey != null && collection.PartitionKey.Paths.Count > 0)
+                    {
+                        requestOptions.PartitionKey = new PartitionKey(DocumentAnalyzer.ExtractPartitionKeyValue(document, collection.PartitionKey));
+                    }
+
                     using (PerfStatus.Start("ReadAttachment"))
                     {
-                        rr = await this.client.ReadAttachmentAsync(((Resource)this.Tag).GetLink(this.client), Program.GetMain().GetRequestOptions());
+                        rr = await this.client.ReadAttachmentAsync(document.GetLink(this.client), requestOptions);
                     }
+
                     // set the result window
                     string json = JsonConvert.SerializeObject(rr.Resource, Newtonsoft.Json.Formatting.Indented);
 
@@ -1108,18 +1243,18 @@ namespace Microsoft.Azure.DocumentDBStudio
             catch (Exception e)
             {
                 Program.GetMain().SetResultInBrowser(null, e.ToString(), true);
-            }        
+            }
         }
 
-        void myMenuItemAttachment_Click(object sender, EventArgs e)
+        void myMenuItemCreateAttachment_Click(object sender, EventArgs e)
         {
-            Documents.Attachment attachment = new Documents.Attachment();
+            Attachment attachment = new Attachment();
             attachment.Id = "Here is your attachment Id";
             attachment.ContentType = "application-content-type";
             attachment.MediaLink = "internal link or Azure blob or Amazon S3 link";
 
             string x = attachment.ToString();
-            Program.GetMain().SetCrudContext(this, "Create attachment for this document " + this.resourceType.ToString(), false, x, this.AddAttachment);
+            Program.GetMain().SetCrudContext(this, OperationType.Create, this.resourceType, x, this.CreateAttachmentAsync);
         }
 
         async void myMenuItemRenderMedia_Click(object sender, EventArgs eventArg)
@@ -1129,7 +1264,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             string fileName;
 
             // let's guess the contentype.
-            Documents.Attachment attachment = this.Tag as Attachment;
+            Attachment attachment = this.Tag as Attachment;
             if (string.Compare(attachment.ContentType, "application/octet-stream", StringComparison.OrdinalIgnoreCase) == 0)
             {
                 // get the extension from attachment.Id
@@ -1137,11 +1272,11 @@ namespace Microsoft.Azure.DocumentDBStudio
                 fileName = guidFileName + attachment.Id.Substring(index);
             }
             else if (attachment.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
-            { 
+            {
                 // treat as image.
                 fileName = guidFileName + ".gif";
             }
-            else 
+            else
             {
                 fileName = guidFileName + ".txt";
             }
@@ -1170,7 +1305,7 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         async void myMenuItemDownloadMedia_Click(object sender, EventArgs eventArg)
         {
-            Documents.Attachment attachment = this.Tag as Attachment;
+            Attachment attachment = this.Tag as Attachment;
 
             // Get the filenanme from attachment.Id
             int index = attachment.Id.LastIndexOf('\\');
@@ -1206,7 +1341,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 }
             }
         }
-        
+
         async void myMenuItemAttachmentFromFile_Click(object sender, EventArgs eventArg)
         {
             OpenFileDialog ofd = new OpenFileDialog();
@@ -1226,23 +1361,34 @@ namespace Microsoft.Azure.DocumentDBStudio
                     using (FileStream stream = new FileStream(filename,
                         FileMode.Open, FileAccess.Read))
                     {
-                        MediaOptions options = new MediaOptions()
+                        MediaOptions mediaOptions = new MediaOptions()
                         {
                             ContentType = "application/octet-stream",
                             Slug = Path.GetFileName(ofd.FileName)
                         };
 
-                        ResourceResponse<Documents.Attachment> rr;
+                        ResourceResponse<Attachment> rr;
+                        
+                        Document document = ((Document)this.Tag);
+                        DocumentCollection collection = ((DocumentCollection)this.Parent.Tag);
+
+                        RequestOptions requestOptions = Program.GetMain().GetRequestOptions();
+                        if (collection.PartitionKey != null && collection.PartitionKey.Paths.Count > 0)
+                        {
+                            requestOptions.PartitionKey = new PartitionKey(DocumentAnalyzer.ExtractPartitionKeyValue(document, collection.PartitionKey));
+                        }
+
                         using (PerfStatus.Start("CreateAttachment"))
                         {
-                             rr = await this.client.CreateAttachmentAsync((this.Tag as Documents.Document).GetLink(this.client) + "/attachments",
-                                       stream, options);
+                            rr = await this.client.CreateAttachmentAsync((this.Tag as Document).SelfLink + "/attachments",
+                                      stream, mediaOptions, requestOptions);
                         }
+
                         string json = rr.Resource.ToString();
 
                         Program.GetMain().SetResultInBrowser(json, null, false, rr.ResponseHeaders);
 
-                        this.Nodes.Add(new DocumentNode(this.client, rr.Resource, ResourceType.Attachment));
+                        this.Nodes.Add(new ResourceNode(this.client, rr.Resource, ResourceType.Attachment));
                     }
                 }
                 catch (Exception e)
@@ -1252,11 +1398,10 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
         }
 
-        void myMenuItemExecuteSP_Click(object sender, EventArgs e)
+        void myMenuItemExecuteStoredProcedure_Click(object sender, EventArgs e)
         {
-            Program.GetMain().SetCrudContext(this, "Execute " + this.resourceType.ToString() + " " +
-                (this.Tag as Documents.Resource).Id, false,
-                "Here is the input parameters to the storedProcedure. Input each parameter as one line without quotation mark.", this.ExecuteStoredProcedure);
+            Program.GetMain().SetCrudContext(this, OperationType.Execute, this.resourceType, 
+                "Here is the input parameters to the storedProcedure. Input each parameter as one line without quotation mark.", this.ExecuteStoredProcedureAsync);
         }
 
         void myMenuItemDelete_Click(object sender, EventArgs e)
@@ -1264,26 +1409,27 @@ namespace Microsoft.Azure.DocumentDBStudio
             string x = this.Tag.ToString();
             CommandContext context = new CommandContext();
             context.IsDelete = true;
-            Program.GetMain().SetCrudContext(this, "Delete " + this.resourceType.ToString(), false, x, this.DeleteNode, context);
+            Program.GetMain().SetCrudContext(this, OperationType.Delete, this.resourceType, x, this.DeleteResourceAsync, context);
         }
 
-        async void AddAttachment(string text, object optional)
+        async void CreateAttachmentAsync(object resource, RequestOptions requestOptions)
         {
             try
             {
-                Documents.Attachment attachment = (Documents.Attachment)JsonConvert.DeserializeObject(text, typeof(Documents.Attachment));
+                string text = resource as string;
+                Attachment attachment = (Attachment)JsonConvert.DeserializeObject(text, typeof(Attachment));
 
-                ResourceResponse<Documents.Attachment> rr;
+                ResourceResponse<Attachment> rr;
                 using (PerfStatus.Start("CreateAttachment"))
                 {
-                    rr = await this.client.CreateAttachmentAsync((this.Tag as Documents.Resource).GetLink(this.client),
-                                        attachment, Program.GetMain().GetRequestOptions());
+                    rr = await this.client.CreateAttachmentAsync((this.Tag as Resource).GetLink(this.client),
+                                        attachment, requestOptions);
                 }
                 string json = rr.Resource.ToString();
 
                 Program.GetMain().SetResultInBrowser(json, null, false, rr.ResponseHeaders);
 
-                this.Nodes.Add(new DocumentNode(this.client, rr.Resource, ResourceType.Attachment));
+                this.Nodes.Add(new ResourceNode(this.client, rr.Resource, ResourceType.Attachment));
             }
             catch (AggregateException e)
             {
@@ -1295,10 +1441,11 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
         }
 
-        async void ExecuteStoredProcedure(string text, object optional)
+        async void ExecuteStoredProcedureAsync(object resource, RequestOptions requestOptions)
         {
             try
             {
+                string text = resource as string;
                 List<string> inputParamters = new List<string>();
                 if (!string.IsNullOrEmpty(text))
                 {
@@ -1326,8 +1473,8 @@ namespace Microsoft.Azure.DocumentDBStudio
                 StoredProcedureResponse<dynamic> rr;
                 using (PerfStatus.Start("ExecuateStoredProcedure"))
                 {
-                     rr = await this.client.ExecuteStoredProcedureAsync<dynamic>((this.Tag as Documents.Resource).GetLink(this.client),
-                                       dynamicInputParams);
+                    rr = await this.client.ExecuteStoredProcedureAsync<dynamic>((this.Tag as Resource).GetLink(this.client),
+                                      dynamicInputParams);
                 }
                 string executeResult = rr.Response.ToString();
 
@@ -1344,20 +1491,20 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
         }
 
-        async void UpdateNode(string text, object optionalObject)
+        async void ReplaceResourceAsync(object resource, RequestOptions requestOptions)
         {
-            string optional = optionalObject as string;
             try
             {
                 string json = null;
                 if (this.resourceType == ResourceType.Document)
                 {
-                    Documents.Document doc = (Documents.Document)JsonConvert.DeserializeObject(text, typeof(Documents.Document));
+                    string text = resource as string;
+                    Document doc = (Document)JsonConvert.DeserializeObject(text, typeof(Document));
                     doc.SetReflectedPropertyValue("AltLink", (this.Tag as Document).GetAltLink());
-                    ResourceResponse<Documents.Document> rr;
+                    ResourceResponse<Document> rr;
                     using (PerfStatus.Start("ReplaceDocument"))
                     {
-                         rr = await this.client.ReplaceDocumentAsync(doc.GetLink(this.client), doc, Program.GetMain().GetRequestOptions());
+                        rr = await this.client.ReplaceDocumentAsync(doc.GetLink(this.client), doc, requestOptions);
                     }
                     json = rr.Resource.ToString();
 
@@ -1368,13 +1515,14 @@ namespace Microsoft.Azure.DocumentDBStudio
                 }
                 else if (this.resourceType == ResourceType.StoredProcedure)
                 {
-                    Documents.StoredProcedure sp = this.Tag as Documents.StoredProcedure;
-                    sp.Body = text;
-                    if (!string.IsNullOrEmpty(optional)) { sp.Id = optional; }
-                    ResourceResponse<Documents.StoredProcedure> rr;
+                    StoredProcedure input = resource as StoredProcedure;
+                    StoredProcedure sp = this.Tag as StoredProcedure;
+                    sp.Body = input.Body;
+                    if (!string.IsNullOrEmpty(input.Id)) { sp.Id = input.Id; }
+                    ResourceResponse<StoredProcedure> rr;
                     using (PerfStatus.Start("ReplaceStoredProcedure"))
                     {
-                         rr = await this.client.ReplaceStoredProcedureExAsync(sp, Program.GetMain().GetRequestOptions());
+                        rr = await this.client.ReplaceStoredProcedureExAsync(sp, requestOptions);
                     }
                     json = rr.Resource.ToString();
                     this.Tag = rr.Resource;
@@ -1384,12 +1532,13 @@ namespace Microsoft.Azure.DocumentDBStudio
                 }
                 else if (this.resourceType == ResourceType.User)
                 {
-                    Documents.User sp = (Documents.User)JsonConvert.DeserializeObject(text, typeof(Documents.User));
+                    string text = resource as string;
+                    User sp = (User)JsonConvert.DeserializeObject(text, typeof(User));
                     sp.SetReflectedPropertyValue("AltLink", (this.Tag as User).GetAltLink());
-                    ResourceResponse<Documents.User> rr;
+                    ResourceResponse<User> rr;
                     using (PerfStatus.Start("ReplaceUser"))
                     {
-                        rr = await this.client.ReplaceUserExAsync(sp, Program.GetMain().GetRequestOptions());
+                        rr = await this.client.ReplaceUserExAsync(sp, requestOptions);
                     }
                     json = rr.Resource.ToString();
                     this.Tag = rr.Resource;
@@ -1399,13 +1548,14 @@ namespace Microsoft.Azure.DocumentDBStudio
                 }
                 else if (this.resourceType == ResourceType.Trigger)
                 {
-                    Documents.Trigger sp = this.Tag as Documents.Trigger;
-                    sp.Body = text;
-                    if (!string.IsNullOrEmpty(optional)) { sp.Id = optional; }
-                    ResourceResponse<Documents.Trigger> rr;
+                    Trigger input = resource as Trigger;
+                    Trigger sp = this.Tag as Trigger;
+                    sp.Body = input.Body;
+                    if (!string.IsNullOrEmpty(input.Id)) { sp.Id = input.Id; }
+                    ResourceResponse<Trigger> rr;
                     using (PerfStatus.Start("ReplaceTrigger"))
                     {
-                         rr = await this.client.ReplaceTriggerExAsync(sp, Program.GetMain().GetRequestOptions());
+                        rr = await this.client.ReplaceTriggerExAsync(sp, requestOptions);
                     }
                     json = rr.Resource.ToString();
                     this.Tag = rr.Resource;
@@ -1415,13 +1565,14 @@ namespace Microsoft.Azure.DocumentDBStudio
                 }
                 else if (this.resourceType == ResourceType.UserDefinedFunction)
                 {
-                    Documents.UserDefinedFunction sp = this.Tag as Documents.UserDefinedFunction;
-                    sp.Body = text;
-                    if (!string.IsNullOrEmpty(optional)) { sp.Id = optional; }
-                    ResourceResponse<Documents.UserDefinedFunction> rr;
+                    UserDefinedFunction input = resource as UserDefinedFunction;
+                    UserDefinedFunction sp = this.Tag as UserDefinedFunction;
+                    sp.Body = input.Body;
+                    if (!string.IsNullOrEmpty(input.Id)) { sp.Id = input.Id; }
+                    ResourceResponse<UserDefinedFunction> rr;
                     using (PerfStatus.Start("ReplaceUDF"))
                     {
-                         rr = await this.client.ReplaceUserDefinedFunctionExAsync(sp, Program.GetMain().GetRequestOptions());
+                        rr = await this.client.ReplaceUserDefinedFunctionExAsync(sp, requestOptions);
                     }
                     json = rr.Resource.ToString();
                     this.Tag = rr.Resource;
@@ -1431,12 +1582,13 @@ namespace Microsoft.Azure.DocumentDBStudio
                 }
                 else if (this.resourceType == ResourceType.Permission)
                 {
-                    Documents.Permission sp = Documents.Resource.LoadFrom<Documents.Permission>(new MemoryStream(Encoding.UTF8.GetBytes(text)));
+                    string text = resource as string;
+                    Permission sp = Resource.LoadFrom<Permission>(new MemoryStream(Encoding.UTF8.GetBytes(text)));
                     sp.SetReflectedPropertyValue("AltLink", (this.Tag as Permission).GetAltLink());
-                    ResourceResponse<Documents.Permission> rr;
+                    ResourceResponse<Permission> rr;
                     using (PerfStatus.Start("ReplacePermission"))
                     {
-                        rr = await this.client.ReplacePermissionExAsync(sp, Program.GetMain().GetRequestOptions());
+                        rr = await this.client.ReplacePermissionExAsync(sp, requestOptions);
                     }
                     json = rr.Resource.ToString();
                     this.Tag = rr.Resource;
@@ -1446,13 +1598,24 @@ namespace Microsoft.Azure.DocumentDBStudio
                 }
                 else if (this.resourceType == ResourceType.Attachment)
                 {
-                    Documents.Attachment sp = (Documents.Attachment)JsonConvert.DeserializeObject(text, typeof(Documents.Attachment));
+                    string text = resource as string;
+                    Attachment sp = (Attachment)JsonConvert.DeserializeObject(text, typeof(Attachment));
                     sp.SetReflectedPropertyValue("AltLink", (this.Tag as Attachment).GetAltLink());
-                    ResourceResponse<Documents.Attachment> rr;
+                    ResourceResponse<Attachment> rr;
+
+                    Document document = ((Document)this.Parent.Tag);
+                    DocumentCollection collection = ((DocumentCollection)this.Parent.Parent.Tag);
+
+                    if (collection.PartitionKey != null && collection.PartitionKey.Paths.Count > 0)
+                    {
+                        requestOptions.PartitionKey = new PartitionKey(DocumentAnalyzer.ExtractPartitionKeyValue(document, collection.PartitionKey));
+                    }
+
                     using (PerfStatus.Start("ReplaceAttachment"))
                     {
-                        rr = await this.client.ReplaceAttachmentExAsync(sp, Program.GetMain().GetRequestOptions());
+                        rr = await this.client.ReplaceAttachmentExAsync(sp, requestOptions);
                     }
+
                     json = rr.Resource.ToString();
                     this.Tag = rr.Resource;
                     this.Text = rr.Resource.Id;
@@ -1470,88 +1633,105 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
         }
 
-        async void DeleteNode(string text, object optional)
+        async void DeleteResourceAsync(object resource, RequestOptions requestOptions)
         {
             try
             {
                 if (this.resourceType == ResourceType.Document)
                 {
-                    Documents.Document doc = (Documents.Document)this.Tag;
-                    ResourceResponse<Documents.Document> rr;
+                    Document doc = (Document)this.Tag;
+                    ResourceResponse<Document> rr;
+                    DocumentCollection collection = ((DocumentCollection)this.Parent.Tag);
+
+                    if (collection.PartitionKey != null && collection.PartitionKey.Paths.Count > 0)
+                    {
+                        requestOptions.PartitionKey = new PartitionKey(DocumentAnalyzer.ExtractPartitionKeyValue(doc, collection.PartitionKey));
+                    }
+
                     using (PerfStatus.Start("DeleteDocument"))
                     {
-                        rr = await this.client.DeleteDocumentAsync(doc.GetLink(this.client), Program.GetMain().GetRequestOptions());
+                        rr = await this.client.DeleteDocumentAsync(doc.GetLink(this.client), requestOptions);
                     }
-                    Program.GetMain().SetResultInBrowser(null, "Delete Document succeed!", false, rr.ResponseHeaders);
 
+                    Program.GetMain().SetResultInBrowser(null, "Delete Document succeed!", false, rr.ResponseHeaders);
                 }
                 else if (this.resourceType == ResourceType.StoredProcedure)
                 {
-                    Documents.StoredProcedure sp = (Documents.StoredProcedure)this.Tag;
-                    ResourceResponse<Documents.StoredProcedure> rr;
+                    StoredProcedure sp = (StoredProcedure)this.Tag;
+                    ResourceResponse<StoredProcedure> rr;
                     using (PerfStatus.Start("DeleteStoredProcedure"))
                     {
-                        rr = await this.client.DeleteStoredProcedureAsync(sp.GetLink(this.client), Program.GetMain().GetRequestOptions());
+                        rr = await this.client.DeleteStoredProcedureAsync(sp.GetLink(this.client), requestOptions);
                     }
                     Program.GetMain().SetResultInBrowser(null, "Delete StoredProcedure succeed!", false, rr.ResponseHeaders);
                 }
                 else if (this.resourceType == ResourceType.User)
                 {
-                    Documents.User sp = (Documents.User)this.Tag;
-                    ResourceResponse<Documents.User> rr;
+                    User sp = (User)this.Tag;
+                    ResourceResponse<User> rr;
                     using (PerfStatus.Start("DeleteUser"))
                     {
-                        rr = await this.client.DeleteUserAsync(sp.GetLink(this.client), Program.GetMain().GetRequestOptions());
+                        rr = await this.client.DeleteUserAsync(sp.GetLink(this.client), requestOptions);
                     }
                     Program.GetMain().SetResultInBrowser(null, "Delete User succeed!", false, rr.ResponseHeaders);
                 }
                 else if (this.resourceType == ResourceType.Trigger)
                 {
-                    Documents.Trigger sp = (Documents.Trigger)this.Tag;
-                    ResourceResponse<Documents.Trigger> rr;
+                    Trigger sp = (Trigger)this.Tag;
+                    ResourceResponse<Trigger> rr;
                     using (PerfStatus.Start("DeleteTrigger"))
                     {
-                        rr = await this.client.DeleteTriggerAsync(sp.GetLink(this.client), Program.GetMain().GetRequestOptions());
+                        rr = await this.client.DeleteTriggerAsync(sp.GetLink(this.client), requestOptions);
                     }
                     Program.GetMain().SetResultInBrowser(null, "Delete Trigger succeed!", false, rr.ResponseHeaders);
                 }
                 else if (this.resourceType == ResourceType.UserDefinedFunction)
                 {
-                    Documents.UserDefinedFunction sp = (Documents.UserDefinedFunction)this.Tag;
-                    ResourceResponse<Documents.UserDefinedFunction> rr;
+                    UserDefinedFunction sp = (UserDefinedFunction)this.Tag;
+                    ResourceResponse<UserDefinedFunction> rr;
                     using (PerfStatus.Start("DeleteUDF"))
                     {
-                        rr = await this.client.DeleteUserDefinedFunctionAsync(sp.GetLink(this.client), Program.GetMain().GetRequestOptions());
+                        rr = await this.client.DeleteUserDefinedFunctionAsync(sp.GetLink(this.client), requestOptions);
                     }
                     Program.GetMain().SetResultInBrowser(null, "Delete UserDefinedFunction succeed!", false, rr.ResponseHeaders);
                 }
                 else if (this.resourceType == ResourceType.Permission)
                 {
-                    Documents.Permission sp = (Documents.Permission)this.Tag;
-                    ResourceResponse<Documents.Permission> rr;
+                    Permission sp = (Permission)this.Tag;
+                    ResourceResponse<Permission> rr;
                     using (PerfStatus.Start("DeletePermission"))
                     {
-                        rr = await this.client.DeletePermissionAsync(sp.GetLink(this.client), Program.GetMain().GetRequestOptions());
+                        rr = await this.client.DeletePermissionAsync(sp.GetLink(this.client), requestOptions);
                     }
                     Program.GetMain().SetResultInBrowser(null, "Delete Permission succeed!", false, rr.ResponseHeaders);
                 }
                 else if (this.resourceType == ResourceType.Attachment)
                 {
-                    Documents.Attachment sp = (Documents.Attachment)this.Tag;
-                    ResourceResponse<Documents.Attachment> rr;
+                    Attachment sp = (Attachment)this.Tag;
+                    ResourceResponse<Attachment> rr;
+
+                    Document document = ((Document)this.Parent.Tag);
+                    DocumentCollection collection = ((DocumentCollection)this.Parent.Parent.Tag);
+
+                    if (collection.PartitionKey != null && collection.PartitionKey.Paths.Count > 0)
+                    {
+                        requestOptions.PartitionKey = new PartitionKey(DocumentAnalyzer.ExtractPartitionKeyValue(document, collection.PartitionKey));
+                    }
+
                     using (PerfStatus.Start("DeleteAttachment"))
                     {
-                        rr = await this.client.DeleteAttachmentAsync(sp.GetLink(this.client), Program.GetMain().GetRequestOptions());
+                        rr = await this.client.DeleteAttachmentAsync(sp.GetLink(this.client), requestOptions);
                     }
+
                     Program.GetMain().SetResultInBrowser(null, "Delete Attachment succeed!", false, rr.ResponseHeaders);
                 }
                 else if (this.resourceType == ResourceType.Conflict)
                 {
-                    Documents.Conflict sp = (Documents.Conflict)this.Tag;
-                    ResourceResponse<Documents.Conflict> rr;
+                    Conflict sp = (Conflict)this.Tag;
+                    ResourceResponse<Conflict> rr;
                     using (PerfStatus.Start("DeleteConlict"))
                     {
-                        rr = await this.client.DeleteConflictAsync(sp.GetLink(this.client), Program.GetMain().GetRequestOptions());
+                        rr = await this.client.DeleteConflictAsync(sp.GetLink(this.client), requestOptions);
                     }
                     Program.GetMain().SetResultInBrowser(null, "Delete Conflict succeed!", false, rr.ResponseHeaders);
                 }
@@ -1583,7 +1763,7 @@ namespace Microsoft.Azure.DocumentDBStudio
 
                 if (this.resourceType == ResourceType.User)
                 {
-                    this.Nodes.Add(new PermissionsNode(this.client));
+                    this.Nodes.Add(new PermissionNode(this.client));
                 }
                 else if (this.resourceType == ResourceType.Document)
                 {
@@ -1598,15 +1778,15 @@ namespace Microsoft.Azure.DocumentDBStudio
             string body = null;
             if (this.resourceType == ResourceType.StoredProcedure)
             {
-                body = "\nThe storedprocedure Javascript function: \n\n" + (this.Tag as Documents.StoredProcedure).Body;
+                body = "\nThe storedprocedure Javascript function: \n\n" + (this.Tag as StoredProcedure).Body;
             }
             else if (this.resourceType == ResourceType.Trigger)
             {
-                body = "\nThe trigger Javascript function: \n\n" + (this.Tag as Documents.Trigger).Body;
+                body = "\nThe trigger Javascript function: \n\n" + (this.Tag as Trigger).Body;
             }
             else if (this.resourceType == ResourceType.UserDefinedFunction)
             {
-                body = "\nThe stored Javascript function: \n\n" + (this.Tag as Documents.UserDefinedFunction).Body;
+                body = "\nThe stored Javascript function: \n\n" + (this.Tag as UserDefinedFunction).Body;
             }
             return body;
         }
@@ -1615,18 +1795,28 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             try
             {
-                FeedResponse<Documents.Attachment> attachments;
+                Document document = ((Document)this.Tag);
+                DocumentCollection collection = ((DocumentCollection)this.Parent.Tag);
+
+                FeedOptions options = new FeedOptions();
+                if (collection.PartitionKey != null && collection.PartitionKey.Paths.Count > 0)
+                {
+                    options.PartitionKey = new PartitionKey(DocumentAnalyzer.ExtractPartitionKeyValue(document, collection.PartitionKey));
+                }
+
+                FeedResponse<Attachment> attachments;
                 using (PerfStatus.Start("ReadAttachmentFeed"))
                 {
-                     attachments = this.client.ReadAttachmentFeedAsync((this.Tag as Documents.Document).GetLink(this.client)).Result;
+                    attachments = this.client.ReadAttachmentFeedAsync(document.GetLink(this.client), options).Result;
                 }
+
                 foreach (var attachment in attachments)
                 {
-                    DocumentNode node = new DocumentNode(client, attachment, ResourceType.Attachment);
+                    ResourceNode node = new ResourceNode(client, attachment, ResourceType.Attachment);
                     this.Nodes.Add(node);
                 }
-                Program.GetMain().SetResponseHeaders(attachments.ResponseHeaders);
 
+                Program.GetMain().SetResponseHeaders(attachments.ResponseHeaders);
             }
             catch (AggregateException e)
             {
@@ -1639,12 +1829,12 @@ namespace Microsoft.Azure.DocumentDBStudio
         }
     }
 
-    class StoredProceduresNode : FeedNode
+    class StoredProcedureNode : FeedNode
     {
         private DocumentClient client;
         private ContextMenu contextMenu = new ContextMenu();
 
-        public StoredProceduresNode(DocumentClient client)
+        public StoredProcedureNode(DocumentClient client)
         {
             this.Text = "StoredProcedures";
             this.client = client;
@@ -1654,27 +1844,31 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.ImageKey = "Feed";
             this.SelectedImageKey = "Feed";
 
-            MenuItem myMenuItem = new MenuItem("Create StoredProcedure");
-            myMenuItem.Click += new EventHandler(myMenuItemAddStoredProcedure_Click);
-            this.contextMenu.MenuItems.Add(myMenuItem);
-            MenuItem myMenuItem2 = new MenuItem("Create StoredProcedure From File");
-            myMenuItem2.Click += new EventHandler(myMenuItemAddStoredProcedureFromFile_Click);
-            this.contextMenu.MenuItems.Add(myMenuItem2);
-
-            MenuItem myMenuItem1 = new MenuItem("Refresh StoredProcedures feed");
-            myMenuItem1.Click += new EventHandler((sender, e) => Refresh(true));
-            this.contextMenu.MenuItems.Add(myMenuItem1);
-
+            {
+                MenuItem menuItem = new MenuItem("Create StoredProcedure");
+                menuItem.Click += new EventHandler(myMenuItemAddStoredProcedure_Click);
+                this.contextMenu.MenuItems.Add(menuItem);
+            }
+            {
+                MenuItem menuItem = new MenuItem("Create StoredProcedure From File");
+                menuItem.Click += new EventHandler(myMenuItemCreateStoredProcedureFromFile_Click);
+                this.contextMenu.MenuItems.Add(menuItem);
+            }
+            {
+                MenuItem menuItem = new MenuItem("Refresh StoredProcedures feed");
+                menuItem.Click += new EventHandler((sender, e) => Refresh(true));
+                this.contextMenu.MenuItems.Add(menuItem);
+            }
         }
 
         void myMenuItemAddStoredProcedure_Click(object sender, EventArgs e)
         {
             // 
-            Program.GetMain().SetCrudContext(this, string.Format(CultureInfo.InvariantCulture, "Create StoredProcedure in collection {0}", (this.Parent.Tag as Documents.DocumentCollection).Id),
-                true, "function() { \r\n \r\n}", this.AddStoredProcedure);
+            Program.GetMain().SetCrudContext(this, OperationType.Create, ResourceType.StoredProcedure,
+                "function() { \r\n \r\n}", this.CreateStoredProcedureAsync);
         }
 
-        void myMenuItemAddStoredProcedureFromFile_Click(object sender, EventArgs e)
+        void myMenuItemCreateStoredProcedureFromFile_Click(object sender, EventArgs e)
         {
             OpenFileDialog ofd = new OpenFileDialog();
             DialogResult dr = ofd.ShowDialog();
@@ -1685,26 +1879,22 @@ namespace Microsoft.Azure.DocumentDBStudio
                 // 
                 string text = System.IO.File.ReadAllText(filename);
 
-                Program.GetMain().SetCrudContext(this, "Add StoredProcedure", false, text, this.AddStoredProcedure);
+                Program.GetMain().SetCrudContext(this, OperationType.Create, ResourceType.StoredProcedure, text, this.CreateStoredProcedureAsync);
             }
         }
 
-        async void AddStoredProcedure(string body, object idobject)
+        async void CreateStoredProcedureAsync(object resource, RequestOptions requestOptions)
         {
-            string id = idobject as string;
             try
             {
-                Documents.StoredProcedure sp = new Documents.StoredProcedure();
-                sp.Body = body;
-                sp.Id = id;
-
-                ResourceResponse<Documents.StoredProcedure> newsp;
+                StoredProcedure sp = resource as StoredProcedure;
+                ResourceResponse<StoredProcedure> newsp;
                 using (PerfStatus.Start("CreateStoredProcedure"))
                 {
-                    newsp = await this.client.CreateStoredProcedureAsync((this.Parent.Tag as Documents.DocumentCollection).GetLink(this.client), sp, Program.GetMain().GetRequestOptions());
+                    newsp = await this.client.CreateStoredProcedureAsync((this.Parent.Tag as DocumentCollection).GetLink(this.client), sp, requestOptions);
                 }
 
-                this.Nodes.Add(new DocumentNode(this.client, newsp.Resource, ResourceType.StoredProcedure));
+                this.Nodes.Add(new ResourceNode(this.client, newsp.Resource, ResourceType.StoredProcedure));
 
                 // set the result window
                 string json = newsp.Resource.ToString();
@@ -1742,15 +1932,15 @@ namespace Microsoft.Azure.DocumentDBStudio
             try
             {
                 DocumentCollectionNode collnode = (DocumentCollectionNode)this.Parent;
-                FeedResponse<Documents.StoredProcedure> sps;
+                FeedResponse<StoredProcedure> sps;
                 using (PerfStatus.Start("ReadStoredProcedure"))
                 {
-                    sps = this.client.ReadStoredProcedureFeedAsync((collnode.Tag as Documents.DocumentCollection).GetLink(this.client)).Result;
+                    sps = this.client.ReadStoredProcedureFeedAsync((collnode.Tag as DocumentCollection).GetLink(this.client)).Result;
                 }
 
                 foreach (var sp in sps)
                 {
-                    DocumentNode node = new DocumentNode(client, sp, ResourceType.StoredProcedure);
+                    ResourceNode node = new ResourceNode(client, sp, ResourceType.StoredProcedure);
                     this.Nodes.Add(node);
                 }
                 Program.GetMain().SetResponseHeaders(sps.ResponseHeaders);
@@ -1767,12 +1957,12 @@ namespace Microsoft.Azure.DocumentDBStudio
         }
     }
 
-    class UDFsNode : FeedNode
+    class UserDefinedFunctionNode : FeedNode
     {
         private DocumentClient client;
         private ContextMenu contextMenu = new ContextMenu();
 
-        public UDFsNode(DocumentClient client)
+        public UserDefinedFunctionNode(DocumentClient client)
         {
             this.Text = "UDFs";
             this.client = client;
@@ -1781,25 +1971,31 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.ImageKey = "Feed";
             this.SelectedImageKey = "Feed";
 
-            MenuItem myMenuItem = new MenuItem("Create UserDefinedFunction");
-            myMenuItem.Click += new EventHandler(myMenuItemAddUDF_Click);
-            this.contextMenu.MenuItems.Add(myMenuItem);
-            MenuItem myMenuItem2 = new MenuItem("Create UserDefinedFunction from File");
-            myMenuItem2.Click += new EventHandler(myMenuItemAddUDFFromFile_Click);
-            this.contextMenu.MenuItems.Add(myMenuItem2);
-            MenuItem myMenuItem1 = new MenuItem("Refresh UserDefinedFunction feed");
-            myMenuItem1.Click += new EventHandler((sender, e) => Refresh(true));
-            this.contextMenu.MenuItems.Add(myMenuItem1);
+            {
+                MenuItem menuItem = new MenuItem("Create UserDefinedFunction");
+                menuItem.Click += new EventHandler(myMenuItemCreateUDF_Click);
+                this.contextMenu.MenuItems.Add(menuItem);
+            }
+            {
+                MenuItem menuItem = new MenuItem("Create UserDefinedFunction from File");
+                menuItem.Click += new EventHandler(myMenuItemCreateUDFFromFile_Click);
+                this.contextMenu.MenuItems.Add(menuItem);
+            }
+            {
+                MenuItem menuItem = new MenuItem("Refresh UserDefinedFunction feed");
+                menuItem.Click += new EventHandler((sender, e) => Refresh(true));
+                this.contextMenu.MenuItems.Add(menuItem);
+            }
         }
 
-        void myMenuItemAddUDF_Click(object sender, EventArgs e)
+        void myMenuItemCreateUDF_Click(object sender, EventArgs e)
         {
             // 
-            Program.GetMain().SetCrudContext(this, string.Format(CultureInfo.InvariantCulture, "Add UserDefinedFunction in collection {0}", (this.Parent.Tag as Documents.DocumentCollection).Id),
-                true, "function() { \r\n \r\n}", this.AddUDF);
+            Program.GetMain().SetCrudContext(this, OperationType.Create, ResourceType.UserDefinedFunction,
+                "function() { \r\n \r\n}", this.CreateUDFAsync);
         }
 
-        void myMenuItemAddUDFFromFile_Click(object sender, EventArgs e)
+        void myMenuItemCreateUDFFromFile_Click(object sender, EventArgs e)
         {
             OpenFileDialog ofd = new OpenFileDialog();
             DialogResult dr = ofd.ShowDialog();
@@ -1810,25 +2006,22 @@ namespace Microsoft.Azure.DocumentDBStudio
                 // 
                 string text = System.IO.File.ReadAllText(filename);
 
-                Program.GetMain().SetCrudContext(this, "Create UDF", false, text, this.AddUDF);
+                Program.GetMain().SetCrudContext(this, OperationType.Create, ResourceType.UserDefinedFunction, text, this.CreateUDFAsync);
             }
         }
-        async void AddUDF(string body, object idObject)
+        async void CreateUDFAsync(object resource, RequestOptions requestOptions)
         {
-            string id = idObject as string;
             try
             {
-                Documents.UserDefinedFunction udf = new Documents.UserDefinedFunction();
-                udf.Body = body;
-                udf.Id = id;
+                UserDefinedFunction udf = resource as UserDefinedFunction;
 
-                ResourceResponse<Documents.UserDefinedFunction> newudf;
+                ResourceResponse<UserDefinedFunction> newudf;
                 using (PerfStatus.Start("CreateUDF"))
                 {
-                    newudf = await this.client.CreateUserDefinedFunctionAsync((this.Parent.Tag as Documents.DocumentCollection).GetLink(this.client), udf, Program.GetMain().GetRequestOptions());
+                    newudf = await this.client.CreateUserDefinedFunctionAsync((this.Parent.Tag as DocumentCollection).GetLink(this.client), udf, requestOptions);
                 }
 
-                this.Nodes.Add(new DocumentNode(this.client, newudf.Resource, ResourceType.UserDefinedFunction));
+                this.Nodes.Add(new ResourceNode(this.client, newudf.Resource, ResourceType.UserDefinedFunction));
 
                 // set the result window
                 string json = newudf.Resource.ToString();
@@ -1866,15 +2059,15 @@ namespace Microsoft.Azure.DocumentDBStudio
             try
             {
                 DocumentCollectionNode collnode = (DocumentCollectionNode)this.Parent;
-                FeedResponse<Documents.UserDefinedFunction> sps;
+                FeedResponse<UserDefinedFunction> sps;
                 using (PerfStatus.Start("ReadUdfFeed"))
                 {
-                    sps = this.client.ReadUserDefinedFunctionFeedAsync((collnode.Tag as Documents.DocumentCollection).GetLink(this.client)).Result;
+                    sps = this.client.ReadUserDefinedFunctionFeedAsync((collnode.Tag as DocumentCollection).GetLink(this.client)).Result;
                 }
 
                 foreach (var sp in sps)
                 {
-                    DocumentNode node = new DocumentNode(client, sp, ResourceType.UserDefinedFunction);
+                    ResourceNode node = new ResourceNode(client, sp, ResourceType.UserDefinedFunction);
                     this.Nodes.Add(node);
                 }
                 Program.GetMain().SetResponseHeaders(sps.ResponseHeaders);
@@ -1891,12 +2084,12 @@ namespace Microsoft.Azure.DocumentDBStudio
         }
     }
 
-    class TriggersNode : FeedNode
+    class TriggerNode : FeedNode
     {
         private DocumentClient client;
         private ContextMenu contextMenu = new ContextMenu();
 
-        public TriggersNode(DocumentClient client)
+        public TriggerNode(DocumentClient client)
         {
             this.Text = "Triggers";
             this.client = client;
@@ -1905,18 +2098,24 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.ImageKey = "Feed";
             this.SelectedImageKey = "Feed";
 
-            MenuItem myMenuItem = new MenuItem("Create Trigger");
-            myMenuItem.Click += new EventHandler(myMenuItemAddTrigger_Click);
-            this.contextMenu.MenuItems.Add(myMenuItem);
-            MenuItem myMenuItem2 = new MenuItem("Create Trigger from file");
-            myMenuItem2.Click += new EventHandler(myMenuItemAddTriggerFromFile_Click);
-            this.contextMenu.MenuItems.Add(myMenuItem2);
-            MenuItem myMenuItem1 = new MenuItem("Refresh Triggers feed");
-            myMenuItem1.Click += new EventHandler((sender, e) => Refresh(true));
-            this.contextMenu.MenuItems.Add(myMenuItem1);
+            {
+                MenuItem menuItem = new MenuItem("Create Trigger");
+                menuItem.Click += new EventHandler(myMenuItemCreateTrigger_Click);
+                this.contextMenu.MenuItems.Add(menuItem);
+            }
+            {
+                MenuItem menuItem = new MenuItem("Create Trigger from file");
+                menuItem.Click += new EventHandler(myMenuItemCreateTriggerFromFile_Click);
+                this.contextMenu.MenuItems.Add(menuItem);
+            }
+            {
+                MenuItem menuItem = new MenuItem("Refresh Triggers feed");
+                menuItem.Click += new EventHandler((sender, e) => Refresh(true));
+                this.contextMenu.MenuItems.Add(menuItem);
+            }
         }
 
-        void myMenuItemAddTriggerFromFile_Click(object sender, EventArgs e)
+        void myMenuItemCreateTriggerFromFile_Click(object sender, EventArgs e)
         {
             OpenFileDialog ofd = new OpenFileDialog();
             DialogResult dr = ofd.ShowDialog();
@@ -1927,30 +2126,30 @@ namespace Microsoft.Azure.DocumentDBStudio
                 // 
                 string text = System.IO.File.ReadAllText(filename);
 
-                Program.GetMain().SetCrudContext(this, "Create trigger", false, text, this.AddTrigger, new CommandContext() { IsCreateTrigger = true });
+                Program.GetMain().SetCrudContext(this, OperationType.Create, ResourceType.Trigger, text, this.CreateTriggerAsync, new CommandContext() { IsCreateTrigger = true });
             }
         }
 
-        void myMenuItemAddTrigger_Click(object sender, EventArgs e)
+        void myMenuItemCreateTrigger_Click(object sender, EventArgs e)
         {
             // 
-            Program.GetMain().SetCrudContext(this, string.Format(CultureInfo.InvariantCulture, "Create trigger in collection {0}", (this.Parent.Tag as Documents.DocumentCollection).Id),
-                true, "function() { \r\n \r\n}", this.AddTrigger, new CommandContext() { IsCreateTrigger = true });
+            Program.GetMain().SetCrudContext(this, OperationType.Create, ResourceType.Trigger,
+                "function() { \r\n \r\n}", this.CreateTriggerAsync, new CommandContext() { IsCreateTrigger = true });
         }
 
-        async void AddTrigger(string body, object triggerObject)
+        async void CreateTriggerAsync(object triggerObject, RequestOptions requestOptions)
         {
             try
             {
                 Trigger trigger = triggerObject as Trigger;
 
-                ResourceResponse<Documents.Trigger> newtrigger;
+                ResourceResponse<Trigger> newtrigger;
                 using (PerfStatus.Start("CreateTrigger"))
                 {
-                    newtrigger = await this.client.CreateTriggerAsync((this.Parent.Tag as Documents.DocumentCollection).GetLink(this.client), trigger, Program.GetMain().GetRequestOptions());
+                    newtrigger = await this.client.CreateTriggerAsync((this.Parent.Tag as DocumentCollection).GetLink(this.client), trigger, requestOptions);
                 }
 
-                this.Nodes.Add(new DocumentNode(this.client, newtrigger.Resource, ResourceType.Trigger));
+                this.Nodes.Add(new ResourceNode(this.client, newtrigger.Resource, ResourceType.Trigger));
 
                 // set the result window
                 string json = newtrigger.Resource.ToString();
@@ -1988,15 +2187,15 @@ namespace Microsoft.Azure.DocumentDBStudio
             try
             {
                 DocumentCollectionNode collnode = (DocumentCollectionNode)this.Parent;
-                FeedResponse<Documents.Trigger> sps;
+                FeedResponse<Trigger> sps;
                 using (PerfStatus.Start("ReadTriggerFeed"))
                 {
-                     sps = this.client.ReadTriggerFeedAsync((collnode.Tag as Documents.DocumentCollection).GetLink(this.client)).Result;
+                    sps = this.client.ReadTriggerFeedAsync((collnode.Tag as DocumentCollection).GetLink(this.client)).Result;
                 }
 
                 foreach (var sp in sps)
                 {
-                    DocumentNode node = new DocumentNode(client, sp, ResourceType.Trigger);
+                    ResourceNode node = new ResourceNode(client, sp, ResourceType.Trigger);
                     this.Nodes.Add(node);
                 }
                 Program.GetMain().SetResponseHeaders(sps.ResponseHeaders);
@@ -2014,12 +2213,12 @@ namespace Microsoft.Azure.DocumentDBStudio
         }
     }
 
-    class UsersNode : FeedNode
+    class UserNode : FeedNode
     {
         private DocumentClient client;
         private ContextMenu contextMenu = new ContextMenu();
 
-        public UsersNode(DocumentClient client)
+        public UserNode(DocumentClient client)
         {
             this.Text = "Users";
             this.client = client;
@@ -2028,35 +2227,38 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.ImageKey = "User";
             this.SelectedImageKey = "User";
 
-            MenuItem myMenuItem = new MenuItem("Create User");
-            myMenuItem.Click += new EventHandler(myMenuItemAddUser_Click);
-            this.contextMenu.MenuItems.Add(myMenuItem);
-            MenuItem myMenuItem1 = new MenuItem("Refresh Users feed");
-            myMenuItem1.Click += new EventHandler((sender, e) => Refresh(true));
-            this.contextMenu.MenuItems.Add(myMenuItem1);
+            {
+                MenuItem menuItem = new MenuItem("Create User");
+                menuItem.Click += new EventHandler(myMenuItemCreateUser_Click);
+                this.contextMenu.MenuItems.Add(menuItem);
+            }
+            {
+                MenuItem menuItem = new MenuItem("Refresh Users feed");
+                menuItem.Click += new EventHandler((sender, e) => Refresh(true));
+                this.contextMenu.MenuItems.Add(menuItem);
+            }
         }
 
-        void myMenuItemAddUser_Click(object sender, EventArgs e)
+        void myMenuItemCreateUser_Click(object sender, EventArgs e)
         {
             dynamic d = new System.Dynamic.ExpandoObject();
             d.id = "Here is your user Id";
             string x = JsonConvert.SerializeObject(d, Newtonsoft.Json.Formatting.Indented);
-            Program.GetMain().SetCrudContext(this, string.Format(CultureInfo.InvariantCulture, "Create user in database {0}", (this.Parent.Tag as Documents.Database).Id),
-                false, x, this.AddUser);
+            Program.GetMain().SetCrudContext(this, OperationType.Create, ResourceType.User, x, this.CreateUserAsync);
         }
 
-        async void AddUser(string body, object id)
+        async void CreateUserAsync(object resource, RequestOptions requestOptions)
         {
             try
             {
-                Documents.User user = (Documents.User)JsonConvert.DeserializeObject(body, typeof(Documents.User));
+                User user = (User)JsonConvert.DeserializeObject(resource as string, typeof(User));
 
-                ResourceResponse<Documents.User> newUser;
+                ResourceResponse<User> newUser;
                 using (PerfStatus.Start("CreateUser"))
                 {
-                    newUser = await this.client.CreateUserAsync((this.Parent.Tag as Documents.Database).GetLink(this.client), user, Program.GetMain().GetRequestOptions());
+                    newUser = await this.client.CreateUserAsync((this.Parent.Tag as Database).GetLink(this.client), user, requestOptions);
                 }
-                this.Nodes.Add(new DocumentNode(this.client, newUser.Resource, ResourceType.User));
+                this.Nodes.Add(new ResourceNode(this.client, newUser.Resource, ResourceType.User));
 
                 // set the result window
                 string json = newUser.Resource.ToString();
@@ -2093,14 +2295,14 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             try
             {
-                FeedResponse<Documents.User> sps;
+                FeedResponse<User> sps;
                 using (PerfStatus.Start("ReadUser"))
                 {
-                    sps = this.client.ReadUserFeedAsync((this.Parent.Tag as Documents.Database).GetLink(this.client)).Result;
+                    sps = this.client.ReadUserFeedAsync((this.Parent.Tag as Database).GetLink(this.client)).Result;
                 }
                 foreach (var sp in sps)
                 {
-                    DocumentNode node = new DocumentNode(client, sp, ResourceType.User);
+                    ResourceNode node = new ResourceNode(client, sp, ResourceType.User);
                     this.Nodes.Add(node);
                 }
                 Program.GetMain().SetResponseHeaders(sps.ResponseHeaders);
@@ -2118,12 +2320,12 @@ namespace Microsoft.Azure.DocumentDBStudio
         }
     }
 
-    class PermissionsNode : FeedNode
+    class PermissionNode : FeedNode
     {
         private DocumentClient client;
         private ContextMenu contextMenu = new ContextMenu();
 
-        public PermissionsNode(DocumentClient client)
+        public PermissionNode(DocumentClient client)
         {
             this.Text = "Permissions";
             this.client = client;
@@ -2132,39 +2334,42 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.ImageKey = "Permission";
             this.SelectedImageKey = "Permission";
 
-            MenuItem myMenuItem = new MenuItem("Create Permission");
-            myMenuItem.Click += new EventHandler(myMenuItemAddPermission_Click);
-            this.contextMenu.MenuItems.Add(myMenuItem);
-            MenuItem myMenuItem1 = new MenuItem("Refresh Permissions feed");
-            myMenuItem1.Click += new EventHandler((sender, e) => Refresh(true));
-            this.contextMenu.MenuItems.Add(myMenuItem1);
+            {
+                MenuItem menuItem = new MenuItem("Create Permission");
+                menuItem.Click += new EventHandler(myMenuItemCreatePermission_Click);
+                this.contextMenu.MenuItems.Add(menuItem);
+            }
+            {
+                MenuItem menuItem = new MenuItem("Refresh Permissions feed");
+                menuItem.Click += new EventHandler((sender, e) => Refresh(true));
+                this.contextMenu.MenuItems.Add(menuItem);
+            }
         }
 
-        void myMenuItemAddPermission_Click(object sender, EventArgs e)
+        void myMenuItemCreatePermission_Click(object sender, EventArgs e)
         {
-            Documents.Permission permission = new Documents.Permission();
+            Permission permission = new Permission();
             permission.Id = "Here is your permission Id";
-            permission.PermissionMode = Documents.PermissionMode.Read;
+            permission.PermissionMode = PermissionMode.Read;
             permission.ResourceLink = "your resource link";
 
             string x = permission.ToString();
 
-            Program.GetMain().SetCrudContext(this, string.Format(CultureInfo.InvariantCulture, "Create permission for user {0}", (this.Parent.Tag as Documents.Resource).Id),
-                false, x, this.AddPermission);
+            Program.GetMain().SetCrudContext(this, OperationType.Create, ResourceType.Permission, x, this.CreatePermissionAsync);
         }
 
-        async void AddPermission(string body, object id)
+        async void CreatePermissionAsync(object resource, RequestOptions requestOptions)
         {
             try
             {
-                Documents.Permission permission = Documents.Resource.LoadFrom<Documents.Permission>(new MemoryStream(Encoding.UTF8.GetBytes(body)));
+                Permission permission = Resource.LoadFrom<Permission>(new MemoryStream(Encoding.UTF8.GetBytes(resource as string)));
 
-                ResourceResponse<Documents.Permission> newtpermission;
+                ResourceResponse<Permission> newtpermission;
                 using (PerfStatus.Start("CreatePermission"))
                 {
-                     newtpermission = await this.client.CreatePermissionAsync((this.Parent.Tag as Documents.Resource).GetLink(this.client), permission, Program.GetMain().GetRequestOptions());
+                    newtpermission = await this.client.CreatePermissionAsync((this.Parent.Tag as Resource).GetLink(this.client), permission, requestOptions);
                 }
-                this.Nodes.Add(new DocumentNode(this.client, newtpermission.Resource, ResourceType.Permission));
+                this.Nodes.Add(new ResourceNode(this.client, newtpermission.Resource, ResourceType.Permission));
 
                 // set the result window
                 string json = newtpermission.Resource.ToString();
@@ -2201,15 +2406,15 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             try
             {
-                FeedResponse<Documents.Permission> sps;
+                FeedResponse<Permission> sps;
                 using (PerfStatus.Start("ReadPermission"))
                 {
-                    sps = this.client.ReadPermissionFeedAsync((this.Parent.Tag as Documents.User).GetLink(this.client)).Result;
+                    sps = this.client.ReadPermissionFeedAsync((this.Parent.Tag as User).GetLink(this.client)).Result;
                 }
 
                 foreach (var sp in sps)
                 {
-                    DocumentNode node = new DocumentNode(client, sp, ResourceType.Permission);
+                    ResourceNode node = new ResourceNode(client, sp, ResourceType.Permission);
                     this.Nodes.Add(node);
                 }
                 Program.GetMain().SetResponseHeaders(sps.ResponseHeaders);
@@ -2227,12 +2432,12 @@ namespace Microsoft.Azure.DocumentDBStudio
         }
     }
 
-    class ConflictsNode : FeedNode
+    class ConflictNode : FeedNode
     {
         private DocumentClient client;
         private ContextMenu contextMenu = new ContextMenu();
 
-        public ConflictsNode(DocumentClient client)
+        public ConflictNode(DocumentClient client)
         {
             this.Text = "Conflicts";
             this.client = client;
@@ -2241,14 +2446,17 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.ImageKey = "Conflict";
             this.SelectedImageKey = "Conflict";
 
-            MenuItem myMenuItem1 = new MenuItem("Refresh Conflict feed");
-            myMenuItem1.Click += new EventHandler((sender, e) => Refresh(true));
-            this.contextMenu.MenuItems.Add(myMenuItem1);
-
-            // Query conflicts currrently fail due to gateway
-            MenuItem myMenuItem2 = new MenuItem("Query Conflict feed");
-            myMenuItem2.Click += new EventHandler(myMenuItemQueryConflicts_Click);
-            this.contextMenu.MenuItems.Add(myMenuItem2);
+            {
+                MenuItem menuItem = new MenuItem("Refresh Conflict feed");
+                menuItem.Click += new EventHandler((sender, e) => Refresh(true));
+                this.contextMenu.MenuItems.Add(menuItem);
+            }
+            {
+                // Query conflicts currrently fail due to gateway
+                MenuItem menuItem = new MenuItem("Query Conflict feed");
+                menuItem.Click += new EventHandler(myMenuItemQueryConflicts_Click);
+                this.contextMenu.MenuItems.Add(menuItem);
+            }
         }
 
         override public void ShowContextMenu(TreeView treeview, Point p)
@@ -2258,19 +2466,19 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         void myMenuItemQueryConflicts_Click(object sender, EventArgs e)
         {
-            Program.GetMain().SetCrudContext(this, "Query Conflicts",
-                false, "select * from c", this.QueryConflicts);
+            Program.GetMain().SetCrudContext(this, OperationType.Query, ResourceType.Conflict, "select * from c", this.QueryConflictAsync);
         }
 
-        async void QueryConflicts(string queryText, object optional)
+        async void QueryConflictAsync(object resource, RequestOptions requestOptions)
         {
             try
             {
+                string queryText = resource as string;
                 // text is the querytext.
                 FeedResponse<Database> r;
                 using (PerfStatus.Start("QueryConflicts"))
                 {
-                    IDocumentQuery<dynamic> q = this.client.CreateConflictQuery((this.Parent.Tag as Documents.DocumentCollection).GetLink(this.client), queryText).AsDocumentQuery();
+                    IDocumentQuery<dynamic> q = this.client.CreateConflictQuery((this.Parent.Tag as DocumentCollection).GetLink(this.client), queryText).AsDocumentQuery();
                     r = await q.ExecuteNextAsync<Database>();
                 }
 
@@ -2329,15 +2537,15 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             try
             {
-                FeedResponse<Documents.Conflict> feedConflicts;
+                FeedResponse<Conflict> feedConflicts;
                 using (PerfStatus.Start("ReadConflictsFeed"))
                 {
-                    feedConflicts = this.client.ReadConflictFeedAsync((this.Parent.Tag as Documents.DocumentCollection).GetLink(this.client)).Result;
+                    feedConflicts = this.client.ReadConflictFeedAsync((this.Parent.Tag as DocumentCollection).GetLink(this.client)).Result;
                 }
 
                 foreach (var sp in feedConflicts)
                 {
-                    DocumentNode node = new DocumentNode(client, sp, ResourceType.Conflict);
+                    ResourceNode node = new ResourceNode(client, sp, ResourceType.Conflict);
                     this.Nodes.Add(node);
                 }
                 Program.GetMain().SetResponseHeaders(feedConflicts.ResponseHeaders);
@@ -2355,12 +2563,12 @@ namespace Microsoft.Azure.DocumentDBStudio
         }
     }
 
-    class OffersNode : FeedNode
+    class OfferNode : FeedNode
     {
         private DocumentClient client;
         private ContextMenu contextMenu = new ContextMenu();
 
-        public OffersNode(DocumentClient client)
+        public OfferNode(DocumentClient client)
         {
             this.Text = "Offers";
             this.client = client;
@@ -2369,9 +2577,9 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.ImageKey = "Offer";
             this.SelectedImageKey = "Offer";
 
-            MenuItem myMenuItem1 = new MenuItem("Refresh Offer feed");
-            myMenuItem1.Click += new EventHandler((sender, e) => Refresh(true));
-            this.contextMenu.MenuItems.Add(myMenuItem1);
+            MenuItem menuItem = new MenuItem("Refresh Offer feed");
+            menuItem.Click += new EventHandler((sender, e) => Refresh(true));
+            this.contextMenu.MenuItems.Add(menuItem);
         }
 
         override public void ShowContextMenu(TreeView treeview, Point p)
@@ -2381,21 +2589,21 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         void myMenuItemQueryOffers_Click(object sender, EventArgs e)
         {
-            Program.GetMain().SetCrudContext(this, "Query Offers",
-                false, "select * from c", this.QueryOffers);
+            Program.GetMain().SetCrudContext(this, OperationType.Query, ResourceType.Offer, "select * from c", this.QueryOfferAsync);
         }
 
-        async void QueryOffers(string queryText, object optional)
+        async void QueryOfferAsync(object resource, RequestOptions requestOptions)
         {
             try
             {
+                string queryText = resource as string;
                 // text is the querytext.
                 IDocumentQuery<dynamic> q = this.client.CreateOfferQuery(queryText).AsDocumentQuery();
 
                 FeedResponse<Database> r;
                 using (PerfStatus.Start("QueryOffer"))
                 {
-                     r = await q.ExecuteNextAsync<Database>();
+                    r = await q.ExecuteNextAsync<Database>();
                 }
                 // set the result window
                 string text = null;
@@ -2452,11 +2660,11 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             try
             {
-                FeedResponse<Documents.Offer> feedOffers = this.client.ReadOffersFeedAsync().Result;
+                FeedResponse<Offer> feedOffers = this.client.ReadOffersFeedAsync().Result;
 
                 foreach (var sp in feedOffers)
                 {
-                    DocumentNode node = new DocumentNode(client, sp, ResourceType.Offer);
+                    ResourceNode node = new ResourceNode(client, sp, ResourceType.Offer);
                     this.Nodes.Add(node);
                 }
                 Program.GetMain().SetResponseHeaders(feedOffers.ResponseHeaders);
@@ -2470,7 +2678,6 @@ namespace Microsoft.Azure.DocumentDBStudio
             {
                 Program.GetMain().SetResultInBrowser(null, e.ToString(), true);
             }
-
         }
     }
 

@@ -12,7 +12,6 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyProduct("Azure DocumentDB Studio")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
-
 // Setting ComVisible to false makes the types in this assembly not visible 
 // to COM components.  If you need to access a type in this assembly from 
 // COM, set the ComVisible attribute to true on that type.
@@ -20,6 +19,8 @@ using System.Runtime.InteropServices;
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
 [assembly: Guid("091ec462-d239-4a73-874c-5c6c9c811972")]
+
+
 
 // Version information for an assembly consists of the following four values:
 //
@@ -30,3 +31,4 @@ using System.Runtime.InteropServices;
 //
 [assembly: AssemblyVersion("0.79.0.0")]
 [assembly: AssemblyFileVersion("0.76.0.0")]
+

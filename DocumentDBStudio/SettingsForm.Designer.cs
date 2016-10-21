@@ -41,7 +41,7 @@
             this.radioButtonDirectHttp = new System.Windows.Forms.RadioButton();
             this.radioButtonGateway = new System.Windows.Forms.RadioButton();
             this.cbNameBased = new System.Windows.Forms.CheckBox();
-            this.cbEnableAutomaticFailover = new System.Windows.Forms.CheckBox();
+            this.cbEnableEndpointDiscovery = new System.Windows.Forms.CheckBox();
             this.groupBox1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -56,7 +56,7 @@
             // 
             // tbAccountSecret
             // 
-            this.tbAccountSecret.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            this.tbAccountSecret.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this.tbAccountSecret.Location = new System.Drawing.Point(144, 80);
             this.tbAccountSecret.Name = "tbAccountSecret";
@@ -65,7 +65,7 @@
             // 
             // tbAccountName
             // 
-            this.tbAccountName.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            this.tbAccountName.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this.tbAccountName.Location = new System.Drawing.Point(144, 52);
             this.tbAccountName.Name = "tbAccountName";
@@ -178,22 +178,21 @@
             this.cbNameBased.CheckState = System.Windows.Forms.CheckState.Checked;
             this.cbNameBased.Location = new System.Drawing.Point(15, 208);
             this.cbNameBased.Name = "cbNameBased";
-            this.cbNameBased.Size = new System.Drawing.Size(114, 17);
+            this.cbNameBased.Size = new System.Drawing.Size(120, 17);
             this.cbNameBased.TabIndex = 27;
             this.cbNameBased.Text = "Use legacy selflink";
             this.cbNameBased.UseVisualStyleBackColor = true;
             // 
             // cbEnableAutomaticFailover
             // 
-            this.cbEnableAutomaticFailover.AllowDrop = true;
-            this.cbEnableAutomaticFailover.AutoSize = true;
-            this.cbEnableAutomaticFailover.Location = new System.Drawing.Point(144, 179);
-            this.cbEnableAutomaticFailover.Name = "cbEnableAutomaticFailover";
-            this.cbEnableAutomaticFailover.Size = new System.Drawing.Size(145, 17);
-            this.cbEnableAutomaticFailover.TabIndex = 28;
-            this.cbEnableAutomaticFailover.Text = "Enable automatic failover";
-            this.cbEnableAutomaticFailover.UseVisualStyleBackColor = true;
-            this.cbEnableAutomaticFailover.Visible = false;
+            this.cbEnableEndpointDiscovery.AllowDrop = true;
+            this.cbEnableEndpointDiscovery.AutoSize = true;
+            this.cbEnableEndpointDiscovery.Location = new System.Drawing.Point(144, 179);
+            this.cbEnableEndpointDiscovery.Name = "cbEnableAutomaticFailover";
+            this.cbEnableEndpointDiscovery.Size = new System.Drawing.Size(145, 17);
+            this.cbEnableEndpointDiscovery.TabIndex = 28;
+            this.cbEnableEndpointDiscovery.Text = "Automatic endpoint discovery";
+            this.cbEnableEndpointDiscovery.UseVisualStyleBackColor = true;
             // 
             // SettingsForm
             // 
@@ -202,7 +201,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.CancelButton = this.btnCancel;
             this.ClientSize = new System.Drawing.Size(400, 239);
-            this.Controls.Add(this.cbEnableAutomaticFailover);
+            this.Controls.Add(this.cbEnableEndpointDiscovery);
             this.Controls.Add(this.cbNameBased);
             this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.cbDevFabric);
@@ -238,6 +237,6 @@
         private System.Windows.Forms.RadioButton radioButtonDirectTcp;
         private System.Windows.Forms.RadioButton radioButtonDirectHttp;
         private System.Windows.Forms.CheckBox cbNameBased;
-        private System.Windows.Forms.CheckBox cbEnableAutomaticFailover;
+        private System.Windows.Forms.CheckBox cbEnableEndpointDiscovery;
     }
 }

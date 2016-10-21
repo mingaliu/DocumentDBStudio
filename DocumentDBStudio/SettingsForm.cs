@@ -63,19 +63,19 @@ namespace Microsoft.Azure.DocumentDBStudio
                 cbNameBased.Checked = !this.AccountSettings.IsNameBased;
                 tbAccountName.Text = this.AccountEndpoint;
                 tbAccountSecret.Text = this.AccountSettings.MasterKey;
-                this.cbEnableAutomaticFailover.Checked = this.AccountSettings.EnableFailOver;
+                this.cbEnableEndpointDiscovery.Checked = this.AccountSettings.EnableEndpointDiscovery;
             }
             else
             {
                 radioButtonGateway.Checked = true;
-                cbEnableAutomaticFailover.Checked = false;
+                cbEnableEndpointDiscovery.Checked = false;
 
                 this.cbNameBased.Checked = false;
                 ApplyDevFabricSettings();
             }
 
             this.cbNameBased.Visible = true;
-            this.cbDevFabric.Visible = false;
+            this.cbDevFabric.Visible = true;
         }
 
         private void btnOK_Click(object sender, EventArgs e)
@@ -103,7 +103,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 this.AccountSettings.Protocol = Protocol.Tcp;
             }
 
-            this.AccountSettings.EnableFailOver = cbEnableAutomaticFailover.Checked;
+            this.AccountSettings.EnableEndpointDiscovery = cbEnableEndpointDiscovery.Checked;
             this.AccountSettings.IsNameBased = !cbNameBased.Checked;
 
             Settings.Default.Save();

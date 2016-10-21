@@ -29,7 +29,7 @@ namespace Microsoft.Azure.DocumentDBStudio
         public ConnectionMode ConnectionMode;
         public Protocol Protocol;
         public bool IsNameBased;
-        public bool EnableFailOver;
+        public bool EnableEndpointDiscovery;
     }
 
     public class CommandContext
@@ -337,6 +337,8 @@ namespace Microsoft.Azure.DocumentDBStudio
     {
         private DocumentClient client;
         private ContextMenu contextMenu = new ContextMenu();
+        private string currentContinuation = null;
+        private CommandContext currentQueryCommandContext = null;
 
         public DatabaseNode(DocumentClient localclient, Database db)
         {
@@ -374,6 +376,12 @@ namespace Microsoft.Azure.DocumentDBStudio
                 this.contextMenu.MenuItems.Add(menuItem);
             }
 
+            {
+                MenuItem menuItem = new MenuItem("Query DocumentCollections");
+                menuItem.Click += new EventHandler(myMenuItemQueryDocumentCollection_Click);
+                this.contextMenu.MenuItems.Add(menuItem);
+            }
+
         }
 
         async void myMenuItemReadDatabase_Click(object sender, EventArgs eArgs)
@@ -399,6 +407,99 @@ namespace Microsoft.Azure.DocumentDBStudio
                 Program.GetMain().SetResultInBrowser(null, e.ToString(), true);
             }
         }
+
+
+        void myMenuItemQueryDocumentCollection_Click(object sender, EventArgs e)
+        {
+            this.currentQueryCommandContext = new CommandContext();
+            this.currentQueryCommandContext.IsFeed = true;
+
+            // reset continuation token
+            this.currentContinuation = null;
+
+            Program.GetMain().SetCrudContext(this, OperationType.Query, ResourceType.Document, "select * from c", this.QueryDocumentCollectionsAsync, this.currentQueryCommandContext);
+        }
+
+        async void QueryDocumentCollectionsAsync(object resource, RequestOptions requestOptions)
+        {
+            try
+            {
+                string queryText = resource as string;
+                // text is the querytext.
+                IDocumentQuery<dynamic> q = null;
+
+                FeedOptions feedOptions = Program.GetMain().GetFeedOptions();
+
+                if (requestOptions == null)
+                {
+                    // requestOptions = null means it is from the next page. We only attempt to continue using the RequestContinuation for next page button
+                    if (!string.IsNullOrEmpty(this.currentContinuation) && string.IsNullOrEmpty(feedOptions.RequestContinuation))
+                    {
+                        feedOptions.RequestContinuation = this.currentContinuation;
+                    }
+                }
+
+                q = this.client.CreateDocumentCollectionQuery((this.Tag as Database).GetLink(this.client), queryText, feedOptions).AsDocumentQuery();
+
+                Stopwatch sw = Stopwatch.StartNew();
+
+                FeedResponse<dynamic> r;
+                using (PerfStatus.Start("QueryDocument"))
+                {
+                    r = await q.ExecuteNextAsync();
+                }
+                sw.Stop();
+                this.currentContinuation = r.ResponseContinuation;
+                this.currentQueryCommandContext.HasContinuation = !string.IsNullOrEmpty(this.currentContinuation);
+                this.currentQueryCommandContext.QueryStarted = true;
+
+                // set the result window
+                string text = null;
+                if (r.Count > 1)
+                {
+                    text = string.Format(CultureInfo.InvariantCulture, "Returned {0} collections in {1} ms.", r.Count, sw.ElapsedMilliseconds);
+                }
+                else
+                {
+                    text = string.Format(CultureInfo.InvariantCulture, "Returned {0} collections in {1} ms.", r.Count, sw.ElapsedMilliseconds);
+                }
+
+                if (r.ResponseContinuation != null)
+                {
+                    text += " (more results might be available)";
+                }
+
+                string jsonarray = "[";
+                int index = 0;
+                foreach (dynamic d in r)
+                {
+                    index++;
+                    // currently Query.ToString() has Formatting.Indented, but the public release doesn't have yet.
+                    jsonarray += d.ToString();
+
+                    if (index == r.Count)
+                    {
+                        jsonarray += "]";
+                    }
+                    else
+                    {
+                        jsonarray += ",\r\n";
+                    }
+                }
+
+                Program.GetMain().SetResultInBrowser(jsonarray, text, true, r.ResponseHeaders);
+                Program.GetMain().SetNextPageVisibility(this.currentQueryCommandContext);
+            }
+            catch (AggregateException e)
+            {
+                Program.GetMain().SetResultInBrowser(null, e.InnerException.ToString(), true);
+            }
+            catch (Exception e)
+            {
+                Program.GetMain().SetResultInBrowser(null, e.ToString(), true);
+            }
+        }
+
 
         void myMenuItemDeleteDatabase_Click(object sender, EventArgs e)
         {
@@ -524,6 +625,7 @@ namespace Microsoft.Azure.DocumentDBStudio
         private ContextMenu contextMenu = new ContextMenu();
         private string currentContinuation = null;
         private CommandContext currentQueryCommandContext = null;
+ 
         public DocumentCollectionNode(DocumentClient client, DocumentCollection coll)
         {
             this.Text = coll.Id;
@@ -624,35 +726,9 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             try
             {
-                // #1: Update offer if necessary
                 DocumentCollection coll = (DocumentCollection)this.Tag;
 
-                // Find the offer object corresponding to the current offer.
-                IQueryable<Offer> offerQuery = from offer in client.CreateOfferQuery()
-                                               where offer.ResourceLink == coll.SelfLink
-                                               select offer;
-                IDocumentQuery<Offer> offerDocDBQuery = offerQuery.AsDocumentQuery();
-
-                List<Offer> queryResults = new List<Offer>();
-
-                while (offerDocDBQuery.HasMoreResults)
-                {
-                    queryResults.AddRange(await offerDocDBQuery.ExecuteNextAsync<Offer>());
-                }
-
-                // change the Offer type of the document collection 
-                Offer offerToReplace = queryResults[0];
-                if (requestOptions.OfferType != null && string.Compare(offerToReplace.OfferType, requestOptions.OfferType, StringComparison.Ordinal) != 0)
-                {
-                    offerToReplace.OfferType = requestOptions.OfferType;
-                    ResourceResponse<Offer> replaceResponse;
-                    using (PerfStatus.Start("ReplaceOffer"))
-                    {
-                        replaceResponse = await client.ReplaceOfferAsync(offerToReplace);
-                    }
-                }
-
-                // #2: Update collection if necessary
+                //Update collection if necessary
                 DocumentCollection collToChange = resource as DocumentCollection;
                 collToChange.IndexingPolicy = (IndexingPolicy)coll.IndexingPolicy.Clone();
 

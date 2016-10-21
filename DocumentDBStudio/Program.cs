@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Windows.Forms;
 
 namespace Microsoft.Azure.DocumentDBStudio
@@ -17,7 +18,8 @@ namespace Microsoft.Azure.DocumentDBStudio
         [STAThread]
         static void Main()
         {
-
+            ServicePointManager.DefaultConnectionLimit = 1000;
+            
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Program._mainForm = new MainForm();

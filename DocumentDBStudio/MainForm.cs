@@ -131,13 +131,13 @@ namespace Microsoft.Azure.DocumentDBStudio
             cbEnableScan.Text = "EnableScanInQuery";
             cbEnableScan.CheckState = CheckState.Indeterminate;
             ToolStripControlHost host1 = new ToolStripControlHost(cbEnableScan);
-            feedToolStrip.Items.Insert(1, host1);
+            feedToolStrip.Items.Insert(3, host1);
 
             cbEnableCrossPartitionQuery = new CheckBox();
             cbEnableCrossPartitionQuery.Text = "EnableCrossPartitionQuery";
             cbEnableCrossPartitionQuery.CheckState = CheckState.Indeterminate;
             ToolStripControlHost host2 = new ToolStripControlHost(cbEnableCrossPartitionQuery);
-            feedToolStrip.Items.Insert(2, host2);
+            feedToolStrip.Items.Insert(4, host2);
 
             lbIncludedPath.Items.Add(new IncludedPath() { Path = "/" });
 
@@ -520,6 +520,24 @@ namespace Microsoft.Azure.DocumentDBStudio
                 // Ignore the exception and use the defualt value
             }
 
+            try
+            {
+                feedOptions.MaxDegreeOfParallelism = Convert.ToInt32(toolStripTextMaxDop.Text, CultureInfo.InvariantCulture);
+            }
+            catch (Exception)
+            {
+                // Ignore the exception and use the defualt value
+            }
+
+            try
+            {
+                feedOptions.MaxBufferedItemCount = Convert.ToInt32(toolStripTextMaxBuffItem.Text, CultureInfo.InvariantCulture);
+            }
+            catch (Exception)
+            {
+                // Ignore the exception and use the defualt value
+            }
+
             if (cbEnableScan.CheckState == CheckState.Checked)
             {
                 feedOptions.EnableScanInQuery = true;
@@ -543,37 +561,37 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         public RequestOptions GetRequestOptions()
         {
-                if (tbPostTrigger.Modified)
+            if (tbPostTrigger.Modified)
+            {
+                string postTrigger = tbPostTrigger.Text;
+                if (!string.IsNullOrEmpty(postTrigger))
                 {
-                    string postTrigger = tbPostTrigger.Text;
-                    if (!string.IsNullOrEmpty(postTrigger))
-                    {
-                        // split by ;
-                        string[] segments = postTrigger.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
-                        this.requestOptions.PostTriggerInclude = segments;
-                    }
-                    tbPostTrigger.Modified = false;
+                    // split by ;
+                    string[] segments = postTrigger.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+                    this.requestOptions.PostTriggerInclude = segments;
                 }
+                tbPostTrigger.Modified = false;
+            }
 
-                if (tbPreTrigger.Modified)
+            if (tbPreTrigger.Modified)
+            {
+                string preTrigger = tbPreTrigger.Text;
+                if (!string.IsNullOrEmpty(preTrigger))
                 {
-                    string preTrigger = tbPreTrigger.Text;
-                    if (!string.IsNullOrEmpty(preTrigger))
-                    {
-                        // split by ;
-                        string[] segments = preTrigger.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
-                        this.requestOptions.PreTriggerInclude = segments;
-                    }
+                    // split by ;
+                    string[] segments = preTrigger.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+                    this.requestOptions.PreTriggerInclude = segments;
                 }
+            }
 
-                if (tbAccessConditionText.Modified)
+            if (tbAccessConditionText.Modified)
+            {
+                string condition = tbAccessConditionText.Text;
+                if (!string.IsNullOrEmpty(condition))
                 {
-                    string condition = tbAccessConditionText.Text;
-                    if (!string.IsNullOrEmpty(condition))
-                    {
-                        this.requestOptions.AccessCondition.Condition = condition;
-                    }
+                    this.requestOptions.AccessCondition.Condition = condition;
                 }
+            }
 
             if (tbPartitionKeyForRequestOption.Modified)
             {
@@ -581,7 +599,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 if (!string.IsNullOrEmpty(partitionKey))
                 {
                     this.requestOptions.PartitionKey = new PartitionKey(partitionKey);
-            }
+                }
             }
 
             if ((this.resourceType == ResourceType.DocumentCollection || this.resourceType == ResourceType.Offer) &&
@@ -675,7 +693,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                         ConnectionMode = accountSettings.ConnectionMode,
                         ConnectionProtocol = accountSettings.Protocol,
                         // enable after we support the automatic failover from client .
-                        //DisableAutomaticFailover = !accountSettings.EnableFailOver,
+                        EnableEndpointDiscovery = accountSettings.EnableEndpointDiscovery,
                         UserAgentSuffix = suffix
                     });
 
@@ -845,9 +863,9 @@ namespace Microsoft.Azure.DocumentDBStudio
         }
 
         public void SetNextPageVisibility(CommandContext commandContext)
-                {
+        {
             this.btnExecuteNext.Enabled = commandContext.HasContinuation || !commandContext.QueryStarted;
-                }
+        }
 
         private bool ValidateInput()
         {
@@ -865,7 +883,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                                         Constants.ApplicationName + "\nVersion " + Constants.ProductVersion,
                                         MessageBoxButtons.OK);
                         return false;
-            }
+                    }
 
                     if (throughput % 100 != 0)
                     {
@@ -878,7 +896,8 @@ namespace Microsoft.Azure.DocumentDBStudio
 
                     if (this.offerType == OfferType.StandardElastic)
                     {
-                        if (throughput < 10000 || throughput > 250000)
+                        // remove 250K from the internal version
+                        if (throughput < 10000)
                         {
                             MessageBox.Show(this, 
                                             "Offer throughput has to be between 10K and 250K for partitioned collection",
@@ -898,18 +917,18 @@ namespace Microsoft.Azure.DocumentDBStudio
                             return false;
                         }
                     }
-            else
-            {
+                    else
+                    {
                         if (throughput < 400 || throughput > 10000)
-                {
+                        {
                             MessageBox.Show(this, 
                                             "Offer throughput has to be between 400 and 10000 for single partition collection",
                                             Constants.ApplicationName + "\nVersion " + Constants.ProductVersion,
                                             MessageBoxButtons.OK);
                             return false;
+                        }
+                    }
                 }
-            }
-        }
             }
 
             return true;
@@ -1505,7 +1524,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             {
                 this.rbSinglePartition.Checked = true;
             }
-    }
+        }
 
         private void rbSinglePartition_CheckedChanged(object sender, EventArgs e)
         {
@@ -1518,5 +1537,10 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
         }
 
-}
+        private void feedToolStrip_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
+        {
+
+        }
+
+    }
 }

@@ -1105,7 +1105,7 @@ namespace Microsoft.Azure.DocumentDBStudio
 
                     if (string.Compare("x-ms-request-charge", key, StringComparison.OrdinalIgnoreCase) == 0)
                     {
-                        this.tsStatus.Text = this.tsStatus.Text + ", RequestChange: " + responseHeaders[key];
+                        this.tsStatus.Text = this.tsStatus.Text + ", Request Charge: " + responseHeaders[key];
                     }
                     if (string.Compare("x-ms-item-count", key, StringComparison.OrdinalIgnoreCase) == 0)
                     {

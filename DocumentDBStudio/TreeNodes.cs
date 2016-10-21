@@ -1002,6 +1002,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                         responseHeaders = response.ResponseHeaders;
                     }
                 }
+                docs.Sort((first, second) => string.Compare(((Document)first).Id, ((Document)second).Id, StringComparison.Ordinal));
 
                 foreach (var doc in docs)
                 {

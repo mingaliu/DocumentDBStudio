@@ -2,8 +2,6 @@
 // Copyright (c) Microsoft Corporation.  All rights reserved.
 //-----------------------------------------------------------------------------
 
-using MimeSharp;
-
 namespace Microsoft.Azure.DocumentDBStudio
 {
     using System;
@@ -19,6 +17,7 @@ namespace Microsoft.Azure.DocumentDBStudio
     using Microsoft.Azure.DocumentDBStudio.Properties;
     using Microsoft.Azure.Documents.Client;
     using Microsoft.Azure.Documents.Linq;
+    using MimeSharp;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using Newtonsoft.Json.Serialization;

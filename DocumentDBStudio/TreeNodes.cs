@@ -2,6 +2,8 @@
 // Copyright (c) Microsoft Corporation.  All rights reserved.
 //-----------------------------------------------------------------------------
 
+using MimeSharp;
+
 namespace Microsoft.Azure.DocumentDBStudio
 {
     using System;
@@ -1426,10 +1428,10 @@ namespace Microsoft.Azure.DocumentDBStudio
 
             if (dr == DialogResult.OK)
             {
+                var mime = new Mime();
+                var contentType = mime.Lookup(ofd.FileName);
                 string filename = ofd.FileName;
-                // 
-                // todo: present the dialog for Slug name and Content type
-                // 
+
                 Program.GetMain().SetLoadingState();
 
                 try
@@ -1440,7 +1442,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                     {
                         MediaOptions mediaOptions = new MediaOptions()
                         {
-                            ContentType = "application/octet-stream",
+                            ContentType = contentType,
                             Slug = Path.GetFileName(ofd.FileName)
                         };
 

@@ -803,8 +803,10 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
         }
 
-        internal void SetCrudContext(TreeNode node, OperationType operation, ResourceType resourceType, string bodytext, 
-            Action<object, RequestOptions> func, CommandContext commandContext = null)
+        internal void SetCrudContext(
+            TreeNode node, OperationType operation, ResourceType resourceType, string bodytext, 
+            Action<object, RequestOptions> func, CommandContext commandContext = null
+        )
         {
             if (commandContext == null)
             {
@@ -816,7 +818,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             operationType = operation;
             this.resourceType = resourceType;
             currentOperationCallback = func;
-            tabCrudContext.Text = operation.ToString() + " " + resourceType.ToString();
+            tabCrudContext.Text = string.Format("{0} {1}", operation, resourceType);
             tbCrudContext.Text = bodytext;
 
             toolStripBtnExecute.Enabled = true;
@@ -967,22 +969,25 @@ namespace Microsoft.Azure.DocumentDBStudio
 
             SetLoadingState();
 
-            RequestOptions requestOptions = GetRequestOptions();
+            var requestOptions = GetRequestOptions();
 
             if (resourceType == ResourceType.DocumentCollection && (operationType == OperationType.Create || operationType == OperationType.Replace))
             {
                 newDocumentCollection.IndexingPolicy.IncludedPaths.Clear();
-                foreach (object item in lbIncludedPath.Items)
+                foreach (var item in lbIncludedPath.Items)
                 {
-                    IncludedPath includedPath = item as IncludedPath;
+                    var includedPath = item as IncludedPath;
                     newDocumentCollection.IndexingPolicy.IncludedPaths.Add(includedPath);
                 }
 
                 newDocumentCollection.IndexingPolicy.ExcludedPaths.Clear();
-                foreach (object item in lbExcludedPath.Items)
+                foreach (var item in lbExcludedPath.Items)
                 {
-                    String excludedPath = item as String;
-                    newDocumentCollection.IndexingPolicy.ExcludedPaths.Add(new ExcludedPath() { Path = excludedPath });
+                    var excludedPath = item as string;
+                    newDocumentCollection.IndexingPolicy.ExcludedPaths.Add(new ExcludedPath()
+                    {
+                        Path = excludedPath
+                    });
                 }
 
                 newDocumentCollection.Id = tbCollectionId.Text;
@@ -1004,10 +1009,12 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
             else if (resourceType == ResourceType.Trigger && operationType == OperationType.Create)
             {
-                Trigger trigger = new Trigger();
-                trigger.Body = tbCrudContext.Text;
-                trigger.Id = textBoxforId.Text;
-                trigger.TriggerOperation = TriggerOperation.All;
+                var trigger = new Trigger
+                {
+                    Body = tbCrudContext.Text,
+                    Id = textBoxforId.Text,
+                    TriggerOperation = TriggerOperation.All
+                };
                 if (rbPreTrigger.Checked)
                     trigger.TriggerType = TriggerType.Pre;
                 else if (rbPostTrigger.Checked)
@@ -1017,26 +1024,32 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
             else if (resourceType == ResourceType.Trigger && operationType == OperationType.Replace)
             {
-                Trigger trigger = new Trigger();
-                trigger.Body = tbCrudContext.Text;
-                trigger.Id = textBoxforId.Text;
+                var trigger = new Trigger
+                {
+                    Body = tbCrudContext.Text,
+                    Id = textBoxforId.Text
+                };
                 currentOperationCallback(trigger, requestOptions);
            }
 
             else if (resourceType == ResourceType.UserDefinedFunction
                  && (operationType == OperationType.Create || operationType == OperationType.Replace))
             {
-                UserDefinedFunction udf = new UserDefinedFunction();
-                udf.Body = tbCrudContext.Text;
-                udf.Id = textBoxforId.Text;
+                var udf = new UserDefinedFunction
+                {
+                    Body = tbCrudContext.Text,
+                    Id = textBoxforId.Text
+                };
                 currentOperationCallback(udf, requestOptions);
             }
             else if (resourceType == ResourceType.StoredProcedure
                  && (operationType == OperationType.Create || operationType == OperationType.Replace))
             {
-                StoredProcedure storedProcedure = new StoredProcedure();
-                storedProcedure.Body = tbCrudContext.Text;
-                storedProcedure.Id = textBoxforId.Text;
+                var storedProcedure = new StoredProcedure
+                {
+                    Body = tbCrudContext.Text,
+                    Id = textBoxforId.Text
+                };
                 currentOperationCallback(storedProcedure, requestOptions);
             }
             else

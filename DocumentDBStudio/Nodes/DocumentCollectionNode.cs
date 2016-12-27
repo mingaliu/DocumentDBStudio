@@ -7,6 +7,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
+using Microsoft.Azure.DocumentDBStudio.Helpers;
 using Microsoft.Azure.Documents;
 using Microsoft.Azure.Documents.Client;
 using Microsoft.Azure.Documents.Linq;
@@ -397,22 +398,15 @@ namespace Microsoft.Azure.DocumentDBStudio
                 }
 
                 string customDocumentDisplayIdentifier;
-                var useCustom = GetCustomDocumentDisplayIdentifier(docs, out customDocumentDisplayIdentifier);
+                var useCustom = DocumentHelper.GetCustomDocumentDisplayIdentifier(docs, out customDocumentDisplayIdentifier);
 
-                if (useCustom)
-                {
-                    docs.Sort((first, second) => string.Compare(first.GetPropertyValue<string>(customDocumentDisplayIdentifier), second.GetPropertyValue<string>(customDocumentDisplayIdentifier), StringComparison.Ordinal));
-                }
-                else
-                {
-                    docs.Sort((first, second) => string.Compare(((Document) first).Id, ((Document) second).Id, StringComparison.Ordinal));
-                }
+                DocumentHelper.SortDocuments(useCustom, docs, customDocumentDisplayIdentifier);
 
                 foreach (var doc in docs)
                 {
                     if (useCustom)
                     {
-                        var displayText = string.Format("{0} [{1}]", doc.GetPropertyValue<string>(customDocumentDisplayIdentifier), doc.id);
+                        var displayText = DocumentHelper.GetDisplayText(true, doc, customDocumentDisplayIdentifier);
                         var node = new ResourceNode(_client, doc, ResourceType.Document, ((DocumentCollection)Tag).PartitionKey, displayText);
                         Nodes.Add(node);
                     }
@@ -433,31 +427,6 @@ namespace Microsoft.Azure.DocumentDBStudio
             {
                 Program.GetMain().SetResultInBrowser(null, e.ToString(), true);
             }
-        }
-
-        private static bool GetCustomDocumentDisplayIdentifier(List<dynamic> docs, out string custom)
-        {
-            custom = null;
-            try
-            {
-                custom = Properties.Settings.Default.CustomDocumentDisplayIdentifier;
-                if (!string.IsNullOrWhiteSpace(custom))
-                {
-                    var useCustom = false;
-                    var firstDoc = docs.First();
-                    try
-                    {
-                        var name = firstDoc.GetPropertyValue<string>(custom);
-                        useCustom = true;
-                    }
-                    catch (Exception ex)
-                    {
-                    }
-                    return useCustom;
-                }
-            }
-            catch { }
-            return false;
         }
     }  
 }

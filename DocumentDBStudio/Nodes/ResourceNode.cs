@@ -74,6 +74,13 @@ namespace Microsoft.Azure.DocumentDBStudio
 
             if (_resourceType != ResourceType.Conflict && _resourceType != ResourceType.Offer)
             {
+                var menuItem = new MenuItem(string.Format("Copy {0} to clipboard", _resourceType));
+                menuItem.Click += myMenuItemCopyToClipBoard_Click;
+                _contextMenu.MenuItems.Add(menuItem);
+            }
+
+            if (_resourceType != ResourceType.Conflict && _resourceType != ResourceType.Offer)
+            {
                 var menuItem = new MenuItem(string.Format("Replace {0}", _resourceType));
                 menuItem.Click += myMenuItemUpdate_Click;
                 _contextMenu.MenuItems.Add(menuItem);
@@ -152,6 +159,28 @@ namespace Microsoft.Azure.DocumentDBStudio
                 SelectedImageKey = "Offer";
             }
         }
+        
+        async void myMenuItemCopyToClipBoard_Click(object sender, EventArgs eventArg)
+        {
+            var clipBoardContent = "";
+            switch (_resourceType)
+            {
+                case ResourceType.StoredProcedure:
+                    clipBoardContent = (Tag as StoredProcedure).Body;
+                    break;
+                case ResourceType.Trigger:
+                    clipBoardContent = (Tag as Trigger).Body;
+                    break;
+                case ResourceType.UserDefinedFunction:
+                    clipBoardContent = (Tag as UserDefinedFunction).Body;
+                    break;
+                default:
+                    clipBoardContent = Tag.ToString();
+                    break;
+            }
+            clipBoardContent = DocumentHelper.RemoveInternalDocumentValues(clipBoardContent);
+            System.Windows.Forms.Clipboard.SetText(clipBoardContent);
+        }
 
         void myMenuItemUpdate_Click(object sender, EventArgs e)
         {
@@ -168,6 +197,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                     break;
                 default:
                     var tag = Tag.ToString();
+                    tag = DocumentHelper.RemoveInternalDocumentValues(tag);
                     Program.GetMain().SetCrudContext(this, OperationType.Replace, _resourceType, tag, ReplaceResourceAsync);
                     break;
             }
@@ -194,8 +224,8 @@ namespace Microsoft.Azure.DocumentDBStudio
                         break;
                     case ResourceType.Document:
                     {
-                        var document = ((Document)Tag);
-                        var collection = ((DocumentCollection)Parent.Tag);
+                        var document = (Document)Tag;
+                        var collection = (DocumentCollection)Parent.Tag;
 
                         var requestOptions = Program.GetMain().GetRequestOptions();
                         if (collection.PartitionKey != null && collection.PartitionKey.Paths.Count > 0)
@@ -210,6 +240,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                         }
                         // set the result window
                         var json = JsonConvert.SerializeObject(rr.Resource, Formatting.Indented);
+                        json = DocumentHelper.RemoveInternalDocumentValues(json);
 
                         Program.GetMain().SetResultInBrowser(json, null, false, rr.ResponseHeaders);
                     }
@@ -594,9 +625,10 @@ namespace Microsoft.Azure.DocumentDBStudio
                     json = rr.Resource.ToString();
 
                     Tag = rr.Resource;
-                    Text = rr.Resource.Id;
+
+                    Text = DocumentHelper.GetDisplayText(rr.Resource);
                     // set the result window
-                    Program.GetMain().SetResultInBrowser(json, null, false, rr.ResponseHeaders);
+                    Program.GetMain().SetResultInBrowser(DocumentHelper.RemoveInternalDocumentValues(json), null, false, rr.ResponseHeaders);
                 }
                 else if (_resourceType == ResourceType.StoredProcedure)
                 {

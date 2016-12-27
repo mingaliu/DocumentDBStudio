@@ -251,8 +251,7 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         void myMenuItemQueryDocument_Click(object sender, EventArgs e)
         {
-            _currentQueryCommandContext = new CommandContext();
-            _currentQueryCommandContext.IsFeed = true;
+            _currentQueryCommandContext = new CommandContext {IsFeed = true};
 
             // reset continuation token
             _currentContinuation = null;
@@ -273,10 +272,13 @@ namespace Microsoft.Azure.DocumentDBStudio
                     newdocument = await _client.CreateDocumentAsync((Tag as DocumentCollection).GetLink(_client), document, requestOptions);
                 }
 
-                Nodes.Add(new ResourceNode(_client, newdocument.Resource, ResourceType.Document, ((DocumentCollection)Tag).PartitionKey));
+                Nodes.Add(
+                    new ResourceNode(_client, newdocument.Resource, ResourceType.Document, ((DocumentCollection)Tag).PartitionKey, DocumentHelper.GetDisplayText(newdocument.Resource))
+                );
 
                 // set the result window
                 var json = newdocument.Resource.ToString();
+                json = DocumentHelper.RemoveInternalDocumentValues(json);
 
                 Program.GetMain().SetResultInBrowser(json, null, false, newdocument.ResponseHeaders);
 

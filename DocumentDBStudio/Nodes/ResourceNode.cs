@@ -74,20 +74,6 @@ namespace Microsoft.Azure.DocumentDBStudio
 
             if (_resourceType != ResourceType.Conflict && _resourceType != ResourceType.Offer)
             {
-                var menuItem = new MenuItem("Copy id to clipboard");
-                menuItem.Click += myMenuItemCopyIdToClipBoard_Click;
-                _contextMenu.MenuItems.Add(menuItem);
-            }
-
-            if (_resourceType != ResourceType.Conflict && _resourceType != ResourceType.Offer)
-            {
-                var menuItem = new MenuItem(string.Format("Copy {0} to clipboard", _resourceType));
-                menuItem.Click += myMenuItemCopyToClipBoard_Click;
-                _contextMenu.MenuItems.Add(menuItem);
-            }
-
-            if (_resourceType != ResourceType.Conflict && _resourceType != ResourceType.Offer)
-            {
                 var menuItem = new MenuItem(string.Format("Replace {0}", _resourceType));
                 menuItem.Click += myMenuItemUpdate_Click;
                 _contextMenu.MenuItems.Add(menuItem);
@@ -96,6 +82,25 @@ namespace Microsoft.Azure.DocumentDBStudio
             {
                 var menuItem = new MenuItem(string.Format("Delete {0}", _resourceType));
                 menuItem.Click += myMenuItemDelete_Click;
+                _contextMenu.MenuItems.Add(menuItem);
+            }
+
+            
+
+            if (_resourceType != ResourceType.Conflict && _resourceType != ResourceType.Offer)
+            {
+                _contextMenu.MenuItems.Add("-");
+
+                var menuItem = new MenuItem("Copy id to clipboard");
+                menuItem.Click += myMenuItemCopyIdToClipBoard_Click;
+                _contextMenu.MenuItems.Add(menuItem);
+
+                menuItem = new MenuItem(string.Format("Copy {0} to clipboard", _resourceType));
+                menuItem.Click += myMenuItemCopyToClipBoard_Click;
+                _contextMenu.MenuItems.Add(menuItem);
+
+                menuItem = new MenuItem(string.Format("Copy {0} to clipboard with new id", _resourceType));
+                menuItem.Click += myMenuItemCopyToClipBoardWithNewId_Click;
                 _contextMenu.MenuItems.Add(menuItem);
             }
 
@@ -195,24 +200,37 @@ namespace Microsoft.Azure.DocumentDBStudio
         
         async void myMenuItemCopyToClipBoard_Click(object sender, EventArgs eventArg)
         {
-            var clipBoardContent = "";
+            var clipBoardContent = GetCurrentObjectContents();
+            Clipboard.SetText(clipBoardContent);
+        }
+
+        async void myMenuItemCopyToClipBoardWithNewId_Click(object sender, EventArgs eventArg)
+        {
+            var clipBoardContent = GetCurrentObjectContents();
+            clipBoardContent = DocumentHelper.AssignNewIdToDocument(clipBoardContent);
+            Clipboard.SetText(clipBoardContent);
+        }
+
+        private string GetCurrentObjectContents()
+        {
+            string content;
             switch (_resourceType)
             {
                 case ResourceType.StoredProcedure:
-                    clipBoardContent = (Tag as StoredProcedure).Body;
+                    content = (Tag as StoredProcedure).Body;
                     break;
                 case ResourceType.Trigger:
-                    clipBoardContent = (Tag as Trigger).Body;
+                    content = (Tag as Trigger).Body;
                     break;
                 case ResourceType.UserDefinedFunction:
-                    clipBoardContent = (Tag as UserDefinedFunction).Body;
+                    content = (Tag as UserDefinedFunction).Body;
                     break;
                 default:
-                    clipBoardContent = Tag.ToString();
+                    content = Tag.ToString();
                     break;
             }
-            clipBoardContent = DocumentHelper.RemoveInternalDocumentValues(clipBoardContent);
-            Clipboard.SetText(clipBoardContent);
+            content = DocumentHelper.RemoveInternalDocumentValues(content);
+            return content;
         }
 
         void myMenuItemUpdate_Click(object sender, EventArgs e)

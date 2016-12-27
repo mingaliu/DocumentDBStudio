@@ -113,7 +113,6 @@ namespace Microsoft.Azure.DocumentDBStudio
             btnExecuteNext.Enabled = false;
             UnpackEmbeddedResources();
 
-            tsbViewType.Checked = true;
             btnHeaders.Checked = false;
 
             cbRequestOptionsApply_CheckedChanged(null, null);

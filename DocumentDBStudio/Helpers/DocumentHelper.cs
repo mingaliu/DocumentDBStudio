@@ -9,6 +9,19 @@ namespace Microsoft.Azure.DocumentDBStudio.Helpers
 {
     static class DocumentHelper
     {
+
+        public static string AssignNewIdToDocument(string json)
+        {
+            try
+            {
+                dynamic obj = JObject.Parse(json);
+                obj.id = Guid.NewGuid();
+                json = obj.ToString();
+            }
+            catch { }
+            
+            return json;
+        }
         public static string RemoveInternalDocumentValues(string json)
         {
             if (Settings.Default.HideDocumentSystemProperties)

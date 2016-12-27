@@ -71,6 +71,9 @@ namespace Microsoft.Azure.DocumentDBStudio
                 menuItem.Click += myMenuItemCreateDocumentsFromFolder_Click;
                 _contextMenu.MenuItems.Add(menuItem);
             }
+
+            _contextMenu.MenuItems.Add("-");
+
             {
                 var menuItem = new MenuItem("Refresh Documents feed");
                 menuItem.Click += (sender, e) => Refresh(true);

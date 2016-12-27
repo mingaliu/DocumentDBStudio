@@ -2,6 +2,7 @@
 using System.Drawing;
 using System.Globalization;
 using System.Windows.Forms;
+using Microsoft.Azure.DocumentDBStudio.Properties;
 using Microsoft.Azure.Documents;
 using Microsoft.Azure.Documents.Client;
 using Microsoft.Azure.Documents.Linq;
@@ -214,7 +215,10 @@ namespace Microsoft.Azure.DocumentDBStudio
                 IsFirstTime = false;
                 Nodes.Clear();
 
-                Nodes.Add(new OfferNode(_client));
+                if (!Settings.Default.HideOffers)
+                {
+                    Nodes.Add(new OfferNode(_client));
+                }
 
                 FillWithChildren();
             }

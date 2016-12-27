@@ -45,5 +45,17 @@ namespace Microsoft.Azure.DocumentDBStudio.Properties {
                 this["AccountSettingsList"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Name")]
+        public string CustomDocumentDisplayIdentifier {
+            get {
+                return ((string)(this["CustomDocumentDisplayIdentifier"]));
+            }
+            set {
+                this["CustomDocumentDisplayIdentifier"] = value;
+            }
+        }
     }
 }

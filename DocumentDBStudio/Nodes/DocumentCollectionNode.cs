@@ -1,0 +1,463 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Collections.Specialized;
+using System.Diagnostics;
+using System.Drawing;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Windows.Forms;
+using Microsoft.Azure.Documents;
+using Microsoft.Azure.Documents.Client;
+using Microsoft.Azure.Documents.Linq;
+using Newtonsoft.Json;
+
+namespace Microsoft.Azure.DocumentDBStudio
+{
+    class DocumentCollectionNode : FeedNode
+    {
+        private readonly DocumentClient _client;
+        private readonly ContextMenu _contextMenu = new ContextMenu();
+        private string _currentContinuation = null;
+        private CommandContext _currentQueryCommandContext = null;
+
+        public DocumentCollectionNode(DocumentClient client, DocumentCollection coll)
+        {
+            Text = coll.Id;
+            Tag = coll;
+            _client = client;
+            ImageKey = "SystemFeed";
+            SelectedImageKey = "SystemFeed";
+
+            Nodes.Add(new StoredProcedureNode(_client));
+            Nodes.Add(new UserDefinedFunctionNode(_client));
+            Nodes.Add(new TriggerNode(_client));
+            Nodes.Add(new ConflictNode(_client));
+
+            {
+                var menuItem = new MenuItem("Read DocumentCollection");
+                menuItem.Click += myMenuItemReadDocumentCollection_Click;
+                _contextMenu.MenuItems.Add(menuItem);
+            }
+            {
+                var menuItem = new MenuItem("Replace DocumentCollection");
+                menuItem.Click += myMenuItemReplaceDocumentCollection_Click;
+                _contextMenu.MenuItems.Add(menuItem);
+            }
+            {
+                var menuItem = new MenuItem("Delete DocumentCollection");
+                menuItem.Click += myMenuItemDeleteDocumentCollection_Click;
+                _contextMenu.MenuItems.Add(menuItem);
+            }
+            _contextMenu.MenuItems.Add("-");
+            {
+                var menuItem = new MenuItem("Create Document");
+                menuItem.Click += myMenuItemCreateDocument_Click;
+                _contextMenu.MenuItems.Add(menuItem);
+            }
+            {
+                var menuItem = new MenuItem("Create Document From File");
+                menuItem.Click += myMenuItemCreateDocumentFromFile_Click;
+                _contextMenu.MenuItems.Add(menuItem);
+            }
+            {
+                var menuItem = new MenuItem("Create Multiple Documents From Folder");
+                menuItem.Click += myMenuItemCreateDocumentsFromFolder_Click;
+                _contextMenu.MenuItems.Add(menuItem);
+            }
+            {
+                var menuItem = new MenuItem("Refresh Documents feed");
+                menuItem.Click += (sender, e) => Refresh(true);
+                _contextMenu.MenuItems.Add(menuItem);
+            }
+            {
+                var menuItem = new MenuItem("Query Documents");
+                menuItem.Click += myMenuItemQueryDocument_Click;
+                _contextMenu.MenuItems.Add(menuItem);
+            }
+        }
+
+        async void myMenuItemReadDocumentCollection_Click(object sender, EventArgs eArgs)
+        {
+            try
+            {
+                ResourceResponse<DocumentCollection> rr;
+                using (PerfStatus.Start("ReadDocumentCollection"))
+                {
+                    rr = await _client.ReadDocumentCollectionAsync(((Resource)Tag).GetLink(_client), Program.GetMain().GetRequestOptions());
+                }
+                // set the result window
+                var json = JsonConvert.SerializeObject(rr.Resource, Formatting.Indented);
+
+                Program.GetMain().SetResultInBrowser(json, null, false, rr.ResponseHeaders);
+
+            }
+            catch (AggregateException e)
+            {
+                Program.GetMain().SetResultInBrowser(null, e.InnerException.ToString(), true);
+            }
+            catch (Exception e)
+            {
+                Program.GetMain().SetResultInBrowser(null, e.ToString(), true);
+            }
+        }
+
+        void myMenuItemDeleteDocumentCollection_Click(object sender, EventArgs e)
+        {
+            var bodytext = Tag.ToString();
+            var context = new CommandContext {IsDelete = true};
+            Program.GetMain().SetCrudContext(this, OperationType.Delete, ResourceType.DocumentCollection, bodytext, DeleteDocumentCollectionAsync, context);
+        }
+
+        void myMenuItemReplaceDocumentCollection_Click(object sender, EventArgs e)
+        {
+            var bodytext = Tag.ToString();
+            var context = new CommandContext();
+            Program.GetMain().SetCrudContext(this, OperationType.Replace, ResourceType.DocumentCollection, bodytext, ReplaceDocumentCollectionAsync, context);
+        }
+
+        async void ReplaceDocumentCollectionAsync(object resource, RequestOptions requestOptions)
+        {
+            try
+            {
+                var originalCollection = (DocumentCollection)Tag;
+
+                //Update collection if necessary
+                var updatedCollection = resource as DocumentCollection;
+                originalCollection.IndexingPolicy = (IndexingPolicy)updatedCollection.IndexingPolicy.Clone();
+
+                ResourceResponse<DocumentCollection> response;
+                using (PerfStatus.Start("ReplaceDocumentCollection"))
+                {
+                    response = await _client.ReplaceDocumentCollectionExAsync(originalCollection, requestOptions);
+                }
+
+                Program.GetMain().SetResultInBrowser(null, "Replace DocumentCollection succeed!", false, response.ResponseHeaders);
+            }
+            catch (AggregateException e)
+            {
+                Program.GetMain().SetResultInBrowser(null, e.InnerException.ToString(), true);
+            }
+            catch (Exception e)
+            {
+                Program.GetMain().SetResultInBrowser(null, e.ToString(), true);
+            }
+        }
+
+        async void DeleteDocumentCollectionAsync(object resource, RequestOptions requestOptions)
+        {
+            try
+            {
+                var coll = (DocumentCollection)Tag;
+                ResourceResponse<DocumentCollection> newcoll;
+                using (PerfStatus.Start("DeleteDocumentCollection"))
+                {
+                    newcoll = await _client.DeleteDocumentCollectionAsync(coll.GetLink(_client), Program.GetMain().GetRequestOptions());
+                }
+                Program.GetMain().SetResultInBrowser(null, "Delete DocumentCollection succeed!", false, newcoll.ResponseHeaders);
+
+                Remove();
+            }
+            catch (AggregateException e)
+            {
+                Program.GetMain().SetResultInBrowser(null, e.InnerException.ToString(), true);
+            }
+            catch (Exception e)
+            {
+                Program.GetMain().SetResultInBrowser(null, e.ToString(), true);
+            }
+        }
+
+        void myMenuItemCreateDocumentFromFile_Click(object sender, EventArgs e)
+        {
+            var ofd = new OpenFileDialog();
+            var dr = ofd.ShowDialog();
+
+            if (dr == DialogResult.OK)
+            {
+                var filename = ofd.FileName;
+                // 
+                var text = File.ReadAllText(filename);
+
+                Program.GetMain().SetCrudContext(this, OperationType.Create, ResourceType.Document, text, CreateDocumentAsync);
+            }
+        }
+
+        async void myMenuItemCreateDocumentsFromFolder_Click(object sender, EventArgs e)
+        {
+            var ofd = new OpenFileDialog {Multiselect = true};
+
+            var dr = ofd.ShowDialog();
+
+            if (dr == DialogResult.OK)
+            {
+                var status = string.Format(CultureInfo.InvariantCulture, "Create {0} documents in collection\r\n", ofd.FileNames.Length);
+                // Read the files 
+                foreach (var filename in ofd.FileNames)
+                {
+
+                    // right now assume every file is JSON content
+                    var jsonText = File.ReadAllText(filename);
+                    var fileRootName = Path.GetFileName(filename);
+
+                    var document = JsonConvert.DeserializeObject(jsonText);
+
+                    try
+                    {
+                        using (PerfStatus.Start("CreateDocument"))
+                        {
+                            var newdocument = await _client.CreateDocumentAsync((Tag as DocumentCollection).GetLink(_client), document, Program.GetMain().GetRequestOptions());
+                            status += string.Format(CultureInfo.InvariantCulture, "Succeed adding {0} \r\n", fileRootName);
+                        }
+                    }
+                    catch (DocumentClientException ex)
+                    {
+                        status += string.Format(CultureInfo.InvariantCulture, "Failed adding {0}, statusCode={1} \r\n", fileRootName, ex.StatusCode);
+                    }
+                    catch (Exception ex)
+                    {
+                        status += string.Format(CultureInfo.InvariantCulture, "Failed adding {0}, unknown exception \r\n", fileRootName, ex.Message);
+                    }
+
+                    Program.GetMain().SetResultInBrowser(null, status, false);
+
+                }
+            }
+        }
+
+        void myMenuItemCreateDocument_Click(object sender, EventArgs e)
+        {
+            // 
+            dynamic d = new System.Dynamic.ExpandoObject();
+            d.id = "Here is your Document Id";
+            string x = JsonConvert.SerializeObject(d, Formatting.Indented);
+            Program.GetMain().SetCrudContext(this, OperationType.Create, ResourceType.Document, x, CreateDocumentAsync);
+        }
+
+
+        void myMenuItemQueryDocument_Click(object sender, EventArgs e)
+        {
+            _currentQueryCommandContext = new CommandContext();
+            _currentQueryCommandContext.IsFeed = true;
+
+            // reset continuation token
+            _currentContinuation = null;
+
+            Program.GetMain().SetCrudContext(this, OperationType.Query, ResourceType.Document, "select * from c", QueryDocumentsAsync, _currentQueryCommandContext);
+
+        }
+
+        async void CreateDocumentAsync(object resource, RequestOptions requestOptions)
+        {
+            try
+            {
+                var document = JsonConvert.DeserializeObject(resource as string);
+
+                ResourceResponse<Document> newdocument;
+                using (PerfStatus.Start("CreateDocument"))
+                {
+                    newdocument = await _client.CreateDocumentAsync((Tag as DocumentCollection).GetLink(_client), document, requestOptions);
+                }
+
+                Nodes.Add(new ResourceNode(_client, newdocument.Resource, ResourceType.Document, ((DocumentCollection)Tag).PartitionKey));
+
+                // set the result window
+                var json = newdocument.Resource.ToString();
+
+                Program.GetMain().SetResultInBrowser(json, null, false, newdocument.ResponseHeaders);
+
+            }
+            catch (AggregateException e)
+            {
+                Program.GetMain().SetResultInBrowser(null, e.InnerException.ToString(), true);
+            }
+            catch (Exception e)
+            {
+                Program.GetMain().SetResultInBrowser(null, e.ToString(), true);
+            }
+        }
+
+        async void QueryDocumentsAsync(object resource, RequestOptions requestOptions)
+        {
+            try
+            {
+                var queryText = resource as string;
+                // text is the querytext.
+                IDocumentQuery<dynamic> q = null;
+
+                var feedOptions = Program.GetMain().GetFeedOptions();
+
+                if (requestOptions == null)
+                {
+                    // requestOptions = null means it is from the next page. We only attempt to continue using the RequestContinuation for next page button
+                    if (!string.IsNullOrEmpty(_currentContinuation) && string.IsNullOrEmpty(feedOptions.RequestContinuation))
+                    {
+                        feedOptions.RequestContinuation = _currentContinuation;
+                    }
+                }
+
+                q = _client.CreateDocumentQuery((Tag as DocumentCollection).GetLink(_client), queryText, feedOptions).AsDocumentQuery();
+
+                var sw = Stopwatch.StartNew();
+
+                FeedResponse<dynamic> r;
+                using (PerfStatus.Start("QueryDocument"))
+                {
+                    r = await q.ExecuteNextAsync();
+                }
+                sw.Stop();
+                _currentContinuation = r.ResponseContinuation;
+                _currentQueryCommandContext.HasContinuation = !string.IsNullOrEmpty(_currentContinuation);
+                _currentQueryCommandContext.QueryStarted = true;
+
+                // set the result window
+                string text = null;
+                if (r.Count > 1)
+                {
+                    text = string.Format(CultureInfo.InvariantCulture, "Returned {0} documents in {1} ms.", r.Count, sw.ElapsedMilliseconds);
+                }
+                else
+                {
+                    text = string.Format(CultureInfo.InvariantCulture, "Returned {0} document in {1} ms.", r.Count, sw.ElapsedMilliseconds);
+                }
+
+                if (r.ResponseContinuation != null)
+                {
+                    text += " (more results might be available)";
+                }
+
+                var jsonarray = "[";
+                var index = 0;
+                foreach (var d in r)
+                {
+                    index++;
+                    // currently Query.ToString() has Formatting.Indented, but the public release doesn't have yet.
+                    jsonarray += d.ToString();
+
+                    if (index == r.Count)
+                    {
+                        jsonarray += "]";
+                    }
+                    else
+                    {
+                        jsonarray += ",\r\n";
+                    }
+                }
+
+                Program.GetMain().SetResultInBrowser(jsonarray, text, true, r.ResponseHeaders);
+                Program.GetMain().SetNextPageVisibility(_currentQueryCommandContext);
+            }
+            catch (AggregateException e)
+            {
+                Program.GetMain().SetResultInBrowser(null, e.InnerException.ToString(), true);
+            }
+            catch (Exception e)
+            {
+                Program.GetMain().SetResultInBrowser(null, e.ToString(), true);
+            }
+        }
+
+        public override void ShowContextMenu(TreeView treeview, Point p)
+        {
+            _contextMenu.Show(treeview, p);
+        }
+
+        public override void Refresh(bool forceRefresh)
+        {
+            if (forceRefresh || IsFirstTime)
+            {
+                IsFirstTime = false;
+                Nodes.Clear();
+                Nodes.Add(new StoredProcedureNode(_client));
+                Nodes.Add(new UserDefinedFunctionNode(_client));
+                Nodes.Add(new TriggerNode(_client));
+                Nodes.Add(new ConflictNode(_client));
+
+                FillWithChildren();
+            }
+        }
+
+        public void FillWithChildren()
+        {
+            try
+            {
+                var docs = new List<dynamic>();
+                NameValueCollection responseHeaders = null;
+
+                using (PerfStatus.Start("ReadDocumentFeed"))
+                {
+                    var feedReader = _client.CreateDocumentFeedReader(((DocumentCollection)Tag).GetLink(_client), new FeedOptions { EnableCrossPartitionQuery = true });
+                    while (feedReader.HasMoreResults && docs.Count() < 100)
+                    {
+                        var response = feedReader.ExecuteNextAsync().Result;
+                        docs.AddRange(response);
+
+                        responseHeaders = response.ResponseHeaders;
+                    }
+                }
+
+                string customDocumentDisplayIdentifier;
+                var useCustom = GetCustomDocumentDisplayIdentifier(docs, out customDocumentDisplayIdentifier);
+
+                if (useCustom)
+                {
+                    docs.Sort((first, second) => string.Compare(first.GetPropertyValue<string>(customDocumentDisplayIdentifier), second.GetPropertyValue<string>(customDocumentDisplayIdentifier), StringComparison.Ordinal));
+                }
+                else
+                {
+                    docs.Sort((first, second) => string.Compare(((Document) first).Id, ((Document) second).Id, StringComparison.Ordinal));
+                }
+
+                foreach (var doc in docs)
+                {
+                    if (useCustom)
+                    {
+                        var displayText = string.Format("{0} [{1}]", doc.GetPropertyValue<string>(customDocumentDisplayIdentifier), doc.id);
+                        var node = new ResourceNode(_client, doc, ResourceType.Document, ((DocumentCollection)Tag).PartitionKey, displayText);
+                        Nodes.Add(node);
+                    }
+                    else
+                    {
+                        var node = new ResourceNode(_client, doc, ResourceType.Document, ((DocumentCollection) Tag).PartitionKey);
+                        Nodes.Add(node);
+                    }
+                }
+
+                Program.GetMain().SetResponseHeaders(responseHeaders);
+            }
+            catch (AggregateException e)
+            {
+                Program.GetMain().SetResultInBrowser(null, e.InnerException.ToString(), true);
+            }
+            catch (Exception e)
+            {
+                Program.GetMain().SetResultInBrowser(null, e.ToString(), true);
+            }
+        }
+
+        private static bool GetCustomDocumentDisplayIdentifier(List<dynamic> docs, out string custom)
+        {
+            custom = null;
+            try
+            {
+                custom = Properties.Settings.Default.CustomDocumentDisplayIdentifier;
+                if (!string.IsNullOrWhiteSpace(custom))
+                {
+                    var useCustom = false;
+                    var firstDoc = docs.First();
+                    try
+                    {
+                        var name = firstDoc.GetPropertyValue<string>(custom);
+                        useCustom = true;
+                    }
+                    catch (Exception ex)
+                    {
+                    }
+                    return useCustom;
+                }
+            }
+            catch { }
+            return false;
+        }
+    }  
+}

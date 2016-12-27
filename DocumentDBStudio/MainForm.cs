@@ -2,6 +2,8 @@
 // Copyright (c) Microsoft Corporation.  All rights reserved.
 //-----------------------------------------------------------------------------
 
+using Microsoft.Azure.DocumentDBStudio.Helpers;
+
 namespace Microsoft.Azure.DocumentDBStudio
 {
     using System;
@@ -788,7 +790,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                     {
                         var tag = e.Node.Tag;
                         currentJson = tag.ToString();
-                        RemoveInternalDocumentValues(e);
+                        currentJson = DocumentHelper.RemoveInternalDocumentValues(currentJson);
                     }
 
                     if (currentJson == null && currentText == null)
@@ -798,31 +800,6 @@ namespace Microsoft.Azure.DocumentDBStudio
 
                     DisplayResponseContent();
                     break;
-            }
-        }
-
-        private void RemoveInternalDocumentValues(TreeNodeMouseClickEventArgs treeNodeMouseClickEventArgs)
-        {
-            if (Settings.Default.HideDocumentSystemProperties)// && treeNodeMouseClickEventArgs.Node.Tag.GetType().Name == "Document")
-            {
-                try
-                {
-                    dynamic obj = JObject.Parse(currentJson);
-                    obj.Remove("_rid");
-                    obj.Remove("_self");
-                    obj.Remove("_etag");
-                    obj.Remove("_ts");
-                    obj.Remove("_attachments");
-                    obj.Remove("_colls");
-                    obj.Remove("_users");
-                    obj.Remove("_docs");
-                    obj.Remove("_sprocs");
-                    obj.Remove("_triggers");
-                    obj.Remove("_udfs");
-                    obj.Remove("_conflicts");
-                    currentJson = obj.ToString();
-                }
-                catch { }
             }
         }
 

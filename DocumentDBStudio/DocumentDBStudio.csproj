@@ -135,6 +135,7 @@
     <Compile Include="ExcludedPathForm.Designer.cs">
       <DependentUpon>ExcludedPathForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="Helpers\DocumentHelper.cs" />
     <Compile Include="Nodes\ConflictNode.cs" />
     <Compile Include="Nodes\DatabaseAccountNode.cs" />
     <Compile Include="Nodes\DatabaseNode.cs" />
@@ -203,7 +204,7 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
-    <Compile Include="Helper.cs" />
+    <Compile Include="Helpers\Helper.cs" />
     <Compile Include="Settings.cs" />
   </ItemGroup>
   <ItemGroup>

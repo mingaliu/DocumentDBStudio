@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
+using System.Linq;
 using System.Windows.Forms;
 using Microsoft.Azure.DocumentDBStudio.Properties;
 using Microsoft.Azure.Documents;
@@ -185,10 +187,14 @@ namespace Microsoft.Azure.DocumentDBStudio
                     databases = await _client.ReadDatabaseFeedAsync();
                 }
 
-                foreach (var db in databases)
+                //databases.Sort((first, second) => string.Compare(((Document)first).Id, ((Document)second).Id, StringComparison.Ordinal));
+                //databases = databases.Sort()
+
+                var dbNodeList = databases.Select(db => new DatabaseNode(_client, db)).ToList();
+                dbNodeList.Sort((first, second) => string.Compare((first).Text, (second).Text, StringComparison.Ordinal));
+                foreach (var databaseNode in dbNodeList)
                 {
-                    var node = new DatabaseNode(_client, db);
-                    Nodes.Add(node);
+                    Nodes.Add(databaseNode);
                 }
 
                 Program.GetMain().SetResponseHeaders(databases.ResponseHeaders);
@@ -215,10 +221,8 @@ namespace Microsoft.Azure.DocumentDBStudio
                 IsFirstTime = false;
                 Nodes.Clear();
 
-                if (!Settings.Default.HideOffers)
-                {
-                    Nodes.Add(new OfferNode(_client));
-                }
+                var offerNode = new OfferNode(_client);
+                Nodes.Add(offerNode);
 
                 FillWithChildren();
             }

@@ -64,15 +64,13 @@ namespace Microsoft.Azure.DocumentDBStudio.Helpers
         {
             if (useCustom)
             {
-                docs.Sort(
-                    (first, second) =>
+                docs.Sort((first, second) =>
                         string.Compare(first.GetPropertyValue<string>(customDocumentDisplayIdentifier),
                             second.GetPropertyValue<string>(customDocumentDisplayIdentifier), StringComparison.Ordinal));
             }
             else
             {
-                docs.Sort(
-                    (first, second) => string.Compare(((Document)first).Id, ((Document)second).Id, StringComparison.Ordinal));
+                docs.Sort((first, second) => string.Compare(((Document)first).Id, ((Document)second).Id, StringComparison.Ordinal));
             }
         }
 

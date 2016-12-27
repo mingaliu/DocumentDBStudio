@@ -17,8 +17,5 @@
     <Setting Name="TextView" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
-    <Setting Name="HideOffers" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">True</Value>
-    </Setting>
   </Settings>
 </SettingsFile>

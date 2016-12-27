@@ -81,17 +81,5 @@ namespace Microsoft.Azure.DocumentDBStudio.Properties {
                 this["TextView"] = value;
             }
         }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public bool HideOffers {
-            get {
-                return ((bool)(this["HideOffers"]));
-            }
-            set {
-                this["HideOffers"] = value;
-            }
-        }
     }
 }

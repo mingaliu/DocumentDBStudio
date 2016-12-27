@@ -74,6 +74,13 @@ namespace Microsoft.Azure.DocumentDBStudio
 
             if (_resourceType != ResourceType.Conflict && _resourceType != ResourceType.Offer)
             {
+                var menuItem = new MenuItem("Copy id to clipboard");
+                menuItem.Click += myMenuItemCopyIdToClipBoard_Click;
+                _contextMenu.MenuItems.Add(menuItem);
+            }
+
+            if (_resourceType != ResourceType.Conflict && _resourceType != ResourceType.Offer)
+            {
                 var menuItem = new MenuItem(string.Format("Copy {0} to clipboard", _resourceType));
                 menuItem.Click += myMenuItemCopyToClipBoard_Click;
                 _contextMenu.MenuItems.Add(menuItem);
@@ -159,6 +166,32 @@ namespace Microsoft.Azure.DocumentDBStudio
                 SelectedImageKey = "Offer";
             }
         }
+
+        async void myMenuItemCopyIdToClipBoard_Click(object sender, EventArgs eventArg)
+        {
+            try
+            {
+                var clipBoardContent = "";
+                switch (_resourceType)
+                {
+                    case ResourceType.StoredProcedure:
+                        clipBoardContent = (Tag as StoredProcedure).Id;
+                        break;
+                    case ResourceType.Trigger:
+                        clipBoardContent = (Tag as Trigger).Id;
+                        break;
+                    case ResourceType.UserDefinedFunction:
+                        clipBoardContent = (Tag as UserDefinedFunction).Id;
+                        break;
+                    default:
+                        dynamic obj = JObject.Parse(Tag.ToString());
+                        clipBoardContent = obj.id;
+                        break;
+                }
+                Clipboard.SetText(clipBoardContent);
+            }
+            catch { }
+        }
         
         async void myMenuItemCopyToClipBoard_Click(object sender, EventArgs eventArg)
         {
@@ -179,7 +212,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                     break;
             }
             clipBoardContent = DocumentHelper.RemoveInternalDocumentValues(clipBoardContent);
-            System.Windows.Forms.Clipboard.SetText(clipBoardContent);
+            Clipboard.SetText(clipBoardContent);
         }
 
         void myMenuItemUpdate_Click(object sender, EventArgs e)

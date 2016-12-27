@@ -57,6 +57,11 @@ namespace Microsoft.Azure.DocumentDBStudio
                 _contextMenu.MenuItems.Add(menuItem);
             }
             {
+                var menuItem = new MenuItem("Create Document with prefilled id");
+                menuItem.Click += myMenuItemCreateDocumentWithId_Click;
+                _contextMenu.MenuItems.Add(menuItem);
+            }
+            {
                 var menuItem = new MenuItem("Create Document From File");
                 menuItem.Click += myMenuItemCreateDocumentFromFile_Click;
                 _contextMenu.MenuItems.Add(menuItem);
@@ -235,6 +240,14 @@ namespace Microsoft.Azure.DocumentDBStudio
             Program.GetMain().SetCrudContext(this, OperationType.Create, ResourceType.Document, x, CreateDocumentAsync);
         }
 
+        void myMenuItemCreateDocumentWithId_Click(object sender, EventArgs e)
+        {
+            // 
+            dynamic d = new System.Dynamic.ExpandoObject();
+            d.id = Guid.NewGuid();
+            string x = JsonConvert.SerializeObject(d, Formatting.Indented);
+            Program.GetMain().SetCrudContext(this, OperationType.Create, ResourceType.Document, x, CreateDocumentAsync);
+        }
 
         void myMenuItemQueryDocument_Click(object sender, EventArgs e)
         {

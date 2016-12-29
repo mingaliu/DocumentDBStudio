@@ -28,6 +28,7 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         public static MainForm GetMain()
         {
+            // test2 branch change.
             return Program._mainForm;
         }
     }

@@ -18,6 +18,7 @@ namespace Microsoft.Azure.DocumentDBStudio
         [STAThread]
         static void Main()
         {
+            // Test1 change
             ServicePointManager.DefaultConnectionLimit = 1000;
             
             Application.EnableVisualStyles();

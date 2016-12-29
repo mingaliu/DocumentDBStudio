@@ -4,8 +4,6 @@
 
 namespace Microsoft.Azure.DocumentDBStudio
 {
-    using System.Drawing;
-    using System.Windows.Forms;
     using Documents.Client;
 
     internal class AccountSettings

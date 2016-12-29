@@ -66,42 +66,24 @@ namespace Microsoft.Azure.DocumentDBStudio
             Tag = document;
             _client = client;
 
-            {
-                var menuItem = new MenuItem(string.Format("Read {0}", _resourceType));
-                menuItem.Click += myMenuItemRead_Click;
-                _contextMenu.MenuItems.Add(menuItem);
-            }
+            AddMenuItem(string.Format("Read {0}", _resourceType), myMenuItemRead_Click);
 
             if (_resourceType != ResourceType.Conflict && _resourceType != ResourceType.Offer)
             {
-                var menuItem = new MenuItem(string.Format("Replace {0}", _resourceType));
-                menuItem.Click += myMenuItemUpdate_Click;
-                _contextMenu.MenuItems.Add(menuItem);
+                AddMenuItem(string.Format("Replace {0}", _resourceType), myMenuItemUpdate_Click);
             }
             if (_resourceType != ResourceType.Offer)
             {
-                var menuItem = new MenuItem(string.Format("Delete {0}", _resourceType));
-                menuItem.Click += myMenuItemDelete_Click;
-                _contextMenu.MenuItems.Add(menuItem);
+                AddMenuItem(string.Format("Delete {0}", _resourceType), myMenuItemDelete_Click);
             }
-
-            
 
             if (_resourceType != ResourceType.Conflict && _resourceType != ResourceType.Offer)
             {
                 _contextMenu.MenuItems.Add("-");
 
-                var menuItem = new MenuItem("Copy id to clipboard");
-                menuItem.Click += myMenuItemCopyIdToClipBoard_Click;
-                _contextMenu.MenuItems.Add(menuItem);
-
-                menuItem = new MenuItem(string.Format("Copy {0} to clipboard", _resourceType));
-                menuItem.Click += myMenuItemCopyToClipBoard_Click;
-                _contextMenu.MenuItems.Add(menuItem);
-
-                menuItem = new MenuItem(string.Format("Copy {0} to clipboard with new id", _resourceType));
-                menuItem.Click += myMenuItemCopyToClipBoardWithNewId_Click;
-                _contextMenu.MenuItems.Add(menuItem);
+                AddMenuItem("Copy id to clipboard", myMenuItemCopyIdToClipBoard_Click);
+                AddMenuItem(string.Format("Copy {0} to clipboard", _resourceType), myMenuItemCopyToClipBoard_Click);
+                AddMenuItem(string.Format("Copy {0} to clipboard with new id", _resourceType), myMenuItemCopyToClipBoardWithNewId_Click);
             }
 
             if (_resourceType == ResourceType.Permission)
@@ -114,16 +96,8 @@ namespace Microsoft.Azure.DocumentDBStudio
                 ImageKey = "Attachment";
                 SelectedImageKey = "Attachment";
 
-                {
-                    var menuItem = new MenuItem("Download media");
-                    menuItem.Click += myMenuItemDownloadMedia_Click;
-                    _contextMenu.MenuItems.Add(menuItem);
-                }
-                {
-                    var menuItem = new MenuItem("Render media");
-                    menuItem.Click += myMenuItemRenderMedia_Click;
-                    _contextMenu.MenuItems.Add(menuItem);
-                }
+                AddMenuItem("Download media", myMenuItemDownloadMedia_Click);
+                AddMenuItem("Render media", myMenuItemRenderMedia_Click);
             }
             else if (_resourceType == ResourceType.StoredProcedure || _resourceType == ResourceType.Trigger || _resourceType == ResourceType.UserDefinedFunction)
             {
@@ -131,9 +105,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 SelectedImageKey = "Javascript";
                 if (_resourceType == ResourceType.StoredProcedure)
                 {
-                    var menuItem = new MenuItem(string.Format("Execute {0}", _resourceType));
-                    menuItem.Click += myMenuItemExecuteStoredProcedure_Click;
-                    _contextMenu.MenuItems.Add(menuItem);
+                    AddMenuItem(string.Format("Execute {0}", _resourceType), myMenuItemExecuteStoredProcedure_Click);
                 }
             }
             else if (_resourceType == ResourceType.User)
@@ -149,16 +121,8 @@ namespace Microsoft.Azure.DocumentDBStudio
 
                 _contextMenu.MenuItems.Add("-");
 
-                {
-                    var menuItem = new MenuItem("Create attachment");
-                    menuItem.Click += myMenuItemCreateAttachment_Click;
-                    _contextMenu.MenuItems.Add(menuItem);
-                }
-                {
-                    var menuItem = new MenuItem("Create attachment from file");
-                    menuItem.Click += myMenuItemAttachmentFromFile_Click;
-                    _contextMenu.MenuItems.Add(menuItem);
-                }
+                AddMenuItem("Create attachment", myMenuItemCreateAttachment_Click);
+                AddMenuItem("Create attachment from file", myMenuItemAttachmentFromFile_Click);
             }
             else if (_resourceType == ResourceType.Conflict)
             {
@@ -170,6 +134,13 @@ namespace Microsoft.Azure.DocumentDBStudio
                 ImageKey = "Offer";
                 SelectedImageKey = "Offer";
             }
+        }
+
+        private void AddMenuItem(string menuItemText, EventHandler eventHandler)
+        {
+            var menuItem = new MenuItem(menuItemText);
+            menuItem.Click += eventHandler;
+            _contextMenu.MenuItems.Add(menuItem);
         }
 
         async void myMenuItemCopyIdToClipBoard_Click(object sender, EventArgs eventArg)

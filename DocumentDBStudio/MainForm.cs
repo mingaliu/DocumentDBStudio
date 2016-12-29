@@ -9,7 +9,6 @@ namespace Microsoft.Azure.DocumentDBStudio
     using System;
     using System.Collections.Generic;
     using System.Collections.Specialized;
-    using System.ComponentModel;
     using System.Drawing;
     using System.Globalization;
     using System.IO;
@@ -22,7 +21,6 @@ namespace Microsoft.Azure.DocumentDBStudio
     using Properties;
     using Documents;
     using Documents.Client;
-    using Documents.Routing;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
 

@@ -37,7 +37,7 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             if (fieldNames == null)
             {
-                throw new ArgumentNullException("fieldNames");
+                throw new ArgumentNullException(nameof(fieldNames));
             }
 
             foreach (string fieldName in fieldNames)

@@ -26,11 +26,11 @@
         public static object GetReflectedPropertyValue(this object obj, string propertyName)
         {
             if (obj == null)
-                throw new ArgumentNullException("obj");
+                throw new ArgumentNullException(nameof(obj));
             Type objType = obj.GetType();
             PropertyInfo propInfo = GetPropertyInfo(objType, propertyName);
             if (propInfo == null)
-                throw new ArgumentOutOfRangeException("propertyName",
+                throw new ArgumentOutOfRangeException(nameof(propertyName),
                   string.Format(CultureInfo.InvariantCulture, "Couldn't find property {0} in type {1}", propertyName, objType.FullName));
             return propInfo.GetValue(obj, null);
         }
@@ -38,11 +38,11 @@
         public static void SetReflectedPropertyValue(this object obj, string propertyName, object val)
         {
             if (obj == null)
-                throw new ArgumentNullException("obj");
+                throw new ArgumentNullException(nameof(obj));
             Type objType = obj.GetType();
             PropertyInfo propInfo = GetPropertyInfo(objType, propertyName);
             if (propInfo == null)
-                throw new ArgumentOutOfRangeException("propertyName",
+                throw new ArgumentOutOfRangeException(nameof(propertyName),
                   string.Format(CultureInfo.InvariantCulture, "Couldn't find property {0} in type {1}", propertyName, objType.FullName));
             propInfo.SetValue(obj, val, null);
         }

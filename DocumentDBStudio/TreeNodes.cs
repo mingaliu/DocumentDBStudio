@@ -727,16 +727,16 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             try
             {
-                DocumentCollection coll = (DocumentCollection)this.Tag;
+                DocumentCollection originalCollection = (DocumentCollection)this.Tag;
 
                 //Update collection if necessary
-                DocumentCollection collToChange = resource as DocumentCollection;
-                collToChange.IndexingPolicy = (IndexingPolicy)coll.IndexingPolicy.Clone();
+                DocumentCollection updatedCollection = resource as DocumentCollection;
+                originalCollection.IndexingPolicy = (IndexingPolicy)updatedCollection.IndexingPolicy.Clone();
 
                 ResourceResponse<DocumentCollection> response;
                 using (PerfStatus.Start("ReplaceDocumentCollection"))
                 {
-                    response = await client.ReplaceDocumentCollectionExAsync(coll, requestOptions);
+                    response = await client.ReplaceDocumentCollectionExAsync(originalCollection, requestOptions);
                 }
 
                 Program.GetMain().SetResultInBrowser(null, "Replace DocumentCollection succeed!", false, response.ResponseHeaders);

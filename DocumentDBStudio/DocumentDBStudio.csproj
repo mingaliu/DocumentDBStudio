@@ -141,6 +141,14 @@
     <Compile Include="ExcludedPathForm.Designer.cs">
       <DependentUpon>ExcludedPathForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="Helpers\DocumentHelper.cs" />
+    <Compile Include="Nodes\ConflictNode.cs" />
+    <Compile Include="Nodes\DatabaseAccountNode.cs" />
+    <Compile Include="Nodes\DatabaseNode.cs" />
+    <Compile Include="Nodes\DocumentCollectionNode.cs" />
+    <Compile Include="Nodes\FeedNode.cs" />
+    <Compile Include="Nodes\OfferNode.cs" />
+    <Compile Include="Nodes\PermissionNode.cs" />
     <Compile Include="IncludedPathForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -165,7 +173,9 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Include="TreeNodes.cs" />
+    <Compile Include="Nodes\ResourceNode.cs" />
+    <Compile Include="Nodes\StoredProcedureNode.cs" />
+    <Compile Include="Nodes\TreeNodes.cs" />
     <Compile Include="SettingsForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -174,6 +184,9 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Nodes\TriggerNode.cs" />
+    <Compile Include="Nodes\UserDefinedFunctionNode.cs" />
+    <Compile Include="Nodes\UserNode.cs" />
     <EmbeddedResource Include="ExcludedPathForm.resx">
       <DependentUpon>ExcludedPathForm.cs</DependentUpon>
     </EmbeddedResource>
@@ -197,7 +210,7 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
-    <Compile Include="Helper.cs" />
+    <Compile Include="Helpers\Helper.cs" />
     <Compile Include="Settings.cs" />
   </ItemGroup>
   <ItemGroup>

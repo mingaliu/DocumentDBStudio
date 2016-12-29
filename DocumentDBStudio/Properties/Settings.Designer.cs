@@ -45,5 +45,41 @@ namespace Microsoft.Azure.DocumentDBStudio.Properties {
                 this["AccountSettingsList"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Name")]
+        public string CustomDocumentDisplayIdentifier {
+            get {
+                return ((string)(this["CustomDocumentDisplayIdentifier"]));
+            }
+            set {
+                this["CustomDocumentDisplayIdentifier"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool HideDocumentSystemProperties {
+            get {
+                return ((bool)(this["HideDocumentSystemProperties"]));
+            }
+            set {
+                this["HideDocumentSystemProperties"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool TextView {
+            get {
+                return ((bool)(this["TextView"]));
+            }
+            set {
+                this["TextView"] = value;
+            }
+        }
     }
 }

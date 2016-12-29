@@ -2,12 +2,13 @@
 // Copyright (c) Microsoft Corporation.  All rights reserved.
 //-----------------------------------------------------------------------------
 
+using Microsoft.Azure.DocumentDBStudio.Helpers;
+
 namespace Microsoft.Azure.DocumentDBStudio
 {
     using System;
     using System.Collections.Generic;
     using System.Collections.Specialized;
-    using System.ComponentModel;
     using System.Drawing;
     using System.Globalization;
     using System.IO;
@@ -17,10 +18,9 @@ namespace Microsoft.Azure.DocumentDBStudio
     using System.Reflection;
     using System.Threading;
     using System.Windows.Forms;
-    using Microsoft.Azure.DocumentDBStudio.Properties;
-    using Microsoft.Azure.Documents;
-    using Microsoft.Azure.Documents.Client;
-    using Microsoft.Azure.Documents.Routing;
+    using Properties;
+    using Documents;
+    using Documents.Client;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
 
@@ -56,48 +56,96 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         private void MainForm_Load(object sender, EventArgs e)
         {
-            ThreadPool.QueueUserWorkItem(arg => this.CheckCurrentRelease());
+            ThreadPool.QueueUserWorkItem(arg => CheckCurrentRelease());
 
-            this.Height = Screen.GetWorkingArea(this).Height * 3 / 4;
-            this.Width = Screen.GetWorkingArea(this).Width / 2;
-            this.Top = 0;
-            this.Text = Constants.ApplicationName;
+            Height = Screen.GetWorkingArea(this).Height * 3 / 4;
+            Width = Screen.GetWorkingArea(this).Width / 2;
+            Top = 0;
+            Text = Constants.ApplicationName;
 
-            using (Stream stm = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("Microsoft.Azure.DocumentDBStudio.Resources.home.html"))
+            using (Stream stm = Assembly.GetExecutingAssembly().GetManifestResourceStream("Microsoft.Azure.DocumentDBStudio.Resources.home.html"))
             {
                 using (StreamReader reader = new StreamReader(stm))
                 {
-                    this.homepage = reader.ReadToEnd();
+                    homepage = reader.ReadToEnd();
                 }
             }
-            this.homepage = this.homepage.Replace("&VERSION&", Constants.ProductVersion);
+            homepage = homepage.Replace("&VERSION&", Constants.ProductVersion);
 
-            DateTime t = System.IO.File.GetLastWriteTime(Assembly.GetExecutingAssembly().Location);
+            DateTime t = File.GetLastWriteTime(Assembly.GetExecutingAssembly().Location);
             DateTimeOffset dateOffset = new DateTimeOffset(t, TimeZoneInfo.Local.GetUtcOffset(t));
-            this.homepage = this.homepage.Replace("&BUILDTIME&", t.ToString("f", CultureInfo.CurrentCulture));
+            homepage = homepage.Replace("&BUILDTIME&", t.ToString("f", CultureInfo.CurrentCulture));
 
-            this.cbUrl.Items.Add("about:home");
-            this.cbUrl.SelectedIndex = 0;
-            this.cbUrl.KeyDown += new KeyEventHandler(cbUrl_KeyDown);
+            cbUrl.Items.Add("about:home");
+            cbUrl.SelectedIndex = 0;
+            cbUrl.KeyDown += cbUrl_KeyDown;
 
-            this.btnBack.Enabled = false;
+            btnBack.Enabled = false;
 
-            this.splitContainerOuter.Panel1Collapsed = false;
-            this.splitContainerInner.Panel1Collapsed = true;
-            this.ButtomSplitContainer.Panel1Collapsed = true;
+            splitContainerOuter.Panel1Collapsed = false;
+            splitContainerInner.Panel1Collapsed = true;
+            ButtomSplitContainer.Panel1Collapsed = true;
 
-            this.KeyPreview = true;
-            this.PreviewKeyDown += new PreviewKeyDownEventHandler(MainForm_PreviewKeyDown);
+            KeyPreview = true;
+            PreviewKeyDown += MainForm_PreviewKeyDown;
 
-            this.webBrowserResponse.PreviewKeyDown += new PreviewKeyDownEventHandler(webBrowserResponse_PreviewKeyDown);
-            this.webBrowserResponse.StatusTextChanged += new EventHandler(webBrowserResponse_StatusTextChanged);
-            this.webBrowserResponse.ScriptErrorsSuppressed = true;
+            webBrowserResponse.PreviewKeyDown += webBrowserResponse_PreviewKeyDown;
+            webBrowserResponse.StatusTextChanged += webBrowserResponse_StatusTextChanged;
+            webBrowserResponse.ScriptErrorsSuppressed = true;
 
-            this.tabControl.SelectedTab = this.tabCrudContext;
-            this.tabControl.TabPages.Remove(this.tabRequest);
-            this.tabControl.TabPages.Remove(this.tabDocumentCollection);
-            this.tabControl.TabPages.Remove(this.tabOffer);
+            tabControl.SelectedTab = tabCrudContext;
+            tabControl.TabPages.Remove(tabRequest);
+            tabControl.TabPages.Remove(tabDocumentCollection);
+            tabControl.TabPages.Remove(tabOffer);
 
+            var imageList = BuildImageList();
+            treeView1.ImageList = imageList;
+
+            InitTreeView();
+
+            btnHome_Click(null, null);
+
+            splitContainerIntabPage.Panel1Collapsed = true;
+
+            toolStripBtnExecute.Enabled = false;
+            btnExecuteNext.Enabled = false;
+            UnpackEmbeddedResources();
+
+            btnHeaders.Checked = false;
+
+            cbRequestOptionsApply_CheckedChanged(null, null);
+            cbIndexingPolicyDefault_CheckedChanged(null, null);
+
+            cbEnableScan = new CheckBox
+            {
+                Text = "EnableScanInQuery",
+                CheckState = CheckState.Indeterminate
+            };
+            ToolStripControlHost host1 = new ToolStripControlHost(cbEnableScan);
+            feedToolStrip.Items.Insert(3, host1);
+
+            cbEnableCrossPartitionQuery = new CheckBox
+            {
+                Text = "EnableCrossPartitionQuery",
+                CheckState = CheckState.Indeterminate
+            };
+            ToolStripControlHost host2 = new ToolStripControlHost(cbEnableCrossPartitionQuery);
+            feedToolStrip.Items.Insert(4, host2);
+
+            lbIncludedPath.Items.Add(new IncludedPath() { Path = "/" });
+
+            offerType = OfferType.StandardSingle;
+            tbThroughput.Text = "400";
+
+            tsbHideDocumentSystemProperties.Checked = Settings.Default.HideDocumentSystemProperties;
+            SetDocumentSystemPropertiesTabText();
+
+            tsbViewType.Checked = Settings.Default.TextView;
+            SetViewTypeTabText();
+        }
+
+        private static ImageList BuildImageList()
+        {
             ImageList imageList = new ImageList();
             imageList.Images.Add("Default", Resources.DocDBpng);
             imageList.Images.Add("Feed", Resources.Feedpng);
@@ -109,104 +157,70 @@ namespace Microsoft.Azure.DocumentDBStudio
             imageList.Images.Add("Attachment", Resources.Attachmentpng);
             imageList.Images.Add("Conflict", Resources.Conflictpng);
             imageList.Images.Add("Offer", Resources.Offerpng);
-            this.treeView1.ImageList = imageList;
-
-            this.InitTreeView();
-
-            this.btnHome_Click(null, null);
-
-            this.splitContainerIntabPage.Panel1Collapsed = true;
-
-            this.toolStripBtnExecute.Enabled = false;
-            this.btnExecuteNext.Enabled = false;
-            this.UnpackEmbeddedResources();
-
-            this.tsbViewType.Checked = true;
-            this.btnHeaders.Checked = false;
-
-            this.cbRequestOptionsApply_CheckedChanged(null, null);
-            this.cbIndexingPolicyDefault_CheckedChanged(null, null);
-
-            cbEnableScan = new CheckBox();
-            cbEnableScan.Text = "EnableScanInQuery";
-            cbEnableScan.CheckState = CheckState.Indeterminate;
-            ToolStripControlHost host1 = new ToolStripControlHost(cbEnableScan);
-            feedToolStrip.Items.Insert(3, host1);
-
-            cbEnableCrossPartitionQuery = new CheckBox();
-            cbEnableCrossPartitionQuery.Text = "EnableCrossPartitionQuery";
-            cbEnableCrossPartitionQuery.CheckState = CheckState.Indeterminate;
-            ToolStripControlHost host2 = new ToolStripControlHost(cbEnableCrossPartitionQuery);
-            feedToolStrip.Items.Insert(4, host2);
-
-            lbIncludedPath.Items.Add(new IncludedPath() { Path = "/" });
-
-            this.offerType = OfferType.StandardSingle;
-            this.tbThroughput.Text = "400";
-
+            return imageList;
         }
 
 
         private void UnpackEmbeddedResources()
         {
-            this.appTempPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DocumentDBStudio");
+            appTempPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DocumentDBStudio");
 
-            if (!Directory.Exists(this.appTempPath))
+            if (!Directory.Exists(appTempPath))
             {
-                Directory.CreateDirectory(this.appTempPath);
-            }
-
-            this.loadingGifPath = Path.Combine(this.appTempPath, "loading.gif");
-
-            using (Stream stream = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("Microsoft.Azure.DocumentDBStudio.Resources.loading.gif"))
-            {
-                using (FileStream fileStream = File.Create(this.loadingGifPath))
-                {
-                    stream.CopyTo(fileStream);
-                }
+                Directory.CreateDirectory(appTempPath);
             }
 
-            using (Stream stream = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("Microsoft.Azure.DocumentDBStudio.Resources.prettyJSON.backbone-min.js"))
+            loadingGifPath = Path.Combine(appTempPath, "loading.gif");
+
+            using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Microsoft.Azure.DocumentDBStudio.Resources.loading.gif"))
             {
-                using (FileStream fileStream = File.Create(Path.Combine(this.appTempPath, "backbone-min.js")))
-                {
-                    stream.CopyTo(fileStream);
-                }
-            }
-            using (Stream stream = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("Microsoft.Azure.DocumentDBStudio.Resources.prettyJSON.jquery-1.11.1.min.js"))
-            {
-                using (FileStream fileStream = File.Create(Path.Combine(this.appTempPath, "jquery-1.11.1.min.js")))
-                {
-                    stream.CopyTo(fileStream);
-                }
-            }
-            using (Stream stream = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("Microsoft.Azure.DocumentDBStudio.Resources.prettyJSON.pretty-json.css"))
-            {
-                using (FileStream fileStream = File.Create(Path.Combine(this.appTempPath, "pretty-json.css")))
-                {
-                    stream.CopyTo(fileStream);
-                }
-            }
-            using (Stream stream = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("Microsoft.Azure.DocumentDBStudio.Resources.prettyJSON.pretty-json-min.js"))
-            {
-                using (FileStream fileStream = File.Create(Path.Combine(this.appTempPath, "pretty-json-min.js")))
-                {
-                    stream.CopyTo(fileStream);
-                }
-            }
-            using (Stream stream = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("Microsoft.Azure.DocumentDBStudio.Resources.prettyJSON.underscore-min.js"))
-            {
-                using (FileStream fileStream = File.Create(Path.Combine(this.appTempPath, "underscore-min.js")))
+                using (FileStream fileStream = File.Create(loadingGifPath))
                 {
                     stream.CopyTo(fileStream);
                 }
             }
 
-            using (Stream stream = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("Microsoft.Azure.DocumentDBStudio.Resources.prettyJSON.PrettyPrintJSONTemplate.html"))
+            using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Microsoft.Azure.DocumentDBStudio.Resources.prettyJSON.backbone-min.js"))
+            {
+                using (FileStream fileStream = File.Create(Path.Combine(appTempPath, "backbone-min.js")))
+                {
+                    stream.CopyTo(fileStream);
+                }
+            }
+            using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Microsoft.Azure.DocumentDBStudio.Resources.prettyJSON.jquery-1.11.1.min.js"))
+            {
+                using (FileStream fileStream = File.Create(Path.Combine(appTempPath, "jquery-1.11.1.min.js")))
+                {
+                    stream.CopyTo(fileStream);
+                }
+            }
+            using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Microsoft.Azure.DocumentDBStudio.Resources.prettyJSON.pretty-json.css"))
+            {
+                using (FileStream fileStream = File.Create(Path.Combine(appTempPath, "pretty-json.css")))
+                {
+                    stream.CopyTo(fileStream);
+                }
+            }
+            using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Microsoft.Azure.DocumentDBStudio.Resources.prettyJSON.pretty-json-min.js"))
+            {
+                using (FileStream fileStream = File.Create(Path.Combine(appTempPath, "pretty-json-min.js")))
+                {
+                    stream.CopyTo(fileStream);
+                }
+            }
+            using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Microsoft.Azure.DocumentDBStudio.Resources.prettyJSON.underscore-min.js"))
+            {
+                using (FileStream fileStream = File.Create(Path.Combine(appTempPath, "underscore-min.js")))
+                {
+                    stream.CopyTo(fileStream);
+                }
+            }
+
+            using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Microsoft.Azure.DocumentDBStudio.Resources.prettyJSON.PrettyPrintJSONTemplate.html"))
             {
                 using (StreamReader reader = new StreamReader(stream))
                 {
-                    this.prettyJSONTemplate = reader.ReadToEnd();
+                    prettyJSONTemplate = reader.ReadToEnd();
                 }
             }
         }
@@ -215,7 +229,7 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             base.OnSizeChanged(e);
             // ToolStrips don't appear to have a way to "spring" their items like status bars
-            cbUrl.Width = this.tsAddress.Width - 40 - this.tsLabelUrl.Width - this.btnGo.Width;
+            cbUrl.Width = tsAddress.Width - 40 - tsLabelUrl.Width - btnGo.Width;
         }
 
         void webBrowserResponse_StatusTextChanged(object sender, EventArgs e)
@@ -226,14 +240,14 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             if (e.KeyCode == Keys.Enter)
             {
-                this.webBrowserResponse.Navigate(this.cbUrl.Text);
+                webBrowserResponse.Navigate(cbUrl.Text);
                 e.Handled = true;
             }
         }
 
         void webBrowserResponse_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
         {
-            if (this.webBrowserResponse.Focused)
+            if (webBrowserResponse.Focused)
             {
                 HandlePreviewKeyDown(e.KeyCode, e.Modifiers);
             }
@@ -241,7 +255,7 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         void MainForm_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
         {
-            if (!this.webBrowserResponse.Focused && !this.cbUrl.Focused)
+            if (!webBrowserResponse.Focused && !cbUrl.Focused)
             {
                 HandlePreviewKeyDown(e.KeyCode, e.Modifiers);
             }
@@ -252,7 +266,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             if (key == Keys.Back)
             {
                 // Don't steal backspace from the URL combo box
-                if (!this.cbUrl.Focused)
+                if (!cbUrl.Focused)
                 {
                     return true;
                 }
@@ -263,20 +277,20 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
             else if (key == Keys.Enter)
             {
-                this.webBrowserResponse.Navigate(this.cbUrl.Text);
+                webBrowserResponse.Navigate(cbUrl.Text);
                 return true;
             }
             else if (key == Keys.W && modifiers == Keys.Control)
             {
                 // Exit the app on Ctrl + W like browser tabs
-                this.Close();
+                Close();
                 return true;
             }
             else if (key == Keys.D && modifiers == Keys.Alt)
             {
                 // Focus the URL in the address bar
-                this.cbUrl.SelectAll();
-                this.cbUrl.Focus();
+                cbUrl.SelectAll();
+                cbUrl.Focus();
             }
             return false;
         }
@@ -287,7 +301,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             {
                 case Keys.F5:
                     {
-                        if (this.toolStripBtnExecute.Enabled)
+                        if (toolStripBtnExecute.Enabled)
                         {
                             toolStripBtnExecute_Click(null, null);
                         }
@@ -305,69 +319,69 @@ namespace Microsoft.Azure.DocumentDBStudio
         //
         private void DisplayResponseContent()
         {
-            if (this.tsbViewType.Checked)
+            if (tsbViewType.Checked)
             {
-                this.PrettyPrintJson(this.currentJson, this.currentText);
+                PrettyPrintJson(currentJson, currentText);
             }
             else
             {
                 string htmlResponse = "";
 
-                if (!string.IsNullOrEmpty(this.currentJson))
+                if (!string.IsNullOrEmpty(currentJson))
                 {
-                    htmlResponse = Helper.FormatTextAsHtml(this.currentJson, false);
+                    htmlResponse = Helper.FormatTextAsHtml(currentJson, false);
                 }
-                if (!string.IsNullOrEmpty(this.currentText))
+                if (!string.IsNullOrEmpty(currentText))
                 {
-                    htmlResponse += "\r\n\r\n" + Helper.FormatTextAsHtml(this.currentText, false);
+                    htmlResponse += "\r\n\r\n" + Helper.FormatTextAsHtml(currentText, false);
                 }
-                this.DisplayHtmlContentInScale(htmlResponse);
+                DisplayHtmlContentInScale(htmlResponse);
             }
         }
 
         void DisplayHtmlContentInScale(string htmlResponse)
         {
-            if (this.fontScale != 100)
+            if (fontScale != 100)
             {
                 // current scaled font
-                float fontPt = this.defaultFontPoint * (this.fontScale / 100.0f);
+                float fontPt = defaultFontPoint * (fontScale / 100.0f);
 
                 // todo: make this a well defined class
                 string style = "{ font-size: " + fontPt + "pt; }";
                 string s = htmlResponse.Replace("{ font-size: 9pt; }", style);
-                this.webBrowserResponse.DocumentText = s;
+                webBrowserResponse.DocumentText = s;
             }
             else
             {
-                this.webBrowserResponse.DocumentText = htmlResponse;
+                webBrowserResponse.DocumentText = htmlResponse;
             }
         }
 
         private void tsButtonZoom_ButtonClick(object sender, EventArgs e)
         {
-            switch (this.tsButtonZoom.Text)
+            switch (tsButtonZoom.Text)
             {
                 case "100%":
-                    this.fontScale = 125;
+                    fontScale = 125;
                     break;
                 case "125%":
-                    this.fontScale = 150;
+                    fontScale = 150;
                     break;
                 case "150%":
-                    this.fontScale = 175;
+                    fontScale = 175;
                     break;
                 case "175%":
-                    this.fontScale = 100;
+                    fontScale = 100;
                     break;
 
             }
-            this.tsButtonZoom.Text = this.fontScale.ToString(CultureInfo.CurrentCulture) + "%";
-            this.tbRequest.Font = new Font(this.tbRequest.Font.FontFamily.Name, this.defaultFontPoint * (this.fontScale / 100.0f));
-            this.tbResponse.Font = new Font(this.tbResponse.Font.FontFamily.Name, this.defaultFontPoint * (this.fontScale / 100.0f));
-            this.Font = new Font(this.tbResponse.Font.FontFamily.Name, this.defaultFontPoint * (this.fontScale / 100.0f));
+            tsButtonZoom.Text = fontScale.ToString(CultureInfo.CurrentCulture) + "%";
+            tbRequest.Font = new Font(tbRequest.Font.FontFamily.Name, defaultFontPoint * (fontScale / 100.0f));
+            tbResponse.Font = new Font(tbResponse.Font.FontFamily.Name, defaultFontPoint * (fontScale / 100.0f));
+            Font = new Font(tbResponse.Font.FontFamily.Name, defaultFontPoint * (fontScale / 100.0f));
 
             // we don't support pretty print for font scaling yet.
-            if (!this.tsbViewType.Checked)
+            if (!tsbViewType.Checked)
             {
                 DisplayResponseContent();
             }
@@ -375,31 +389,31 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         private void btnHeaders_Click(object sender, EventArgs e)
         {
-            if (this.splitContainerInner.Panel1Collapsed == true)
+            if (splitContainerInner.Panel1Collapsed == true)
             {
-                this.splitContainerInner.Panel1Collapsed = false;
-                this.btnHeaders.Checked = true;
-                this.btnHeaders.Text = "Hide Response Headers";
+                splitContainerInner.Panel1Collapsed = false;
+                btnHeaders.Checked = true;
+                btnHeaders.Text = "Hide Response Headers";
 
-                this.tabControl.SelectedTab = this.tabResponse;
+                tabControl.SelectedTab = tabResponse;
             }
             else
             {
-                this.splitContainerInner.Panel1Collapsed = true;
-                this.btnHeaders.Checked = false;
-                this.btnHeaders.Text = "Show Response Headers";
+                splitContainerInner.Panel1Collapsed = true;
+                btnHeaders.Checked = false;
+                btnHeaders.Text = "Show Response Headers";
             }
         }
 
         private void btnHome_Click(object sender, EventArgs e)
         {
             //
-            DisplayHtmlContentInScale(this.homepage);
+            DisplayHtmlContentInScale(homepage);
         }
 
         private void exitToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            this.Close();
+            Close();
         }
 
         private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
@@ -411,16 +425,24 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         private void tsbViewType_Click(object sender, EventArgs e)
         {
-            if (this.tsbViewType.Checked)
-                this.tsbViewType.Text = "Pretty Json View";
-            else
-                this.tsbViewType.Text = "Text View";
+            Settings.Default.TextView = tsbViewType.Checked;
+            Settings.Default.Save();
 
-            if ((this.webBrowserResponse.Url.AbsoluteUri == "about:blank" && this.webBrowserResponse.DocumentTitle != "DataModelBrowserHome")
-                || this.webBrowserResponse.Url.Scheme == "file")
+            SetViewTypeTabText();
+
+            if ((webBrowserResponse.Url.AbsoluteUri == "about:blank" && webBrowserResponse.DocumentTitle != "DataModelBrowserHome")
+                || webBrowserResponse.Url.Scheme == "file")
             {
-                this.DisplayResponseContent();
+                DisplayResponseContent();
             }
+        }
+
+        private void SetViewTypeTabText()
+        {
+            if (Settings.Default.TextView)
+                tsbViewType.Text = "Pretty Json View";
+            else
+                tsbViewType.Text = "Text View";
         }
 
         private void settingsToolStripMenuItem_Click(object sender, EventArgs e)
@@ -430,24 +452,26 @@ namespace Microsoft.Azure.DocumentDBStudio
             DialogResult dr = dlg.ShowDialog(this);
             if (dr == DialogResult.OK)
             {
-                this.AddAccountToSettings(dlg.AccountEndpoint, dlg.AccountSettings);
+                AddAccountToSettings(dlg.AccountEndpoint, dlg.AccountSettings);
             }
         }
 
         public void ChangeAccountSettings(TreeNode thisNode, string accountEndpoint)
         {
-            this.treeView1.SelectedNode = thisNode;
+            treeView1.SelectedNode = thisNode;
 
             for (int i = 0; i < Settings.Default.AccountSettingsList.Count; i = i + 2)
             {
-                if (string.Compare(accountEndpoint, Properties.Settings.Default.AccountSettingsList[i], StringComparison.OrdinalIgnoreCase) == 0)
+                if (string.Compare(accountEndpoint, Settings.Default.AccountSettingsList[i], StringComparison.OrdinalIgnoreCase) == 0)
                 {
                     AccountSettings accountSettings = (AccountSettings)JsonConvert.DeserializeObject(Settings.Default.AccountSettingsList[i + 1], typeof(AccountSettings));
 
                     // Bring up account setings dialog
-                    SettingsForm dlg = new SettingsForm();
-                    dlg.AccountEndpoint = accountEndpoint;
-                    dlg.AccountSettings = accountSettings;
+                    SettingsForm dlg = new SettingsForm
+                    {
+                        AccountEndpoint = accountEndpoint,
+                        AccountSettings = accountSettings
+                    };
 
                     DialogResult dr = dlg.ShowDialog(this);
                     if (dr == DialogResult.OK)
@@ -469,7 +493,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             // if the account is not in tree view top level, add it!
             for (int i = 0; i < Settings.Default.AccountSettingsList.Count; i = i + 2)
             {
-                if (string.Compare(accountEndpoint, Properties.Settings.Default.AccountSettingsList[i], StringComparison.OrdinalIgnoreCase) == 0)
+                if (string.Compare(accountEndpoint, Settings.Default.AccountSettingsList[i], StringComparison.OrdinalIgnoreCase) == 0)
                 {
                     found = true;
                     break;
@@ -493,7 +517,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             // if the account is not in tree view top level, add it!
             for (int i = 0; i < Settings.Default.AccountSettingsList.Count; i = i + 2)
             {
-                if (string.Compare(accountEndpoint, Properties.Settings.Default.AccountSettingsList[i], StringComparison.OrdinalIgnoreCase) == 0)
+                if (string.Compare(accountEndpoint, Settings.Default.AccountSettingsList[i], StringComparison.OrdinalIgnoreCase) == 0)
                 {
                     index = i;
                     break;
@@ -568,7 +592,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 {
                     // split by ;
                     string[] segments = postTrigger.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
-                    this.requestOptions.PostTriggerInclude = segments;
+                    requestOptions.PostTriggerInclude = segments;
                 }
                 tbPostTrigger.Modified = false;
             }
@@ -580,7 +604,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 {
                     // split by ;
                     string[] segments = preTrigger.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
-                    this.requestOptions.PreTriggerInclude = segments;
+                    requestOptions.PreTriggerInclude = segments;
                 }
             }
 
@@ -589,7 +613,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 string condition = tbAccessConditionText.Text;
                 if (!string.IsNullOrEmpty(condition))
                 {
-                    this.requestOptions.AccessCondition.Condition = condition;
+                    requestOptions.AccessCondition.Condition = condition;
                 }
             }
 
@@ -598,25 +622,25 @@ namespace Microsoft.Azure.DocumentDBStudio
                 string partitionKey = tbPartitionKeyForRequestOption.Text;
                 if (!string.IsNullOrEmpty(partitionKey))
                 {
-                    this.requestOptions.PartitionKey = new PartitionKey(partitionKey);
+                    requestOptions.PartitionKey = new PartitionKey(partitionKey);
                 }
             }
 
-            if ((this.resourceType == ResourceType.DocumentCollection || this.resourceType == ResourceType.Offer) &&
-                (this.operationType == OperationType.Create || this.operationType == OperationType.Replace))
+            if ((resourceType == ResourceType.DocumentCollection || resourceType == ResourceType.Offer) &&
+                (operationType == OperationType.Create || operationType == OperationType.Replace))
             {
-                if (this.offerType == OfferType.StandardSingle || this.offerType == OfferType.StandardElastic)
+                if (offerType == OfferType.StandardSingle || offerType == OfferType.StandardElastic)
                 {
-                    this.requestOptions.OfferThroughput = int.Parse(this.tbThroughput.Text, CultureInfo.CurrentCulture);
-                    this.requestOptions.OfferType = null;
+                    requestOptions.OfferThroughput = int.Parse(tbThroughput.Text, CultureInfo.CurrentCulture);
+                    requestOptions.OfferType = null;
                 }
                 else
                 {
-                    this.requestOptions.OfferType = this.offerType.ToString();
-                    this.requestOptions.OfferThroughput = null;
+                    requestOptions.OfferType = offerType.ToString();
+                    requestOptions.OfferThroughput = null;
                 }
             }
-            return this.requestOptions;
+            return requestOptions;
         }
 
         private delegate DialogResult MessageBoxDelegate(string msg, string title, MessageBoxButtons buttons, MessageBoxIcon icon);
@@ -654,7 +678,7 @@ namespace Microsoft.Azure.DocumentDBStudio
 
                         if (string.Compare(Constants.ProductVersion.ToString(), latestReleaseString, StringComparison.OrdinalIgnoreCase) < 0)
                         {
-                            this.Invoke(new MessageBoxDelegate(ShowMessage),
+                            Invoke(new MessageBoxDelegate(ShowMessage),
                                 string.Format(CultureInfo.InvariantCulture, "Please update the DocumentDB studio to the latest version {0} at https://github.com/mingaliu/DocumentDBStudio/releases", latestReleaseString),
                                 Constants.ApplicationName, MessageBoxButtons.OK, MessageBoxIcon.Information);
                         }
@@ -677,7 +701,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             for (int i = 0; i < Settings.Default.AccountSettingsList.Count; i = i + 2)
             {
                 AccountSettings accountSettings = (AccountSettings)JsonConvert.DeserializeObject(Settings.Default.AccountSettingsList[i + 1], typeof(AccountSettings));
-                this.AddConnectionTreeNode(Settings.Default.AccountSettingsList[i], accountSettings);
+                AddConnectionTreeNode(Settings.Default.AccountSettingsList[i], accountSettings);
             }
         }
 
@@ -698,7 +722,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                     });
 
                 DatabaseAccountNode dbaNode = new DatabaseAccountNode(accountEndpoint, client);
-                this.treeView1.Nodes.Add(dbaNode);
+                treeView1.Nodes.Add(dbaNode);
 
                 // Update the map.
                 DocumentClientExtension.AddOrUpdate(client.ServiceEndpoint.Host, accountSettings.IsNameBased);
@@ -727,156 +751,155 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         private void treeView1_NodeMouseClick(object sender, TreeNodeMouseClickEventArgs e)
         {
-            if (e.Button == MouseButtons.Right)
+            switch (e.Button)
             {
-                if (e.Node is FeedNode)
-                {
-                    (e.Node as FeedNode).ShowContextMenu(e.Node.TreeView, e.Location);
-                }
-
-            }
-            else if (e.Button == MouseButtons.Left)
-            {
-                // render the JSON in the right panel.
-                this.currentText = null;
-                this.currentJson = null;
-
-                if (e.Node is ResourceNode)
-                {
-                    ResourceNode node = e.Node as ResourceNode;
-                    string body = node.GetBody();
-
-                    if (!string.IsNullOrEmpty(body))
+                case MouseButtons.Right:
+                    if (e.Node is FeedNode)
                     {
-                        this.currentText = body;
+                        (e.Node as FeedNode).ShowContextMenu(e.Node.TreeView, e.Location);
                     }
-                }
+                    break;
+                case MouseButtons.Left:
+                    // render the JSON in the right panel.
+                    currentText = null;
+                    currentJson = null;
 
-                if (e.Node.Tag is string)
-                {
-                    this.currentText = e.Node.Tag.ToString();
-                }
-                else if (e.Node is DatabaseAccountNode)
-                {
-                    this.currentJson = JsonConvert.SerializeObject(e.Node.Tag, Newtonsoft.Json.Formatting.Indented);
-                }
-                else if (e.Node.Tag != null)
-                {
-                    this.currentJson = e.Node.Tag.ToString();
-                }
+                    if (e.Node is ResourceNode)
+                    {
+                        var node = e.Node as ResourceNode;
+                        var body = node.GetBody();
 
-                if (this.currentJson == null && this.currentText == null)
-                {
-                    this.currentText = e.Node.Text;
-                }
+                        if (!string.IsNullOrEmpty(body))
+                        {
+                            currentText = body;
+                        }
+                    }
 
-                this.DisplayResponseContent();
+                    if (e.Node.Tag is string)
+                    {
+                        currentText = e.Node.Tag.ToString();
+                    }
+                    else if (e.Node is DatabaseAccountNode)
+                    {
+                        currentJson = JsonConvert.SerializeObject(e.Node.Tag, Formatting.Indented);
+                    }
+                    else if (e.Node.Tag != null)
+                    {
+                        var tag = e.Node.Tag;
+                        currentJson = tag.ToString();
+                        currentJson = DocumentHelper.RemoveInternalDocumentValues(currentJson);
+                    }
 
+                    if (currentJson == null && currentText == null)
+                    {
+                        currentText = e.Node.Text;
+                    }
+
+                    DisplayResponseContent();
+                    break;
             }
         }
 
-        internal void SetCrudContext(TreeNode node, OperationType operation, ResourceType resourceType, string bodytext, 
-            Action<object, RequestOptions> func, CommandContext commandContext = null)
+        internal void SetCrudContext(
+            TreeNode node, OperationType operation, ResourceType resourceType, string bodytext, 
+            Action<object, RequestOptions> func, CommandContext commandContext = null
+        )
         {
             if (commandContext == null)
             {
                 commandContext = new CommandContext();
             }
 
-            this.treeView1.SelectedNode = node;
+            treeView1.SelectedNode = node;
 
-            this.operationType = operation;
+            operationType = operation;
             this.resourceType = resourceType;
-            this.currentOperationCallback = func;
-            this.tabCrudContext.Text = operation.ToString() + " " + resourceType.ToString();
-            this.tbCrudContext.Text = bodytext;
+            currentOperationCallback = func;
+            tabCrudContext.Text = string.Format("{0} {1}", operation, resourceType);
+            tbCrudContext.Text = bodytext;
 
-            this.toolStripBtnExecute.Enabled = true;
-            this.tbCrudContext.ReadOnly = commandContext.IsDelete;
+            toolStripBtnExecute.Enabled = true;
+            tbCrudContext.ReadOnly = commandContext.IsDelete;
 
             // the split panel at the right side, Panel1: tab Control,  Panel2: ButtomSplitContainer (next page and browser)
-            this.splitContainerInner.Panel1Collapsed = false;
+            splitContainerInner.Panel1Collapsed = false;
 
-            bool showId = false;
-            if ( (resourceType == ResourceType.Trigger || resourceType == ResourceType.UserDefinedFunction || resourceType == ResourceType.StoredProcedure)
-                 && (operation == OperationType.Create || operation == OperationType.Replace))
-            {
-                showId = true;
-            }
+            var showId = (resourceType == ResourceType.Trigger || resourceType == ResourceType.UserDefinedFunction || resourceType == ResourceType.StoredProcedure)
+                 && (operation == OperationType.Create || operation == OperationType.Replace);
 
             //the split panel inside Tab. Panel1: Id input box, Panel2: Edit CRUD resource.
-            this.splitContainerIntabPage.Panel1Collapsed = !showId;
+            splitContainerIntabPage.Panel1Collapsed = !showId;
 
-            this.tbResponse.Text = "";
+            tbResponse.Text = "";
 
             //the split panel at right bottom. Panel1: NextPage, Panel2: Browser.
             if (commandContext.IsFeed)
             {
-                this.ButtomSplitContainer.Panel1Collapsed = false;
-                this.ButtomSplitContainer.Panel1.Controls.Clear();
-                this.ButtomSplitContainer.Panel1.Controls.Add(this.feedToolStrip);
+                ButtomSplitContainer.Panel1Collapsed = false;
+                ButtomSplitContainer.Panel1.Controls.Clear();
+                ButtomSplitContainer.Panel1.Controls.Add(feedToolStrip);
             }
             else if (commandContext.IsCreateTrigger)
             {
-                this.ButtomSplitContainer.Panel1Collapsed = false;
-                this.ButtomSplitContainer.Panel1.Controls.Clear();
-                this.ButtomSplitContainer.Panel1.Controls.Add(this.triggerPanel);
+                ButtomSplitContainer.Panel1Collapsed = false;
+                ButtomSplitContainer.Panel1.Controls.Clear();
+                ButtomSplitContainer.Panel1.Controls.Add(triggerPanel);
             }
             else
             {
-                this.ButtomSplitContainer.Panel1Collapsed = true;
+                ButtomSplitContainer.Panel1Collapsed = true;
             }
 
-            this.SetNextPageVisibility(commandContext);
+            SetNextPageVisibility(commandContext);
 
             // Prepare the tab pages
-            this.tabControl.TabPages.Remove(this.tabDocumentCollection);
-            this.tabControl.TabPages.Remove(this.tabOffer);
-            this.tabControl.TabPages.Remove(this.tabCrudContext);
+            tabControl.TabPages.Remove(tabDocumentCollection);
+            tabControl.TabPages.Remove(tabOffer);
+            tabControl.TabPages.Remove(tabCrudContext);
 
 
-            if (this.resourceType == ResourceType.DocumentCollection && (this.operationType == OperationType.Create || this.operationType == OperationType.Replace))
+            if (this.resourceType == ResourceType.DocumentCollection && (operationType == OperationType.Create || operationType == OperationType.Replace))
             {
-                this.tabControl.TabPages.Insert(0, this.tabDocumentCollection);
-                if (this.operationType == OperationType.Create)
+                tabControl.TabPages.Insert(0, tabDocumentCollection);
+                if (operationType == OperationType.Create)
                 {
-                    this.tbCollectionId.Enabled = true;
-                    this.tbCollectionId.Text = "DocumentCollection Id";
+                    tbCollectionId.Enabled = true;
+                    tbCollectionId.Text = "DocumentCollection Id";
 
-                    this.tabControl.TabPages.Insert(0, this.tabOffer);
-                    this.tabControl.SelectedTab = this.tabOffer;
+                    tabControl.TabPages.Insert(0, tabOffer);
+                    tabControl.SelectedTab = tabOffer;
 
-                    this.webBrowserResponse.Navigate(new Uri("https://azure.microsoft.com/en-us/documentation/articles/documentdb-performance-levels/"));
+                    webBrowserResponse.Navigate(new Uri("https://azure.microsoft.com/en-us/documentation/articles/documentdb-performance-levels/"));
                 }
                 else
                 {
-                    this.tbCollectionId.Enabled = false;
-                    this.tbCollectionId.Text = (node.Tag as Resource).Id;
-                    this.tabControl.SelectedTab = this.tabDocumentCollection;
+                    tbCollectionId.Enabled = false;
+                    tbCollectionId.Text = (node.Tag as Resource).Id;
+                    tabControl.SelectedTab = tabDocumentCollection;
                 }
             }
             else
             {
-                this.tabControl.TabPages.Insert(0, this.tabCrudContext);
-                this.tabControl.SelectedTab = this.tabCrudContext;
+                tabControl.TabPages.Insert(0, tabCrudContext);
+                tabControl.SelectedTab = tabCrudContext;
             }
         }
 
         public void SetNextPageVisibility(CommandContext commandContext)
         {
-            this.btnExecuteNext.Enabled = commandContext.HasContinuation || !commandContext.QueryStarted;
+            btnExecuteNext.Enabled = commandContext.HasContinuation || !commandContext.QueryStarted;
         }
 
         private bool ValidateInput()
         {
-            if ((this.resourceType == ResourceType.DocumentCollection || this.resourceType == ResourceType.Offer) &&
-                (this.operationType == OperationType.Create || this.operationType == OperationType.Replace))
+            if ((resourceType == ResourceType.DocumentCollection || resourceType == ResourceType.Offer) &&
+                (operationType == OperationType.Create || operationType == OperationType.Replace))
             {
                 // basic validation:
-                if (this.offerType == OfferType.StandardElastic || this.offerType == OfferType.StandardSingle)
+                if (offerType == OfferType.StandardElastic || offerType == OfferType.StandardSingle)
                 {
                     int throughput;
-                    if (!int.TryParse(this.tbThroughput.Text, NumberStyles.Integer, CultureInfo.CurrentCulture, out throughput))
+                    if (!int.TryParse(tbThroughput.Text, NumberStyles.Integer, CultureInfo.CurrentCulture, out throughput))
                     {
                         MessageBox.Show(this, 
                                         "Offer throughput has to be integer",
@@ -894,7 +917,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                         return false;
                     }
 
-                    if (this.offerType == OfferType.StandardElastic)
+                    if (offerType == OfferType.StandardElastic)
                     {
                         // remove 250K from the internal version
                         if (throughput < 10000)
@@ -941,95 +964,106 @@ namespace Microsoft.Azure.DocumentDBStudio
                 return;
             }
 
-            this.SetLoadingState();
+            SetLoadingState();
 
-            RequestOptions requestOptions = this.GetRequestOptions();
+            var requestOptions = GetRequestOptions();
 
-            if (this.resourceType == ResourceType.DocumentCollection && (this.operationType == OperationType.Create || this.operationType == OperationType.Replace))
+            if (resourceType == ResourceType.DocumentCollection && (operationType == OperationType.Create || operationType == OperationType.Replace))
             {
-                this.newDocumentCollection.IndexingPolicy.IncludedPaths.Clear();
-                foreach (object item in lbIncludedPath.Items)
+                newDocumentCollection.IndexingPolicy.IncludedPaths.Clear();
+                foreach (var item in lbIncludedPath.Items)
                 {
-                    IncludedPath includedPath = item as IncludedPath;
-                    this.newDocumentCollection.IndexingPolicy.IncludedPaths.Add(includedPath);
+                    var includedPath = item as IncludedPath;
+                    newDocumentCollection.IndexingPolicy.IncludedPaths.Add(includedPath);
                 }
 
-                this.newDocumentCollection.IndexingPolicy.ExcludedPaths.Clear();
-                foreach (object item in lbExcludedPath.Items)
+                newDocumentCollection.IndexingPolicy.ExcludedPaths.Clear();
+                foreach (var item in lbExcludedPath.Items)
                 {
-                    String excludedPath = item as String;
-                    this.newDocumentCollection.IndexingPolicy.ExcludedPaths.Add(new ExcludedPath() { Path = excludedPath });
+                    var excludedPath = item as string;
+                    newDocumentCollection.IndexingPolicy.ExcludedPaths.Add(new ExcludedPath()
+                    {
+                        Path = excludedPath
+                    });
                 }
 
-                this.newDocumentCollection.Id = tbCollectionId.Text;
+                newDocumentCollection.Id = tbCollectionId.Text;
 
-                if (this.operationType == OperationType.Create)
+                if (operationType == OperationType.Create)
                 {
-                    if (this.offerType == OfferType.StandardElastic)
+                    if (offerType == OfferType.StandardElastic)
                     {
 
-                        this.newDocumentCollection.PartitionKey.Paths.Add(tbPartitionKeyForCollectionCreate.Text);
+                        newDocumentCollection.PartitionKey.Paths.Add(tbPartitionKeyForCollectionCreate.Text);
                     }
                 }
 
-                this.currentOperationCallback(newDocumentCollection, requestOptions);
+                currentOperationCallback(newDocumentCollection, requestOptions);
             }
-            else if (this.resourceType == ResourceType.Offer && this.operationType == OperationType.Replace)
+            else if (resourceType == ResourceType.Offer && operationType == OperationType.Replace)
             {
-                this.currentOperationCallback(newDocumentCollection, requestOptions);
+                currentOperationCallback(newDocumentCollection, requestOptions);
             }
-            else if (this.resourceType == ResourceType.Trigger && this.operationType == OperationType.Create)
+            else if (resourceType == ResourceType.Trigger && operationType == OperationType.Create)
             {
-                Trigger trigger = new Trigger();
-                trigger.Body = this.tbCrudContext.Text;
-                trigger.Id = this.textBoxforId.Text;
-                trigger.TriggerOperation = TriggerOperation.All;
+                var trigger = new Trigger
+                {
+                    Body = tbCrudContext.Text,
+                    Id = textBoxforId.Text,
+                    TriggerOperation = TriggerOperation.All
+                };
                 if (rbPreTrigger.Checked)
                     trigger.TriggerType = TriggerType.Pre;
                 else if (rbPostTrigger.Checked)
                     trigger.TriggerType = TriggerType.Post;
 
-                this.currentOperationCallback(trigger, requestOptions);
+                currentOperationCallback(trigger, requestOptions);
             }
-            else if (this.resourceType == ResourceType.Trigger && this.operationType == OperationType.Replace)
+            else if (resourceType == ResourceType.Trigger && operationType == OperationType.Replace)
             {
-                Trigger trigger = new Trigger();
-                trigger.Body = this.tbCrudContext.Text;
-                trigger.Id = this.textBoxforId.Text;
-                this.currentOperationCallback(trigger, requestOptions);
+                var trigger = new Trigger
+                {
+                    Body = tbCrudContext.Text,
+                    Id = textBoxforId.Text
+                };
+                currentOperationCallback(trigger, requestOptions);
            }
 
-            else if (this.resourceType == ResourceType.UserDefinedFunction
-                 && (this.operationType == OperationType.Create || this.operationType == OperationType.Replace))
+            else if (resourceType == ResourceType.UserDefinedFunction
+                 && (operationType == OperationType.Create || operationType == OperationType.Replace))
             {
-                UserDefinedFunction udf = new UserDefinedFunction();
-                udf.Body = this.tbCrudContext.Text;
-                udf.Id = this.textBoxforId.Text;
-                this.currentOperationCallback(udf, requestOptions);
+                var udf = new UserDefinedFunction
+                {
+                    Body = tbCrudContext.Text,
+                    Id = textBoxforId.Text
+                };
+                currentOperationCallback(udf, requestOptions);
             }
-            else if (this.resourceType == ResourceType.StoredProcedure
-                 && (this.operationType == OperationType.Create || this.operationType == OperationType.Replace))
+            else if (resourceType == ResourceType.StoredProcedure
+                 && (operationType == OperationType.Create || operationType == OperationType.Replace))
             {
-                StoredProcedure storedProcedure = new StoredProcedure();
-                storedProcedure.Body = this.tbCrudContext.Text;
-                storedProcedure.Id = this.textBoxforId.Text;
-                this.currentOperationCallback(storedProcedure, requestOptions);
+                var storedProcedure = new StoredProcedure
+                {
+                    Body = tbCrudContext.Text,
+                    Id = textBoxforId.Text
+                };
+                currentOperationCallback(storedProcedure, requestOptions);
             }
             else
             {
-                if (!string.IsNullOrEmpty(this.tbCrudContext.SelectedText))
+                if (!string.IsNullOrEmpty(tbCrudContext.SelectedText))
                 {
-                    this.currentOperationCallback(this.tbCrudContext.SelectedText, requestOptions);
+                    currentOperationCallback(tbCrudContext.SelectedText, requestOptions);
                 }
                 else
                 {
-                    if (this.resourceType == ResourceType.StoredProcedure && this.operationType == OperationType.Execute && !this.tbCrudContext.Modified)
+                    if (resourceType == ResourceType.StoredProcedure && operationType == OperationType.Execute && !tbCrudContext.Modified)
                     {
-                        this.currentOperationCallback(null, requestOptions);
+                        currentOperationCallback(null, requestOptions);
                     }
                     else
                     {
-                        this.currentOperationCallback(this.tbCrudContext.Text, requestOptions);
+                        currentOperationCallback(tbCrudContext.Text, requestOptions);
                     }
                 }
             }
@@ -1038,29 +1072,29 @@ namespace Microsoft.Azure.DocumentDBStudio
         public void SetLoadingState()
         {
             //
-            this.webBrowserResponse.Url = new Uri(this.loadingGifPath);
+            webBrowserResponse.Url = new Uri(loadingGifPath);
         }
 
         public void RenderFile(string fileName)
         {
             //
-            this.webBrowserResponse.Url = new Uri(fileName);
+            webBrowserResponse.Url = new Uri(fileName);
         }
 
         public void SetResultInBrowser(string json, string text, bool executeButtonEnabled, NameValueCollection responseHeaders = null)
         {
-            this.currentText = text;
-            this.currentJson = json;
-            this.DisplayResponseContent();
+            currentText = text;
+            currentJson = json;
+            DisplayResponseContent();
 
-            this.toolStripBtnExecute.Enabled = executeButtonEnabled;
+            toolStripBtnExecute.Enabled = executeButtonEnabled;
 
-            this.SetResponseHeaders(responseHeaders);
+            SetResponseHeaders(responseHeaders);
         }
 
         public void SetStatus(string status)
         {
-            this.tsStatus.Text = status;
+            tsStatus.Text = status;
         }
 
         private void PrettyPrintJson(string json, string extraText)
@@ -1079,7 +1113,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             prettyPrint = prettyPrint.Replace("&EXTRASTRINGREPLACE&", Helper.FormatTextAsHtml(extraText, false, false));
 
             // save prettyePrint to file.
-            string prettyPrintHtml = Path.Combine(this.appTempPath, "prettyPrint.Html");
+            string prettyPrintHtml = Path.Combine(appTempPath, "prettyPrint.Html");
 
             using (StreamWriter outfile = new StreamWriter(prettyPrintHtml))
             {
@@ -1087,7 +1121,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
 
             // now launch it in broswer!
-            this.webBrowserResponse.Url = new Uri(prettyPrintHtml);
+            webBrowserResponse.Url = new Uri(prettyPrintHtml);
         }
 
         public void SetResponseHeaders(NameValueCollection responseHeaders)
@@ -1105,7 +1139,7 @@ namespace Microsoft.Azure.DocumentDBStudio
 
                     if (string.Compare("x-ms-request-charge", key, StringComparison.OrdinalIgnoreCase) == 0)
                     {
-                        this.tsStatus.Text = this.tsStatus.Text + ", Request Charge: " + responseHeaders[key];
+                        tsStatus.Text = tsStatus.Text + ", Request Charge: " + responseHeaders[key];
                     }
                     if (string.Compare("x-ms-item-count", key, StringComparison.OrdinalIgnoreCase) == 0)
                     {
@@ -1119,34 +1153,34 @@ namespace Microsoft.Azure.DocumentDBStudio
 
                 if (itemCountValue != null)
                 {
-                    this.tsStatus.Text = this.tsStatus.Text + ", Count: " + itemCountValue;
+                    tsStatus.Text = tsStatus.Text + ", Count: " + itemCountValue;
                     if (continuationValue != null)
                     {
-                        this.tsStatus.Text = this.tsStatus.Text + "+";
+                        tsStatus.Text = tsStatus.Text + "+";
                     }
                 }
 
-                this.tbResponse.Text = headers;
+                tbResponse.Text = headers;
             }
         }
 
         private void btnExecuteNext_Click(object sender, EventArgs e)
         {
-            this.SetLoadingState();
+            SetLoadingState();
 
-            if (!string.IsNullOrEmpty(this.tbCrudContext.SelectedText))
+            if (!string.IsNullOrEmpty(tbCrudContext.SelectedText))
             {
-                this.currentOperationCallback(this.tbCrudContext.SelectedText, null);
+                currentOperationCallback(tbCrudContext.SelectedText, null);
             }
             else
             {
-                this.currentOperationCallback(this.tbCrudContext.Text, null);
+                currentOperationCallback(tbCrudContext.Text, null);
             }
         }
 
         private void cbRequestOptionsApply_CheckedChanged(object sender, EventArgs e)
         {
-            this.CreateDefaultRequestOptions();
+            CreateDefaultRequestOptions();
             if (cbRequestOptionsApply.Checked)
             {
                 rbIndexingDefault.Enabled = false;
@@ -1191,52 +1225,52 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         private void CreateDefaultRequestOptions()
         {
-            this.requestOptions = new RequestOptions();
+            requestOptions = new RequestOptions();
 
             if (rbIndexingDefault.Checked)
             {
-                this.requestOptions.IndexingDirective = IndexingDirective.Default;
+                requestOptions.IndexingDirective = IndexingDirective.Default;
             }
             else if (rbIndexingExclude.Checked)
             {
-                this.requestOptions.IndexingDirective = IndexingDirective.Exclude;
+                requestOptions.IndexingDirective = IndexingDirective.Exclude;
             }
             else if (rbIndexingInclude.Checked)
             {
-                this.requestOptions.IndexingDirective = IndexingDirective.Include;
+                requestOptions.IndexingDirective = IndexingDirective.Include;
             }
 
-            this.requestOptions.AccessCondition = new AccessCondition();
+            requestOptions.AccessCondition = new AccessCondition();
             if (rbAccessConditionIfMatch.Checked)
             {
-                this.requestOptions.AccessCondition.Type = AccessConditionType.IfMatch;
+                requestOptions.AccessCondition.Type = AccessConditionType.IfMatch;
             }
             else if (rbAccessConditionIfNoneMatch.Checked)
             {
-                this.requestOptions.AccessCondition.Type = AccessConditionType.IfNoneMatch;
+                requestOptions.AccessCondition.Type = AccessConditionType.IfNoneMatch;
             }
 
             string condition = tbAccessConditionText.Text;
             if (!string.IsNullOrEmpty(condition))
             {
-                this.requestOptions.AccessCondition.Condition = condition;
+                requestOptions.AccessCondition.Condition = condition;
             }
 
             if (rbConsistencyStrong.Checked)
             {
-                this.requestOptions.ConsistencyLevel = ConsistencyLevel.Strong;
+                requestOptions.ConsistencyLevel = ConsistencyLevel.Strong;
             }
             else if (rbConsistencyBound.Checked)
             {
-                this.requestOptions.ConsistencyLevel = ConsistencyLevel.BoundedStaleness;
+                requestOptions.ConsistencyLevel = ConsistencyLevel.BoundedStaleness;
             }
             else if (rbConsistencySession.Checked)
             {
-                this.requestOptions.ConsistencyLevel = ConsistencyLevel.Session;
+                requestOptions.ConsistencyLevel = ConsistencyLevel.Session;
             }
             else if (rbConsistencyEventual.Checked)
             {
-                this.requestOptions.ConsistencyLevel = ConsistencyLevel.Eventual;
+                requestOptions.ConsistencyLevel = ConsistencyLevel.Eventual;
             }
 
             string preTrigger = tbPreTrigger.Text;
@@ -1244,7 +1278,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             {
                 // split by ;
                 string[] segments = preTrigger.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
-                this.requestOptions.PreTriggerInclude = segments;
+                requestOptions.PreTriggerInclude = segments;
             }
 
             string postTrigger = tbPostTrigger.Text;
@@ -1252,59 +1286,59 @@ namespace Microsoft.Azure.DocumentDBStudio
             {
                 // split by ;
                 string[] segments = postTrigger.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
-                this.requestOptions.PostTriggerInclude = segments;
+                requestOptions.PostTriggerInclude = segments;
             }
 
             string partitionKey = tbPartitionKeyForRequestOption.Text;
             if (!string.IsNullOrEmpty(partitionKey))
             {
-                this.requestOptions.PartitionKey = new PartitionKey(partitionKey);
+                requestOptions.PartitionKey = new PartitionKey(partitionKey);
             }
         }
 
         private void rbIndexingDefault_CheckedChanged(object sender, EventArgs e)
         {
-            this.requestOptions.IndexingDirective = IndexingDirective.Default;
+            requestOptions.IndexingDirective = IndexingDirective.Default;
         }
 
         private void rbIndexingInclude_CheckedChanged(object sender, EventArgs e)
         {
-            this.requestOptions.IndexingDirective = IndexingDirective.Include;
+            requestOptions.IndexingDirective = IndexingDirective.Include;
         }
 
         private void rbIndexingExclude_CheckedChanged(object sender, EventArgs e)
         {
-            this.requestOptions.IndexingDirective = IndexingDirective.Exclude;
+            requestOptions.IndexingDirective = IndexingDirective.Exclude;
         }
 
         private void rbAccessConditionIfMatch_CheckedChanged(object sender, EventArgs e)
         {
-            this.requestOptions.AccessCondition.Type = AccessConditionType.IfMatch;
+            requestOptions.AccessCondition.Type = AccessConditionType.IfMatch;
         }
 
         private void rbAccessConditionIfNoneMatch_CheckedChanged(object sender, EventArgs e)
         {
-            this.requestOptions.AccessCondition.Type = AccessConditionType.IfNoneMatch;
+            requestOptions.AccessCondition.Type = AccessConditionType.IfNoneMatch;
         }
 
         private void rbConsistencyStrong_CheckedChanged(object sender, EventArgs e)
         {
-            this.requestOptions.ConsistencyLevel = ConsistencyLevel.Strong;
+            requestOptions.ConsistencyLevel = ConsistencyLevel.Strong;
         }
 
         private void rbConsistencyBound_CheckedChanged(object sender, EventArgs e)
         {
-            this.requestOptions.ConsistencyLevel = ConsistencyLevel.BoundedStaleness;
+            requestOptions.ConsistencyLevel = ConsistencyLevel.BoundedStaleness;
         }
 
         private void rbConsistencySession_CheckedChanged(object sender, EventArgs e)
         {
-            this.requestOptions.ConsistencyLevel = ConsistencyLevel.Session;
+            requestOptions.ConsistencyLevel = ConsistencyLevel.Session;
         }
 
         private void rbConsistencyEventual_CheckedChanged(object sender, EventArgs e)
         {
-            this.requestOptions.ConsistencyLevel = ConsistencyLevel.Eventual;
+            requestOptions.ConsistencyLevel = ConsistencyLevel.Eventual;
         }
 
         private void btnAddIncludePath_Click(object sender, EventArgs e)
@@ -1314,18 +1348,18 @@ namespace Microsoft.Azure.DocumentDBStudio
             DialogResult dr = dlg.ShowDialog(this);
             if (dr == DialogResult.OK)
             {
-                this.lbIncludedPath.Items.Add(dlg.IncludedPath);
+                lbIncludedPath.Items.Add(dlg.IncludedPath);
             }
         }
 
         private void btnRemovePath_Click(object sender, EventArgs e)
         {
-            this.lbIncludedPath.Items.RemoveAt(this.lbIncludedPath.SelectedIndex);
+            lbIncludedPath.Items.RemoveAt(lbIncludedPath.SelectedIndex);
         }
 
         private void lbIncludedPath_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (this.lbIncludedPath.SelectedItem != null)
+            if (lbIncludedPath.SelectedItem != null)
             {
                 btnEdit.Enabled = true;
                 btnRemovePath.Enabled = true;
@@ -1339,7 +1373,7 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         private void btnEdit_Click(object sender, EventArgs e)
         {
-            IncludedPath includedPath = this.lbIncludedPath.SelectedItem as IncludedPath;
+            IncludedPath includedPath = lbIncludedPath.SelectedItem as IncludedPath;
 
             IncludedPathForm dlg = new IncludedPathForm();
             dlg.StartPosition = FormStartPosition.CenterParent;
@@ -1349,7 +1383,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             DialogResult dr = dlg.ShowDialog(this);
             if (dr == DialogResult.OK)
             {
-                this.lbIncludedPath.Items[this.lbIncludedPath.SelectedIndex] = dlg.IncludedPath;
+                lbIncludedPath.Items[lbIncludedPath.SelectedIndex] = dlg.IncludedPath;
             }
         }
 
@@ -1359,18 +1393,18 @@ namespace Microsoft.Azure.DocumentDBStudio
             DialogResult dr = dlg.ShowDialog(this);
             if (dr == DialogResult.OK)
             {
-                this.lbExcludedPath.Items.Add(dlg.ExcludedPath);
+                lbExcludedPath.Items.Add(dlg.ExcludedPath);
             }
         }
 
         private void btnRemoveExcludedPath_Click(object sender, EventArgs e)
         {
-            this.lbExcludedPath.Items.RemoveAt(this.lbExcludedPath.SelectedIndex);
+            lbExcludedPath.Items.RemoveAt(lbExcludedPath.SelectedIndex);
         }
 
         private void lbExcludedPath_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (this.lbExcludedPath.SelectedItem != null)
+            if (lbExcludedPath.SelectedItem != null)
             {
                 btnRemoveExcludedPath.Enabled = true;
             }
@@ -1399,7 +1433,7 @@ namespace Microsoft.Azure.DocumentDBStudio
 
                 tbPartitionKeyForCollectionCreate.Enabled = false;
 
-                this.newDocumentCollection = new DocumentCollection();
+                newDocumentCollection = new DocumentCollection();
             }
             else
             {
@@ -1418,51 +1452,51 @@ namespace Microsoft.Azure.DocumentDBStudio
 
                 tbPartitionKeyForCollectionCreate.Enabled = true;
 
-                this.CreateDefaultIndexingPolicy();
+                CreateDefaultIndexingPolicy();
             }
         }
 
 
         private void CreateDefaultIndexingPolicy()
         {
-            this.newDocumentCollection.IndexingPolicy.Automatic = cbAutomatic.Checked;
+            newDocumentCollection.IndexingPolicy.Automatic = cbAutomatic.Checked;
 
-            if (this.rbConsistent.Checked)
+            if (rbConsistent.Checked)
             {
-                this.newDocumentCollection.IndexingPolicy.IndexingMode = IndexingMode.Consistent;
+                newDocumentCollection.IndexingPolicy.IndexingMode = IndexingMode.Consistent;
             }
             else
             {
-                this.newDocumentCollection.IndexingPolicy.IndexingMode = IndexingMode.Lazy;
+                newDocumentCollection.IndexingPolicy.IndexingMode = IndexingMode.Lazy;
             }
         }
 
         private void cbAutomatic_CheckedChanged(object sender, EventArgs e)
         {
-            this.newDocumentCollection.IndexingPolicy.Automatic = cbAutomatic.Checked;
+            newDocumentCollection.IndexingPolicy.Automatic = cbAutomatic.Checked;
         }
 
         private void rbConsistent_CheckedChanged(object sender, EventArgs e)
         {
-            if (this.rbConsistent.Checked)
+            if (rbConsistent.Checked)
             {
-                this.newDocumentCollection.IndexingPolicy.IndexingMode = IndexingMode.Consistent;
+                newDocumentCollection.IndexingPolicy.IndexingMode = IndexingMode.Consistent;
             }
             else
             {
-                this.newDocumentCollection.IndexingPolicy.IndexingMode = IndexingMode.Lazy;
+                newDocumentCollection.IndexingPolicy.IndexingMode = IndexingMode.Lazy;
             }
         }
 
         private void rbLazy_CheckedChanged(object sender, EventArgs e)
         {
-            if (this.rbConsistent.Checked)
+            if (rbConsistent.Checked)
             {
-                this.newDocumentCollection.IndexingPolicy.IndexingMode = IndexingMode.Consistent;
+                newDocumentCollection.IndexingPolicy.IndexingMode = IndexingMode.Consistent;
             }
             else
             {
-                this.newDocumentCollection.IndexingPolicy.IndexingMode = IndexingMode.Lazy;
+                newDocumentCollection.IndexingPolicy.IndexingMode = IndexingMode.Lazy;
             }
         }
 
@@ -1470,10 +1504,10 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             if (rbOfferS1.Checked)
             {
-                this.offerType = OfferType.S1;
-                this.labelThroughput.Text = "Fixed 250 RU. 10GB Storage";
-                this.tbThroughput.Enabled = false;
-                this.tbThroughput.Text = "250";
+                offerType = OfferType.S1;
+                labelThroughput.Text = "Fixed 250 RU. 10GB Storage";
+                tbThroughput.Enabled = false;
+                tbThroughput.Text = "250";
             }
         }
 
@@ -1481,10 +1515,10 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             if (rbOfferS2.Checked)
             {
-                this.offerType = OfferType.S2;
-                this.labelThroughput.Text = "Fixed 1000 RU. 10GB Storage ";
-                this.tbThroughput.Enabled = false;
-                this.tbThroughput.Text = "1000";
+                offerType = OfferType.S2;
+                labelThroughput.Text = "Fixed 1000 RU. 10GB Storage ";
+                tbThroughput.Enabled = false;
+                tbThroughput.Text = "1000";
              }
         }
 
@@ -1492,10 +1526,10 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             if (rbOfferS3.Checked)
             {
-                this.offerType = OfferType.S3;
-                this.labelThroughput.Text = "Fixed 2500 RU. 10GB Storage ";
-                this.tbThroughput.Enabled = false;
-                this.tbThroughput.Text = "2500";
+                offerType = OfferType.S3;
+                labelThroughput.Text = "Fixed 2500 RU. 10GB Storage ";
+                tbThroughput.Enabled = false;
+                tbThroughput.Text = "2500";
             }
         }
 
@@ -1503,11 +1537,11 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             if (rbElasticCollection.Checked)
             {
-                this.offerType = OfferType.StandardElastic;
-                this.tbPartitionKeyForCollectionCreate.Enabled = true;
-                this.labelThroughput.Text = "Allowed values > 10k and <= 250k. 250GB Storage";
-                this.tbThroughput.Enabled = true;
-                this.tbThroughput.Text = "20000";
+                offerType = OfferType.StandardElastic;
+                tbPartitionKeyForCollectionCreate.Enabled = true;
+                labelThroughput.Text = "Allowed values > 10k and <= 250k. 250GB Storage";
+                tbThroughput.Enabled = true;
+                tbThroughput.Text = "20000";
             }
             else
                 tbPartitionKeyForCollectionCreate.Enabled = false;
@@ -1516,24 +1550,24 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         private void cbShowLegacyOffer_CheckedChanged(object sender, EventArgs e)
         {
-            this.rbOfferS1.Visible = this.cbShowLegacyOffer.Checked;
-            this.rbOfferS2.Visible = this.cbShowLegacyOffer.Checked;
-            this.rbOfferS3.Visible = this.cbShowLegacyOffer.Checked;
+            rbOfferS1.Visible = cbShowLegacyOffer.Checked;
+            rbOfferS2.Visible = cbShowLegacyOffer.Checked;
+            rbOfferS3.Visible = cbShowLegacyOffer.Checked;
 
-            if (!this.cbShowLegacyOffer.Checked)
+            if (!cbShowLegacyOffer.Checked)
             {
-                this.rbSinglePartition.Checked = true;
+                rbSinglePartition.Checked = true;
             }
         }
 
         private void rbSinglePartition_CheckedChanged(object sender, EventArgs e)
         {
-            if (this.rbSinglePartition.Checked)
+            if (rbSinglePartition.Checked)
             {
-                this.offerType = OfferType.StandardSingle;
-                this.labelThroughput.Text = "Allowed values between 400 - 10k. 10GB Storage";
-                this.tbThroughput.Enabled = true;
-                this.tbThroughput.Text = "400";
+                offerType = OfferType.StandardSingle;
+                labelThroughput.Text = "Allowed values between 400 - 10k. 10GB Storage";
+                tbThroughput.Enabled = true;
+                tbThroughput.Text = "400";
             }
         }
 
@@ -1542,5 +1576,25 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         }
 
+        private void tsbHideDocumentSystemProperties_Click(object sender, EventArgs e)
+        {
+            Settings.Default.HideDocumentSystemProperties = tsbHideDocumentSystemProperties.Checked;
+            Settings.Default.Save();
+
+            SetDocumentSystemPropertiesTabText();
+
+            if ((webBrowserResponse.Url.AbsoluteUri == "about:blank" && webBrowserResponse.DocumentTitle != "DataModelBrowserHome")
+                || webBrowserResponse.Url.Scheme == "file")
+            {
+                DisplayResponseContent();
+            }
+        }
+
+        private void SetDocumentSystemPropertiesTabText()
+        {
+            tsbHideDocumentSystemProperties.Text = Settings.Default.HideDocumentSystemProperties
+                ? "Hide SysProperties"
+                : "Show SysProperties";
+        }
     }
 }

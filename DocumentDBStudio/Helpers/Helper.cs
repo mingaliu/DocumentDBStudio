@@ -4,42 +4,37 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.Configuration;
 using System.Dynamic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
-using System.Xml;
-using Microsoft.Azure.DocumentDBStudio.Properties;
 using Newtonsoft.Json.Linq;
-using System.Globalization;
 
-namespace Microsoft.Azure.DocumentDBStudio
+namespace Microsoft.Azure.DocumentDBStudio.Helpers
 {
     static class Constants
     {
-        public readonly static string ProductVersion = "0.71";
-        public readonly static string ApplicationName = "Azure DocumentDB Studio";
+        public static readonly string ProductVersion = "0.71";
+        public static readonly string ApplicationName = "Azure DocumentDB Studio";
 
         /// <summary>
         ///  We can enable when there is emulator.
         /// </summary>
-        public readonly static string LocalEmulatorEndpoint = "https://localhost:443/";
+        public static readonly string LocalEmulatorEndpoint = "https://localhost:443/";
         // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine")]
-        public readonly static string LocalEmulatorMasterkey = "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==";
+        public static readonly string LocalEmulatorMasterkey = "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==";
     }
 
     /// <summary>
     /// </summary>
     public class Helper
     {
-        static internal string FormatTextAsHtml(string text, bool encodeWhitespace)
+        internal static string FormatTextAsHtml(string text, bool encodeWhitespace)
         {
             return FormatTextAsHtml(text, encodeWhitespace, true);
         }
 
-        static internal string FormatTextAsHtml(string text, bool encodeWhitespace, bool includeBodyTags)
+        internal static string FormatTextAsHtml(string text, bool encodeWhitespace, bool includeBodyTags)
         {
             // There must be a BCL function that will do this correctly...
             string html;

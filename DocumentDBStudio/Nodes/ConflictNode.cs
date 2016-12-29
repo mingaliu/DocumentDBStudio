@@ -22,17 +22,16 @@ namespace Microsoft.Azure.DocumentDBStudio
             ImageKey = "Conflict";
             SelectedImageKey = "Conflict";
 
-            {
-                var menuItem = new MenuItem("Refresh Conflict feed");
-                menuItem.Click += (sender, e) => Refresh(true);
-                _contextMenu.MenuItems.Add(menuItem);
-            }
-            {
-                // Query conflicts currrently fail due to gateway
-                var menuItem = new MenuItem("Query Conflict feed");
-                menuItem.Click += myMenuItemQueryConflicts_Click;
-                _contextMenu.MenuItems.Add(menuItem);
-            }
+            AddMenuItem("Refresh Conflict feed", (sender, e) => Refresh(true));
+            // Query conflicts currrently fail due to gateway
+            AddMenuItem("Query Conflict feed", myMenuItemQueryConflicts_Click);
+        }
+
+        private void AddMenuItem(string menuItemText, EventHandler eventHandler)
+        {
+            var menuItem = new MenuItem(menuItemText);
+            menuItem.Click += eventHandler;
+            _contextMenu.MenuItems.Add(menuItem);
         }
 
         public override void ShowContextMenu(TreeView treeview, Point p)

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Drawing;
 using System.IO;
 using System.Text;
@@ -22,8 +23,17 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             _resourceType = resoureType;
             var docAsResource = (document as Resource);
+            var isDocument = _resourceType == ResourceType.Document;
+            var isOffer = _resourceType == ResourceType.Offer;
+            var isConflict = _resourceType == ResourceType.Conflict;
+            var isPermission = _resourceType == ResourceType.Permission;
+            var isAttachment = _resourceType == ResourceType.Attachment;
+            var isStoredProcedure = _resourceType == ResourceType.StoredProcedure;
+            var isTrigger = _resourceType == ResourceType.Trigger;
+            var isUserDefinedFunction = _resourceType == ResourceType.UserDefinedFunction;
+            var isUser = _resourceType == ResourceType.User;
 
-            if (_resourceType == ResourceType.Document)
+            if (isDocument)
             {
                 var prefix = string.Empty;
                 if (partitionKey != null)
@@ -35,16 +45,11 @@ namespace Microsoft.Azure.DocumentDBStudio
                         prefix = prefix + "_";
                     }
                 }
-                if (string.IsNullOrWhiteSpace(nodeText))
-                {
-                    Text = prefix + docAsResource.Id;
-                }
-                else
-                {
-                    Text = prefix + nodeText;
-                }
+                Text = string.IsNullOrWhiteSpace(nodeText) 
+                    ? prefix + docAsResource.Id 
+                    : prefix + nodeText;
             }
-            else if (_resourceType == ResourceType.Offer)
+            else if (isOffer)
             {
                 string version = document.GetPropertyValue<string>("offerVersion");
                 if (string.IsNullOrEmpty(version))
@@ -68,16 +73,16 @@ namespace Microsoft.Azure.DocumentDBStudio
 
             AddMenuItem(string.Format("Read {0}", _resourceType), myMenuItemRead_Click);
 
-            if (_resourceType != ResourceType.Conflict && _resourceType != ResourceType.Offer)
+            if (!isConflict && !isOffer)
             {
                 AddMenuItem(string.Format("Replace {0}", _resourceType), myMenuItemUpdate_Click);
             }
-            if (_resourceType != ResourceType.Offer)
+            if (!isOffer)
             {
                 AddMenuItem(string.Format("Delete {0}", _resourceType), myMenuItemDelete_Click);
             }
 
-            if (_resourceType != ResourceType.Conflict && _resourceType != ResourceType.Offer)
+            if (!isConflict && !isOffer)
             {
                 _contextMenu.MenuItems.Add("-");
 
@@ -86,12 +91,12 @@ namespace Microsoft.Azure.DocumentDBStudio
                 AddMenuItem(string.Format("Copy {0} to clipboard with new id", _resourceType), myMenuItemCopyToClipBoardWithNewId_Click);
             }
 
-            if (_resourceType == ResourceType.Permission)
+            if (isPermission)
             {
                 ImageKey = "Permission";
                 SelectedImageKey = "Permission";
             }
-            else if (_resourceType == ResourceType.Attachment)
+            else if (isAttachment)
             {
                 ImageKey = "Attachment";
                 SelectedImageKey = "Attachment";
@@ -99,23 +104,23 @@ namespace Microsoft.Azure.DocumentDBStudio
                 AddMenuItem("Download media", myMenuItemDownloadMedia_Click);
                 AddMenuItem("Render media", myMenuItemRenderMedia_Click);
             }
-            else if (_resourceType == ResourceType.StoredProcedure || _resourceType == ResourceType.Trigger || _resourceType == ResourceType.UserDefinedFunction)
+            else if (isStoredProcedure || isTrigger || isUserDefinedFunction)
             {
                 ImageKey = "Javascript";
                 SelectedImageKey = "Javascript";
-                if (_resourceType == ResourceType.StoredProcedure)
+                if (isStoredProcedure)
                 {
                     AddMenuItem(string.Format("Execute {0}", _resourceType), myMenuItemExecuteStoredProcedure_Click);
                 }
             }
-            else if (_resourceType == ResourceType.User)
+            else if (isUser)
             {
                 ImageKey = "User";
                 SelectedImageKey = "User";
 
                 Nodes.Add(new PermissionNode(_client));
             }
-            else if (_resourceType == ResourceType.Document)
+            else if (isDocument)
             {
                 Nodes.Add(new TreeNode("Fake"));
 
@@ -124,12 +129,12 @@ namespace Microsoft.Azure.DocumentDBStudio
                 AddMenuItem("Create attachment", myMenuItemCreateAttachment_Click);
                 AddMenuItem("Create attachment from file", myMenuItemAttachmentFromFile_Click);
             }
-            else if (_resourceType == ResourceType.Conflict)
+            else if (isConflict)
             {
                 ImageKey = "Conflict";
                 SelectedImageKey = "Conflict";
             }
-            else if (_resourceType == ResourceType.Offer)
+            else if (isOffer)
             {
                 ImageKey = "Offer";
                 SelectedImageKey = "Offer";
@@ -143,11 +148,11 @@ namespace Microsoft.Azure.DocumentDBStudio
             _contextMenu.MenuItems.Add(menuItem);
         }
 
-        async void myMenuItemCopyIdToClipBoard_Click(object sender, EventArgs eventArg)
+        void myMenuItemCopyIdToClipBoard_Click(object sender, EventArgs eventArg)
         {
             try
             {
-                var clipBoardContent = "";
+                string clipBoardContent;
                 switch (_resourceType)
                 {
                     case ResourceType.StoredProcedure:
@@ -169,13 +174,13 @@ namespace Microsoft.Azure.DocumentDBStudio
             catch { }
         }
         
-        async void myMenuItemCopyToClipBoard_Click(object sender, EventArgs eventArg)
+        void myMenuItemCopyToClipBoard_Click(object sender, EventArgs eventArg)
         {
             var clipBoardContent = GetCurrentObjectContents();
             Clipboard.SetText(clipBoardContent);
         }
 
-        async void myMenuItemCopyToClipBoardWithNewId_Click(object sender, EventArgs eventArg)
+        void myMenuItemCopyToClipBoardWithNewId_Click(object sender, EventArgs eventArg)
         {
             var clipBoardContent = GetCurrentObjectContents();
             clipBoardContent = DocumentHelper.AssignNewIdToDocument(clipBoardContent);
@@ -209,18 +214,18 @@ namespace Microsoft.Azure.DocumentDBStudio
             switch (_resourceType)
             {
                 case ResourceType.StoredProcedure:
-                    Program.GetMain().SetCrudContext(this, OperationType.Replace, _resourceType, (Tag as StoredProcedure).Body, ReplaceResourceAsync);
+                    SetCrudContext(this, OperationType.Replace, _resourceType, (Tag as StoredProcedure).Body, ReplaceResourceAsync);
                     break;
                 case ResourceType.Trigger:
-                    Program.GetMain().SetCrudContext(this, OperationType.Replace, _resourceType, (Tag as Trigger).Body, ReplaceResourceAsync);
+                    SetCrudContext(this, OperationType.Replace, _resourceType, (Tag as Trigger).Body, ReplaceResourceAsync);
                     break;
                 case ResourceType.UserDefinedFunction:
-                    Program.GetMain().SetCrudContext(this, OperationType.Replace, _resourceType, (Tag as UserDefinedFunction).Body, ReplaceResourceAsync);
+                    SetCrudContext(this, OperationType.Replace, _resourceType, (Tag as UserDefinedFunction).Body, ReplaceResourceAsync);
                     break;
                 default:
                     var tag = Tag.ToString();
                     tag = DocumentHelper.RemoveInternalDocumentValues(tag);
-                    Program.GetMain().SetCrudContext(this, OperationType.Replace, _resourceType, tag, ReplaceResourceAsync);
+                    SetCrudContext(this, OperationType.Replace, _resourceType, tag, ReplaceResourceAsync);
                     break;
             }
         }
@@ -241,7 +246,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                         // set the result window
                         var json = JsonConvert.SerializeObject(rr.Resource, Formatting.Indented);
 
-                        Program.GetMain().SetResultInBrowser(json, null, false, rr.ResponseHeaders);
+                        SetResultInBrowser(json, null, false, rr.ResponseHeaders);
                     }
                         break;
                     case ResourceType.Document:
@@ -249,7 +254,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                         var document = (Document)Tag;
                         var collection = (DocumentCollection)Parent.Tag;
 
-                        var requestOptions = Program.GetMain().GetRequestOptions();
+                        var requestOptions = GetRequestOptions();
                         if (collection.PartitionKey != null && collection.PartitionKey.Paths.Count > 0)
                         {
                             requestOptions.PartitionKey = new PartitionKey(DocumentAnalyzer.ExtractPartitionKeyValue(document, collection.PartitionKey));
@@ -264,7 +269,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                         var json = JsonConvert.SerializeObject(rr.Resource, Formatting.Indented);
                         json = DocumentHelper.RemoveInternalDocumentValues(json);
 
-                        Program.GetMain().SetResultInBrowser(json, null, false, rr.ResponseHeaders);
+                        SetResultInBrowser(json, null, false, rr.ResponseHeaders);
                     }
                         break;
                     case ResourceType.Conflict:
@@ -272,12 +277,12 @@ namespace Microsoft.Azure.DocumentDBStudio
                         ResourceResponse<Conflict> rr;
                         using (PerfStatus.Start("ReadConflict"))
                         {
-                            rr = await _client.ReadConflictAsync(((Resource)Tag).GetLink(_client), Program.GetMain().GetRequestOptions());
+                            rr = await _client.ReadConflictAsync(((Resource)Tag).GetLink(_client), GetRequestOptions());
                         }
                         // set the result window
                         var json = JsonConvert.SerializeObject(rr.Resource, Formatting.Indented);
 
-                        Program.GetMain().SetResultInBrowser(json, null, false, rr.ResponseHeaders);
+                        SetResultInBrowser(json, null, false, rr.ResponseHeaders);
                     }
                         break;
                     case ResourceType.Attachment:
@@ -286,7 +291,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                         var document = ((Document)Tag);
                         var collection = ((DocumentCollection)Parent.Tag);
 
-                        var requestOptions = Program.GetMain().GetRequestOptions();
+                        var requestOptions = GetRequestOptions();
                         if (collection.PartitionKey != null && collection.PartitionKey.Paths.Count > 0)
                         {
                             requestOptions.PartitionKey = new PartitionKey(DocumentAnalyzer.ExtractPartitionKeyValue(document, collection.PartitionKey));
@@ -300,7 +305,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                         // set the result window
                         var json = JsonConvert.SerializeObject(rr.Resource, Formatting.Indented);
 
-                        Program.GetMain().SetResultInBrowser(json, null, false, rr.ResponseHeaders);
+                        SetResultInBrowser(json, null, false, rr.ResponseHeaders);
                     }
                         break;
                     case ResourceType.User:
@@ -308,12 +313,12 @@ namespace Microsoft.Azure.DocumentDBStudio
                         ResourceResponse<User> rr;
                         using (PerfStatus.Start("ReadUser"))
                         {
-                            rr = await _client.ReadUserAsync(((Resource)Tag).GetLink(_client), Program.GetMain().GetRequestOptions());
+                            rr = await _client.ReadUserAsync(((Resource)Tag).GetLink(_client), GetRequestOptions());
                         }
                         // set the result window
                         var json = JsonConvert.SerializeObject(rr.Resource, Formatting.Indented);
 
-                        Program.GetMain().SetResultInBrowser(json, null, false, rr.ResponseHeaders);
+                        SetResultInBrowser(json, null, false, rr.ResponseHeaders);
                     }
                         break;
                     case ResourceType.Permission:
@@ -321,12 +326,12 @@ namespace Microsoft.Azure.DocumentDBStudio
                         ResourceResponse<Permission> rr;
                         using (PerfStatus.Start("ReadPermission"))
                         {
-                            rr = await _client.ReadPermissionAsync(((Resource)Tag).GetLink(_client), Program.GetMain().GetRequestOptions());
+                            rr = await _client.ReadPermissionAsync(((Resource)Tag).GetLink(_client), GetRequestOptions());
                         }
                         // set the result window
                         var json = JsonConvert.SerializeObject(rr.Resource, Formatting.Indented);
 
-                        Program.GetMain().SetResultInBrowser(json, null, false, rr.ResponseHeaders);
+                        SetResultInBrowser(json, null, false, rr.ResponseHeaders);
                     }
                         break;
                     case ResourceType.StoredProcedure:
@@ -334,12 +339,12 @@ namespace Microsoft.Azure.DocumentDBStudio
                         ResourceResponse<StoredProcedure> rr;
                         using (PerfStatus.Start("ReadStoredProcedure"))
                         {
-                            rr = await _client.ReadStoredProcedureAsync(((Resource)Tag).GetLink(_client), Program.GetMain().GetRequestOptions());
+                            rr = await _client.ReadStoredProcedureAsync(((Resource)Tag).GetLink(_client), GetRequestOptions());
                         }
                         // set the result window
                         var json = JsonConvert.SerializeObject(rr.Resource, Formatting.Indented);
 
-                        Program.GetMain().SetResultInBrowser(json, null, false, rr.ResponseHeaders);
+                        SetResultInBrowser(json, null, false, rr.ResponseHeaders);
                     }
                         break;
                     case ResourceType.Trigger:
@@ -347,12 +352,12 @@ namespace Microsoft.Azure.DocumentDBStudio
                         ResourceResponse<Trigger> rr;
                         using (PerfStatus.Start("ReadTrigger"))
                         {
-                            rr = await _client.ReadTriggerAsync(((Resource)Tag).GetLink(_client), Program.GetMain().GetRequestOptions());
+                            rr = await _client.ReadTriggerAsync(((Resource)Tag).GetLink(_client), GetRequestOptions());
                         }
                         // set the result window
                         var json = JsonConvert.SerializeObject(rr.Resource, Formatting.Indented);
 
-                        Program.GetMain().SetResultInBrowser(json, null, false, rr.ResponseHeaders);
+                        SetResultInBrowser(json, null, false, rr.ResponseHeaders);
                     }
                         break;
                     case ResourceType.UserDefinedFunction:
@@ -360,12 +365,12 @@ namespace Microsoft.Azure.DocumentDBStudio
                         ResourceResponse<UserDefinedFunction> rr;
                         using (PerfStatus.Start("ReadUDF"))
                         {
-                            rr = await _client.ReadUserDefinedFunctionAsync(((Resource)Tag).GetLink(_client), Program.GetMain().GetRequestOptions());
+                            rr = await _client.ReadUserDefinedFunctionAsync(((Resource)Tag).GetLink(_client), GetRequestOptions());
                         }
                         // set the result window
                         var json = JsonConvert.SerializeObject(rr.Resource, Formatting.Indented);
 
-                        Program.GetMain().SetResultInBrowser(json, null, false, rr.ResponseHeaders);
+                        SetResultInBrowser(json, null, false, rr.ResponseHeaders);
                     }
                         break;
                     default:
@@ -375,11 +380,11 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
             catch (AggregateException e)
             {
-                Program.GetMain().SetResultInBrowser(null, e.InnerException.ToString(), true);
+                SetResultInBrowser(null, e.InnerException.ToString(), true);
             }
             catch (Exception e)
             {
-                Program.GetMain().SetResultInBrowser(null, e.ToString(), true);
+                SetResultInBrowser(null, e.ToString(), true);
             }
         }
 
@@ -393,7 +398,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             };
 
             var bodytext = attachment.ToString();
-            Program.GetMain().SetCrudContext(this, OperationType.Create, _resourceType, bodytext, CreateAttachmentAsync);
+            SetCrudContext(this, OperationType.Create, _resourceType, bodytext, CreateAttachmentAsync);
         }
 
         async void myMenuItemRenderMedia_Click(object sender, EventArgs eventArg)
@@ -433,15 +438,16 @@ namespace Microsoft.Azure.DocumentDBStudio
                     rr.Media.CopyTo(fileStream);
                 }
 
-                Program.GetMain().SetResultInBrowser(null, "It is saved to " + fileName, true);
+                SetResultInBrowser(null, "It is saved to " + fileName, true);
                 Program.GetMain().RenderFile(fileName);
             }
             catch (Exception e)
             {
-                Program.GetMain().SetResultInBrowser(null, e.ToString(), true);
+                SetResultInBrowser(null, e.ToString(), true);
             }
         }
 
+  
         async void myMenuItemDownloadMedia_Click(object sender, EventArgs eventArg)
         {
             var attachment = Tag as Attachment;
@@ -471,11 +477,11 @@ namespace Microsoft.Azure.DocumentDBStudio
                     {
                         rr.Media.CopyTo(fileStream);
                     }
-                    Program.GetMain().SetResultInBrowser(null, "It is saved to " + saveFile, true);
+                    SetResultInBrowser(null, "It is saved to " + saveFile, true);
                 }
                 catch (Exception e)
                 {
-                    Program.GetMain().SetResultInBrowser(null, e.ToString(), true);
+                    SetResultInBrowser(null, e.ToString(), true);
                 }
             }
         }
@@ -510,7 +516,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                         var document = ((Document)Tag);
                         var collection = ((DocumentCollection)Parent.Tag);
 
-                        var requestOptions = Program.GetMain().GetRequestOptions();
+                        var requestOptions = GetRequestOptions();
                         if (collection.PartitionKey != null && collection.PartitionKey.Paths.Count > 0)
                         {
                             requestOptions.PartitionKey = new PartitionKey(DocumentAnalyzer.ExtractPartitionKeyValue(document, collection.PartitionKey));
@@ -524,21 +530,21 @@ namespace Microsoft.Azure.DocumentDBStudio
 
                         var json = rr.Resource.ToString();
 
-                        Program.GetMain().SetResultInBrowser(json, null, false, rr.ResponseHeaders);
+                        SetResultInBrowser(json, null, false, rr.ResponseHeaders);
 
                         Nodes.Add(new ResourceNode(_client, rr.Resource, ResourceType.Attachment));
                     }
                 }
                 catch (Exception e)
                 {
-                    Program.GetMain().SetResultInBrowser(null, e.ToString(), true);
+                    SetResultInBrowser(null, e.ToString(), true);
                 }
             }
         }
 
         void myMenuItemExecuteStoredProcedure_Click(object sender, EventArgs e)
         {
-            Program.GetMain().SetCrudContext(this, OperationType.Execute, _resourceType,
+            SetCrudContext(this, OperationType.Execute, _resourceType,
                 "Here is the input parameters to the storedProcedure. Input each parameter as one line without quotation mark.", ExecuteStoredProcedureAsync);
         }
 
@@ -547,7 +553,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             var x = Tag.ToString();
             var context = new CommandContext();
             context.IsDelete = true;
-            Program.GetMain().SetCrudContext(this, OperationType.Delete, _resourceType, x, DeleteResourceAsync, context);
+            SetCrudContext(this, OperationType.Delete, _resourceType, x, DeleteResourceAsync, context);
         }
 
         async void CreateAttachmentAsync(object resource, RequestOptions requestOptions)
@@ -565,17 +571,17 @@ namespace Microsoft.Azure.DocumentDBStudio
                 }
                 var json = rr.Resource.ToString();
 
-                Program.GetMain().SetResultInBrowser(json, null, false, rr.ResponseHeaders);
+                SetResultInBrowser(json, null, false, rr.ResponseHeaders);
 
                 Nodes.Add(new ResourceNode(_client, rr.Resource, ResourceType.Attachment));
             }
             catch (AggregateException e)
             {
-                Program.GetMain().SetResultInBrowser(null, e.InnerException.ToString(), true);
+                SetResultInBrowser(null, e.InnerException.ToString(), true);
             }
             catch (Exception e)
             {
-                Program.GetMain().SetResultInBrowser(null, e.ToString(), true);
+                SetResultInBrowser(null, e.ToString(), true);
             }
         }
 
@@ -616,16 +622,16 @@ namespace Microsoft.Azure.DocumentDBStudio
                 }
                 string executeResult = rr.Response.ToString();
 
-                Program.GetMain().SetResultInBrowser(null, executeResult, true, rr.ResponseHeaders);
+                SetResultInBrowser(null, executeResult, true, rr.ResponseHeaders);
 
             }
             catch (AggregateException e)
             {
-                Program.GetMain().SetResultInBrowser(null, e.InnerException.ToString(), true);
+                SetResultInBrowser(null, e.InnerException.ToString(), true);
             }
             catch (Exception e)
             {
-                Program.GetMain().SetResultInBrowser(null, e.ToString(), true);
+                SetResultInBrowser(null, e.ToString(), true);
             }
         }
 
@@ -650,7 +656,7 @@ namespace Microsoft.Azure.DocumentDBStudio
 
                     Text = DocumentHelper.GetDisplayText(rr.Resource);
                     // set the result window
-                    Program.GetMain().SetResultInBrowser(DocumentHelper.RemoveInternalDocumentValues(json), null, false, rr.ResponseHeaders);
+                    SetResultInBrowser(DocumentHelper.RemoveInternalDocumentValues(json), null, false, rr.ResponseHeaders);
                 }
                 else if (_resourceType == ResourceType.StoredProcedure)
                 {
@@ -667,7 +673,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                     Tag = rr.Resource;
                     Text = rr.Resource.Id;
                     // set the result window
-                    Program.GetMain().SetResultInBrowser(json, null, false, rr.ResponseHeaders);
+                    SetResultInBrowser(json, null, false, rr.ResponseHeaders);
                 }
                 else if (_resourceType == ResourceType.User)
                 {
@@ -683,7 +689,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                     Tag = rr.Resource;
                     Text = rr.Resource.Id;
                     // set the result window
-                    Program.GetMain().SetResultInBrowser(json, null, false, rr.ResponseHeaders);
+                    SetResultInBrowser(json, null, false, rr.ResponseHeaders);
                 }
                 else if (_resourceType == ResourceType.Trigger)
                 {
@@ -700,7 +706,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                     Tag = rr.Resource;
                     Text = rr.Resource.Id;
                     // set the result window
-                    Program.GetMain().SetResultInBrowser(json, null, false, rr.ResponseHeaders);
+                    SetResultInBrowser(json, null, false, rr.ResponseHeaders);
                 }
                 else if (_resourceType == ResourceType.UserDefinedFunction)
                 {
@@ -717,7 +723,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                     Tag = rr.Resource;
                     Text = rr.Resource.Id;
                     // set the result window
-                    Program.GetMain().SetResultInBrowser(json, null, false, rr.ResponseHeaders);
+                    SetResultInBrowser(json, null, false, rr.ResponseHeaders);
                 }
                 else if (_resourceType == ResourceType.Permission)
                 {
@@ -733,7 +739,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                     Tag = rr.Resource;
                     Text = rr.Resource.Id;
                     // set the result window
-                    Program.GetMain().SetResultInBrowser(json, null, false, rr.ResponseHeaders);
+                    SetResultInBrowser(json, null, false, rr.ResponseHeaders);
                 }
                 else if (_resourceType == ResourceType.Attachment)
                 {
@@ -759,16 +765,16 @@ namespace Microsoft.Azure.DocumentDBStudio
                     Tag = rr.Resource;
                     Text = rr.Resource.Id;
                     // set the result window
-                    Program.GetMain().SetResultInBrowser(json, null, false, rr.ResponseHeaders);
+                    SetResultInBrowser(json, null, false, rr.ResponseHeaders);
                 }
             }
             catch (AggregateException e)
             {
-                Program.GetMain().SetResultInBrowser(null, e.InnerException.ToString(), true);
+                SetResultInBrowser(null, e.InnerException.ToString(), true);
             }
             catch (Exception e)
             {
-                Program.GetMain().SetResultInBrowser(null, e.ToString(), true);
+                SetResultInBrowser(null, e.ToString(), true);
             }
         }
 
@@ -792,7 +798,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                         rr = await _client.DeleteDocumentAsync(doc.GetLink(_client), requestOptions);
                     }
 
-                    Program.GetMain().SetResultInBrowser(null, "Delete Document succeed!", false, rr.ResponseHeaders);
+                    SetResultInBrowser(null, "Delete Document succeed!", false, rr.ResponseHeaders);
                 }
                 else if (_resourceType == ResourceType.StoredProcedure)
                 {
@@ -802,7 +808,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                     {
                         rr = await _client.DeleteStoredProcedureAsync(sp.GetLink(_client), requestOptions);
                     }
-                    Program.GetMain().SetResultInBrowser(null, "Delete StoredProcedure succeed!", false, rr.ResponseHeaders);
+                    SetResultInBrowser(null, "Delete StoredProcedure succeed!", false, rr.ResponseHeaders);
                 }
                 else if (_resourceType == ResourceType.User)
                 {
@@ -812,7 +818,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                     {
                         rr = await _client.DeleteUserAsync(sp.GetLink(_client), requestOptions);
                     }
-                    Program.GetMain().SetResultInBrowser(null, "Delete User succeed!", false, rr.ResponseHeaders);
+                    SetResultInBrowser(null, "Delete User succeed!", false, rr.ResponseHeaders);
                 }
                 else if (_resourceType == ResourceType.Trigger)
                 {
@@ -822,7 +828,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                     {
                         rr = await _client.DeleteTriggerAsync(sp.GetLink(_client), requestOptions);
                     }
-                    Program.GetMain().SetResultInBrowser(null, "Delete Trigger succeed!", false, rr.ResponseHeaders);
+                    SetResultInBrowser(null, "Delete Trigger succeed!", false, rr.ResponseHeaders);
                 }
                 else if (_resourceType == ResourceType.UserDefinedFunction)
                 {
@@ -832,7 +838,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                     {
                         rr = await _client.DeleteUserDefinedFunctionAsync(sp.GetLink(_client), requestOptions);
                     }
-                    Program.GetMain().SetResultInBrowser(null, "Delete UserDefinedFunction succeed!", false, rr.ResponseHeaders);
+                    SetResultInBrowser(null, "Delete UserDefinedFunction succeed!", false, rr.ResponseHeaders);
                 }
                 else if (_resourceType == ResourceType.Permission)
                 {
@@ -842,7 +848,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                     {
                         rr = await _client.DeletePermissionAsync(sp.GetLink(_client), requestOptions);
                     }
-                    Program.GetMain().SetResultInBrowser(null, "Delete Permission succeed!", false, rr.ResponseHeaders);
+                    SetResultInBrowser(null, "Delete Permission succeed!", false, rr.ResponseHeaders);
                 }
                 else if (_resourceType == ResourceType.Attachment)
                 {
@@ -862,7 +868,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                         rr = await _client.DeleteAttachmentAsync(sp.GetLink(_client), requestOptions);
                     }
 
-                    Program.GetMain().SetResultInBrowser(null, "Delete Attachment succeed!", false, rr.ResponseHeaders);
+                    SetResultInBrowser(null, "Delete Attachment succeed!", false, rr.ResponseHeaders);
                 }
                 else if (_resourceType == ResourceType.Conflict)
                 {
@@ -872,7 +878,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                     {
                         rr = await _client.DeleteConflictAsync(sp.GetLink(_client), requestOptions);
                     }
-                    Program.GetMain().SetResultInBrowser(null, "Delete Conflict succeed!", false, rr.ResponseHeaders);
+                    SetResultInBrowser(null, "Delete Conflict succeed!", false, rr.ResponseHeaders);
                 }
                 // Remove the node.
                 Remove();
@@ -880,11 +886,11 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
             catch (AggregateException e)
             {
-                Program.GetMain().SetResultInBrowser(null, e.InnerException.ToString(), true);
+                SetResultInBrowser(null, e.InnerException.ToString(), true);
             }
             catch (Exception e)
             {
-                Program.GetMain().SetResultInBrowser(null, e.ToString(), true);
+                SetResultInBrowser(null, e.ToString(), true);
             }
         }
 
@@ -930,6 +936,22 @@ namespace Microsoft.Azure.DocumentDBStudio
             return body;
         }
 
+        private void SetResultInBrowser(string json, string text, bool executeButtonEnabled, NameValueCollection responseHeaders = null)
+        {
+            Program.GetMain().SetResultInBrowser(json, text, executeButtonEnabled, responseHeaders);
+        }
+
+        private RequestOptions GetRequestOptions()
+        {
+            return Program.GetMain().GetRequestOptions();
+        }
+
+        private void SetCrudContext(TreeNode node, OperationType operation, ResourceType resourceType, string bodytext,
+            Action<object, RequestOptions> func, CommandContext commandContext = null)
+        {
+            Program.GetMain().SetCrudContext(node, operation, resourceType, bodytext, func, commandContext);
+        }
+
         public void FillWithChildren()
         {
             try
@@ -959,11 +981,11 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
             catch (AggregateException e)
             {
-                Program.GetMain().SetResultInBrowser(null, e.InnerException.ToString(), true);
+                SetResultInBrowser(null, e.InnerException.ToString(), true);
             }
             catch (Exception e)
             {
-                Program.GetMain().SetResultInBrowser(null, e.ToString(), true);
+                SetResultInBrowser(null, e.ToString(), true);
             }
         }
     }

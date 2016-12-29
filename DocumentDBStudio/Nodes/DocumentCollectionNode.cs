@@ -35,57 +35,29 @@ namespace Microsoft.Azure.DocumentDBStudio
             Nodes.Add(new TriggerNode(_client));
             Nodes.Add(new ConflictNode(_client));
 
-            {
-                var menuItem = new MenuItem("Read DocumentCollection");
-                menuItem.Click += myMenuItemReadDocumentCollection_Click;
-                _contextMenu.MenuItems.Add(menuItem);
-            }
-            {
-                var menuItem = new MenuItem("Replace DocumentCollection");
-                menuItem.Click += myMenuItemReplaceDocumentCollection_Click;
-                _contextMenu.MenuItems.Add(menuItem);
-            }
-            {
-                var menuItem = new MenuItem("Delete DocumentCollection");
-                menuItem.Click += myMenuItemDeleteDocumentCollection_Click;
-                _contextMenu.MenuItems.Add(menuItem);
-            }
+            AddMenuItem("Read DocumentCollection", myMenuItemReadDocumentCollection_Click);
+            AddMenuItem("Replace DocumentCollection", myMenuItemReplaceDocumentCollection_Click);
+            AddMenuItem("Delete DocumentCollection", myMenuItemDeleteDocumentCollection_Click);
+
             _contextMenu.MenuItems.Add("-");
-            {
-                var menuItem = new MenuItem("Create Document");
-                menuItem.Click += myMenuItemCreateDocument_Click;
-                _contextMenu.MenuItems.Add(menuItem);
-            }
-            {
-                var menuItem = new MenuItem("Create Document with prefilled id");
-                menuItem.Click += myMenuItemCreateDocumentWithId_Click;
-                _contextMenu.MenuItems.Add(menuItem);
-            }
-            {
-                var menuItem = new MenuItem("Create Document From File");
-                menuItem.Click += myMenuItemCreateDocumentFromFile_Click;
-                _contextMenu.MenuItems.Add(menuItem);
-            }
-            {
-                var menuItem = new MenuItem("Create Multiple Documents From Folder");
-                menuItem.Click += myMenuItemCreateDocumentsFromFolder_Click;
-                _contextMenu.MenuItems.Add(menuItem);
-            }
+            
+            AddMenuItem("Create Document", myMenuItemCreateDocument_Click);
+            AddMenuItem("Create Document with prefilled id", myMenuItemCreateDocumentWithId_Click);
+            AddMenuItem("Create Document From File", myMenuItemCreateDocumentFromFile_Click);
+            AddMenuItem("Create Multiple Documents From Folder", myMenuItemCreateDocumentsFromFolder_Click);
 
             _contextMenu.MenuItems.Add("-");
 
-            {
-                var menuItem = new MenuItem("Refresh Documents feed");
-                menuItem.Click += (sender, e) => Refresh(true);
-                _contextMenu.MenuItems.Add(menuItem);
-            }
-            {
-                var menuItem = new MenuItem("Query Documents");
-                menuItem.Click += myMenuItemQueryDocument_Click;
-                _contextMenu.MenuItems.Add(menuItem);
-            }
+            AddMenuItem("Refresh Documents feed", (sender, e) => Refresh(true));
+            AddMenuItem("Query Documents", myMenuItemQueryDocument_Click);
         }
 
+        private void AddMenuItem(string menuItemText, EventHandler eventHandler)
+        {
+            var menuItem = new MenuItem(menuItemText);
+            menuItem.Click += eventHandler;
+            _contextMenu.MenuItems.Add(menuItem);
+        }
         async void myMenuItemReadDocumentCollection_Click(object sender, EventArgs eArgs)
         {
             try

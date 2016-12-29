@@ -29,43 +29,23 @@ namespace Microsoft.Azure.DocumentDBStudio
             Tag = "This represents the DatabaseAccount. Right click to add Database";
 
             Nodes.Add(new OfferNode(_client));
-            {
-                var menuItem = new MenuItem("Read DatabaseAccount");
-                menuItem.Click += myMenuItemReadDatabaseAccount_Click;
-                _contextMenu.MenuItems.Add(menuItem);
-            }
 
-            {
-                var menuItem = new MenuItem("Create Database");
-                menuItem.Click += myMenuItemCreateDatabase_Click;
-                _contextMenu.MenuItems.Add(menuItem);
-            }
-
-            {
-                var menuItem = new MenuItem("Refresh Databases feed");
-                menuItem.Click += (sender, e) => Refresh(true);
-                _contextMenu.MenuItems.Add(menuItem);
-            }
-
-            {
-                var menuItem = new MenuItem("Query Database");
-                menuItem.Click += myMenuItemQueryDatabase_Click;
-                _contextMenu.MenuItems.Add(menuItem);
-            }
+            AddMenuItem("Read DatabaseAccount", myMenuItemReadDatabaseAccount_Click);
+            AddMenuItem("Create Database", myMenuItemCreateDatabase_Click);
+            AddMenuItem("Refresh Databases feed", (sender, e) => Refresh(true));
+            AddMenuItem("Query Database", myMenuItemQueryDatabase_Click);
 
             _contextMenu.MenuItems.Add("-");
 
-            {
-                var menuItem = new MenuItem("Remove setting");
-                menuItem.Click += myMenuItemRemoveDatabaseAccount_Click;
-                _contextMenu.MenuItems.Add(menuItem);
-            }
+            AddMenuItem("Remove setting", myMenuItemRemoveDatabaseAccount_Click);
+            AddMenuItem("Change setting", myMenuItemChangeSetting_Click);
+        }
 
-            {
-                var menuItem = new MenuItem("Change setting");
-                menuItem.Click += myMenuItemChangeSetting_Click;
-                _contextMenu.MenuItems.Add(menuItem);
-            }
+        private void AddMenuItem(string menuItemText, EventHandler eventHandler)
+        {
+            var menuItem = new MenuItem(menuItemText);
+            menuItem.Click += eventHandler;
+            _contextMenu.MenuItems.Add(menuItem);
         }
 
         void myMenuItemChangeSetting_Click(object sender, EventArgs e)

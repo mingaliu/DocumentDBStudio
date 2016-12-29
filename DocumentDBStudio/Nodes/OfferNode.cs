@@ -22,8 +22,13 @@ namespace Microsoft.Azure.DocumentDBStudio
             ImageKey = "Offer";
             SelectedImageKey = "Offer";
 
-            var menuItem = new MenuItem("Refresh Offer feed");
-            menuItem.Click += (sender, e) => Refresh(true);
+            AddMenuItem("Refresh Offer feed", (sender, e) => Refresh(true));
+        }
+
+        private void AddMenuItem(string menuItemText, EventHandler eventHandler)
+        {
+            var menuItem = new MenuItem(menuItemText);
+            menuItem.Click += eventHandler;
             _contextMenu.MenuItems.Add(menuItem);
         }
 

@@ -22,24 +22,25 @@ namespace Microsoft.Azure.DocumentDBStudio
             ImageKey = "Permission";
             SelectedImageKey = "Permission";
 
-            {
-                var menuItem = new MenuItem("Create Permission");
-                menuItem.Click += myMenuItemCreatePermission_Click;
-                _contextMenu.MenuItems.Add(menuItem);
-            }
-            {
-                var menuItem = new MenuItem("Refresh Permissions feed");
-                menuItem.Click += (sender, e) => Refresh(true);
-                _contextMenu.MenuItems.Add(menuItem);
-            }
+            AddMenuItem("Create Permission", myMenuItemCreatePermission_Click);
+            AddMenuItem("Refresh Permissions feed", (sender, e) => Refresh(true));
+        }
+
+        private void AddMenuItem(string menuItemText, EventHandler eventHandler)
+        {
+            var menuItem = new MenuItem(menuItemText);
+            menuItem.Click += eventHandler;
+            _contextMenu.MenuItems.Add(menuItem);
         }
 
         void myMenuItemCreatePermission_Click(object sender, EventArgs e)
         {
-            var permission = new Permission();
-            permission.Id = "Here is your permission Id";
-            permission.PermissionMode = PermissionMode.Read;
-            permission.ResourceLink = "your resource link";
+            var permission = new Permission
+            {
+                Id = "Here is your permission Id",
+                PermissionMode = PermissionMode.Read,
+                ResourceLink = "your resource link"
+            };
 
             var bodytext = permission.ToString();
 

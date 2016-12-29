@@ -27,38 +27,21 @@ namespace Microsoft.Azure.DocumentDBStudio
 
             Nodes.Add(new UserNode(_client));
 
-            {
-                var menuItem = new MenuItem("Read Database");
-                menuItem.Click += myMenuItemReadDatabase_Click;
-                _contextMenu.MenuItems.Add(menuItem);
-            }
-
-            {
-                var menuItem = new MenuItem("Delete Database");
-                menuItem.Click += myMenuItemDeleteDatabase_Click;
-                _contextMenu.MenuItems.Add(menuItem);
-            }
+            AddMenuItem("Read Database", myMenuItemReadDatabase_Click);
+            AddMenuItem("Delete Database", myMenuItemDeleteDatabase_Click);
 
             _contextMenu.MenuItems.Add("-");
 
-            {
-                var menuItem = new MenuItem("Create DocumentCollection");
-                menuItem.Click += myMenuItemCreateDocumentCollection_Click;
-                _contextMenu.MenuItems.Add(menuItem);
-            }
+            AddMenuItem("Create DocumentCollection", myMenuItemCreateDocumentCollection_Click);
+            AddMenuItem("Refresh DocumentCollections Feed", (sender, e) => Refresh(true));
+            AddMenuItem("Query DocumentCollections", myMenuItemQueryDocumentCollection_Click);
+        }
 
-            {
-                var menuItem = new MenuItem("Refresh DocumentCollections Feed");
-                menuItem.Click += (sender, e) => Refresh(true);
-                _contextMenu.MenuItems.Add(menuItem);
-            }
-
-            {
-                var menuItem = new MenuItem("Query DocumentCollections");
-                menuItem.Click += myMenuItemQueryDocumentCollection_Click;
-                _contextMenu.MenuItems.Add(menuItem);
-            }
-
+        private void AddMenuItem(string menuItemText, EventHandler eventHandler)
+        {
+            var menuItem = new MenuItem(menuItemText);
+            menuItem.Click += eventHandler;
+            _contextMenu.MenuItems.Add(menuItem);
         }
 
         async void myMenuItemReadDatabase_Click(object sender, EventArgs eArgs)

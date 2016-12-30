@@ -377,10 +377,12 @@ namespace Microsoft.Azure.DocumentDBStudio
 
                 using (PerfStatus.Start("ReadDocumentFeed"))
                 {
-                    var feedReader = _client.CreateDocumentFeedReader(((DocumentCollection)Tag).GetLink(_client), new FeedOptions { EnableCrossPartitionQuery = true });
+                    IDocumentQuery<dynamic> feedReader = _client.CreateDocumentQuery((Tag as DocumentCollection).GetLink(_client), "Select * from c", 
+                        new FeedOptions { EnableCrossPartitionQuery = true }).AsDocumentQuery();
+
                     while (feedReader.HasMoreResults && docs.Count() < 100)
                     {
-                        var response = feedReader.ExecuteNextAsync().Result;
+                        FeedResponse<Document> response = feedReader.ExecuteNextAsync<Document>().Result;
                         docs.AddRange(response);
 
                         responseHeaders = response.ResponseHeaders;

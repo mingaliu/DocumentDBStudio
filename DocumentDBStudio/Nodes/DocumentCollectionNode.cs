@@ -21,9 +21,11 @@ namespace Microsoft.Azure.DocumentDBStudio
         private readonly ContextMenu _contextMenu = new ContextMenu();
         private string _currentContinuation = null;
         private CommandContext _currentQueryCommandContext = null;
+        private string _databaseId;
 
-        public DocumentCollectionNode(DocumentClient client, DocumentCollection coll)
+        public DocumentCollectionNode(DocumentClient client, DocumentCollection coll, string databaseId)
         {
+            _databaseId = databaseId; 
             Text = coll.Id;
             Tag = coll;
             _client = client;
@@ -240,15 +242,20 @@ namespace Microsoft.Azure.DocumentDBStudio
             try
             {
                 var document = JsonConvert.DeserializeObject(resource as string);
+                var dc = Tag as DocumentCollection;
+                var dcId = dc.Id;
 
                 ResourceResponse<Document> newdocument;
                 using (PerfStatus.Start("CreateDocument"))
                 {
-                    newdocument = await _client.CreateDocumentAsync((Tag as DocumentCollection).GetLink(_client), document, requestOptions);
+                    newdocument = await _client.CreateDocumentAsync(dc.GetLink(_client), document, requestOptions);
                 }
 
+                var hostName = _client.ServiceEndpoint.Host;
+                var displayText = DocumentHelper.GetDisplayText(newdocument.Resource, hostName, dcId, _databaseId);
+
                 Nodes.Add(
-                    new ResourceNode(_client, newdocument.Resource, ResourceType.Document, ((DocumentCollection)Tag).PartitionKey, DocumentHelper.GetDisplayText(newdocument.Resource))
+                    new ResourceNode(_client, newdocument.Resource, ResourceType.Document, dc.PartitionKey, displayText)
                 );
 
                 // set the result window
@@ -374,10 +381,14 @@ namespace Microsoft.Azure.DocumentDBStudio
             {
                 var docs = new List<dynamic>();
                 NameValueCollection responseHeaders = null;
+                var dc = (DocumentCollection)Tag;
+                var dcId = dc.Id;
 
                 using (PerfStatus.Start("ReadDocumentFeed"))
                 {
-                    var feedReader = _client.CreateDocumentFeedReader(((DocumentCollection)Tag).GetLink(_client), new FeedOptions { EnableCrossPartitionQuery = true });
+                    var link = dc.GetLink(_client);
+
+                    var feedReader = _client.CreateDocumentFeedReader(link, new FeedOptions { EnableCrossPartitionQuery = true });
                     while (feedReader.HasMoreResults && docs.Count() < 100)
                     {
                         var response = feedReader.ExecuteNextAsync().Result;
@@ -387,8 +398,11 @@ namespace Microsoft.Azure.DocumentDBStudio
                     }
                 }
 
+                //var listDisplayCollectionsForHost = SettingsProvider.CustomDocumentListDisplayCollection.FindAll(s => s.HostName == host);
+                var host = _client.ServiceEndpoint.Host;
+
                 string customDocumentDisplayIdentifier;
-                var useCustom = DocumentHelper.GetCustomDocumentDisplayIdentifier(docs, out customDocumentDisplayIdentifier);
+                var useCustom = DocumentHelper.GetCustomDocumentDisplayIdentifier(docs, host, dc.Id, _databaseId, out customDocumentDisplayIdentifier);
 
                 DocumentHelper.SortDocuments(useCustom, docs, customDocumentDisplayIdentifier);
 
@@ -397,12 +411,12 @@ namespace Microsoft.Azure.DocumentDBStudio
                     if (useCustom)
                     {
                         var displayText = DocumentHelper.GetDisplayText(true, doc, customDocumentDisplayIdentifier);
-                        var node = new ResourceNode(_client, doc, ResourceType.Document, ((DocumentCollection)Tag).PartitionKey, displayText);
+                        var node = new ResourceNode(_client, doc, ResourceType.Document, dc.PartitionKey, displayText, dataBaseId: _databaseId, documentCollectionId: dcId);
                         Nodes.Add(node);
                     }
                     else
                     {
-                        var node = new ResourceNode(_client, doc, ResourceType.Document, ((DocumentCollection) Tag).PartitionKey);
+                        var node = new ResourceNode(_client, doc, ResourceType.Document, dc.PartitionKey, dataBaseId: _databaseId, documentCollectionId: dcId);
                         Nodes.Add(node);
                     }
                 }

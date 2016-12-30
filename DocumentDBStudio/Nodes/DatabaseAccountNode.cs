@@ -116,14 +116,7 @@ namespace Microsoft.Azure.DocumentDBStudio
 
                 // set the result window
                 string text = null;
-                if (r.Count > 1)
-                {
-                    text = string.Format(CultureInfo.InvariantCulture, "Returned {0} dataqbases", r.Count);
-                }
-                else
-                {
-                    text = string.Format(CultureInfo.InvariantCulture, "Returned {0} dataqbases", r.Count);
-                }
+                text = string.Format(CultureInfo.InvariantCulture, "Returned {0} database(s)", r.Count);
 
                 var jsonarray = "[";
                 var index = 0;

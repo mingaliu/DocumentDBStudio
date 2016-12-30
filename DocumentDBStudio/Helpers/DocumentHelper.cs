@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Azure.DocumentDBStudio.Models;
 using Microsoft.Azure.DocumentDBStudio.Properties;
+using Microsoft.Azure.DocumentDBStudio.Providers;
 using Microsoft.Azure.Documents;
 using Newtonsoft.Json.Linq;
 
@@ -9,7 +11,7 @@ namespace Microsoft.Azure.DocumentDBStudio.Helpers
 {
     static class DocumentHelper
     {
-
+        private static DocumentPatternParser _documentPatternParser = new DocumentPatternParser();
         public static string AssignNewIdToDocument(string json)
         {
             try
@@ -48,19 +50,45 @@ namespace Microsoft.Azure.DocumentDBStudio.Helpers
             return json;
         }
 
-        public static bool GetCustomDocumentDisplayIdentifier(List<dynamic> docs, out string custom)
+        private static CustomDocumentListDisplay FindCustomDocumentListDisplay(string hostName, string databaseId, string documentCollectionId)
         {
-            custom = null;
+            CustomDocumentListDisplay customListDisplay = null;
+            var customDocumentListDisplayCollectionForHost = SettingsProvider.CustomDocumentListDisplayCollection.Find(s => s.HostName == hostName);
+
+            if (customDocumentListDisplayCollectionForHost != null && customDocumentListDisplayCollectionForHost.Items.Count > 0)
+            {
+                customListDisplay = customDocumentListDisplayCollectionForHost.Items.Find(i => i.DocumentCollectionId == documentCollectionId && i.DatabaseId == databaseId);
+            }
+            return customListDisplay;
+        }
+
+        public static bool GetCustomDocumentDisplayIdentifier(List<dynamic> docs, string hostName, string documentCollectionId, string databaseId, out string customDisplayPattern)
+        {
+
+            var customListDisplay = FindCustomDocumentListDisplay(hostName, databaseId, documentCollectionId);
+            customDisplayPattern = null;
+
             try
             {
-                custom = Properties.Settings.Default.CustomDocumentDisplayIdentifier;
-                if (!string.IsNullOrWhiteSpace(custom))
+                string testField;
+
+                if (customListDisplay != null)
+                {
+                    customDisplayPattern = customListDisplay.DisplayPattern;
+                    testField = customListDisplay.SortBy;
+                }
+                else
+                {
+                    customDisplayPattern = Settings.Default.CustomDocumentDisplayIdentifier;
+                    testField = customDisplayPattern;
+                }
+                if (!string.IsNullOrWhiteSpace(testField))
                 {
                     var useCustom = false;
                     var firstDoc = docs.First();
                     try
                     {
-                        var name = firstDoc.GetPropertyValue<string>(custom);
+                        var name = firstDoc.GetPropertyValue<string>(testField);
                         useCustom = true;
                     }
                     catch (Exception ex)
@@ -69,7 +97,10 @@ namespace Microsoft.Azure.DocumentDBStudio.Helpers
                     return useCustom;
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                var m = ex;
+            }
             return false;
         }
 
@@ -87,10 +118,10 @@ namespace Microsoft.Azure.DocumentDBStudio.Helpers
             }
         }
 
-        public static string GetDisplayText(dynamic doc)
+        public static string GetDisplayText(dynamic doc, string hostName, string documentCollectionId, string dbId)
         {
             string customDocumentDisplayIdentifier;
-            var useCustom = GetCustomDocumentDisplayIdentifier(new List<dynamic> {doc}, out customDocumentDisplayIdentifier);
+            var useCustom = GetCustomDocumentDisplayIdentifier(new List<dynamic> {doc}, hostName, documentCollectionId, dbId, out customDocumentDisplayIdentifier);
             return GetDisplayText(useCustom, doc, customDocumentDisplayIdentifier);
         }
 
@@ -100,7 +131,15 @@ namespace Microsoft.Azure.DocumentDBStudio.Helpers
             {
                 try
                 {
-                    var val = doc.GetPropertyValue<string>(customDocumentDisplayIdentifier);
+                    string val;
+                    if (customDocumentDisplayIdentifier.Contains("{") && customDocumentDisplayIdentifier.Contains("}"))
+                    {
+                        val = _documentPatternParser.ParsePattern(customDocumentDisplayIdentifier, doc);
+                    }
+                    else
+                    {
+                        val = doc.GetPropertyValue<string>(customDocumentDisplayIdentifier);
+                    }
                     if (!string.IsNullOrWhiteSpace(val))
                     {
                         return string.Format("{0} [{1}]", val, doc.id);

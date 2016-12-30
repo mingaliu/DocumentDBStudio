@@ -1,7 +1,3 @@
-//-----------------------------------------------------------------------------
-// Copyright (c) Microsoft Corporation.  All rights reserved.
-//-----------------------------------------------------------------------------
-
 using System;
 using System.Net;
 using System.Windows.Forms;
@@ -18,7 +14,7 @@ namespace Microsoft.Azure.DocumentDBStudio
         static void Main()
         {
             ServicePointManager.DefaultConnectionLimit = 1000;
-            
+
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Program._mainForm = new MainForm();

@@ -6,6 +6,7 @@ using System.IO;
 using System.Text;
 using System.Windows.Forms;
 using Microsoft.Azure.DocumentDBStudio.Helpers;
+using Microsoft.Azure.DocumentDBStudio.Providers;
 using Microsoft.Azure.Documents;
 using Microsoft.Azure.Documents.Client;
 using Newtonsoft.Json;
@@ -18,9 +19,21 @@ namespace Microsoft.Azure.DocumentDBStudio
         private readonly DocumentClient _client;
         private readonly ContextMenu _contextMenu = new ContextMenu();
         private readonly ResourceType _resourceType = 0;
+        private readonly string _databaseId;
+        private readonly string _documentCollectionId;
 
-        public ResourceNode(DocumentClient client, dynamic document, ResourceType resoureType, PartitionKeyDefinition partitionKey = null, string nodeText = null)
+        public ResourceNode(
+            DocumentClient client, 
+            dynamic document, 
+            ResourceType resoureType, 
+            PartitionKeyDefinition partitionKey = null, 
+            string nodeText = null,
+            string dataBaseId = null,
+            string documentCollectionId = null
+        )
         {
+            _databaseId = dataBaseId;
+            _documentCollectionId = documentCollectionId;
             _resourceType = resoureType;
             var docAsResource = (document as Resource);
             var isDocument = _resourceType == ResourceType.Document;
@@ -403,7 +416,6 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         async void myMenuItemRenderMedia_Click(object sender, EventArgs eventArg)
         {
-            var appTempPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DocumentDBStudio");
             var guidFileName = Guid.NewGuid().ToString();
             string fileName;
 
@@ -425,7 +437,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 fileName = guidFileName + ".txt";
             }
 
-            fileName = Path.Combine(appTempPath, fileName);
+            fileName = Path.Combine(SystemInfoProvider.LocalApplicationDataPath, fileName);
             try
             {
                 MediaResponse rr;
@@ -550,10 +562,9 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         void myMenuItemDelete_Click(object sender, EventArgs e)
         {
-            var x = Tag.ToString();
-            var context = new CommandContext();
-            context.IsDelete = true;
-            SetCrudContext(this, OperationType.Delete, _resourceType, x, DeleteResourceAsync, context);
+            var bodytext = Tag.ToString();
+            var context = new CommandContext {IsDelete = true};
+            SetCrudContext(this, OperationType.Delete, _resourceType, bodytext, DeleteResourceAsync, context);
         }
 
         async void CreateAttachmentAsync(object resource, RequestOptions requestOptions)
@@ -644,8 +655,10 @@ namespace Microsoft.Azure.DocumentDBStudio
                 {
                     var text = resource as string;
                     var doc = (Document)JsonConvert.DeserializeObject(text, typeof(Document));
-                    doc.SetReflectedPropertyValue("AltLink", (Tag as Document).GetAltLink());
+                    var tagAsDoc = (Tag as Document);
+                    doc.SetReflectedPropertyValue("AltLink", tagAsDoc.GetAltLink());
                     ResourceResponse<Document> rr;
+                    var hostName = _client.ServiceEndpoint.Host;
                     using (PerfStatus.Start("ReplaceDocument"))
                     {
                         rr = await _client.ReplaceDocumentAsync(doc.GetLink(_client), doc, requestOptions);
@@ -654,7 +667,7 @@ namespace Microsoft.Azure.DocumentDBStudio
 
                     Tag = rr.Resource;
 
-                    Text = DocumentHelper.GetDisplayText(rr.Resource);
+                    Text = DocumentHelper.GetDisplayText(rr.Resource, hostName, _documentCollectionId, _databaseId);
                     // set the result window
                     SetResultInBrowser(DocumentHelper.RemoveInternalDocumentValues(json), null, false, rr.ResponseHeaders);
                 }

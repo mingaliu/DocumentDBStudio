@@ -14,13 +14,15 @@ namespace Microsoft.Azure.DocumentDBStudio.Helpers
 {
     static class Constants
     {
-        public static readonly string ProductVersion = "0.71";
+        public static readonly string ProductVersion = "0.72";
         public static readonly string ApplicationName = "Azure DocumentDB Studio";
+
+        public static int EmulatorPort = 8081;
 
         /// <summary>
         ///  We can enable when there is emulator.
         /// </summary>
-        public static readonly string LocalEmulatorEndpoint = "https://localhost:443/";
+        public static readonly string LocalEmulatorEndpoint = "https://localhost:" + EmulatorPort + "/";
         // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine")]
         public static readonly string LocalEmulatorMasterkey = "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==";
     }

@@ -91,7 +91,7 @@ namespace Microsoft.Azure.DocumentDBStudio.Helpers
                         var name = firstDoc.GetPropertyValue<string>(testField);
                         useCustom = true;
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
                     }
                     return useCustom;

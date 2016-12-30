@@ -557,7 +557,8 @@ namespace Microsoft.Azure.DocumentDBStudio
         void myMenuItemExecuteStoredProcedure_Click(object sender, EventArgs e)
         {
             SetCrudContext(this, OperationType.Execute, _resourceType,
-                "Here is the input parameters to the storedProcedure. Input each parameter as one line without quotation mark.", ExecuteStoredProcedureAsync);
+                "Input parameters to the storedProcedure. Have each parameter as one line with proper quotes. For example: \r\n \"parameter1IsString\" \r\n {'$set': {'parameter2IsObject': {'value':'1'}}}",
+                this.ExecuteStoredProcedureAsync);
         }
 
         void myMenuItemDelete_Click(object sender, EventArgs e)
@@ -629,6 +630,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 using (PerfStatus.Start("ExecuateStoredProcedure"))
                 {
                     rr = await _client.ExecuteStoredProcedureAsync<dynamic>((Tag as Resource).GetLink(_client),
+                                      requestOptions,
                                       dynamicInputParams);
                 }
                 string executeResult = rr.Response.ToString();

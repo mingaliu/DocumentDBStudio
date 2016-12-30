@@ -21,7 +21,7 @@ namespace Microsoft.Azure.DocumentDBStudio
         private readonly ContextMenu _contextMenu = new ContextMenu();
         private string _currentContinuation = null;
         private CommandContext _currentQueryCommandContext = null;
-        private string _databaseId;
+        private readonly string _databaseId;
 
         public DocumentCollectionNode(DocumentClient client, DocumentCollection coll, string databaseId)
         {
@@ -386,19 +386,18 @@ namespace Microsoft.Azure.DocumentDBStudio
 
                 using (PerfStatus.Start("ReadDocumentFeed"))
                 {
-                    var link = dc.GetLink(_client);
+                    IDocumentQuery<dynamic> feedReader = _client.CreateDocumentQuery((Tag as DocumentCollection).GetLink(_client), "Select * from c", 
+                        new FeedOptions { EnableCrossPartitionQuery = true }).AsDocumentQuery();
 
-                    var feedReader = _client.CreateDocumentFeedReader(link, new FeedOptions { EnableCrossPartitionQuery = true });
                     while (feedReader.HasMoreResults && docs.Count() < 100)
                     {
-                        var response = feedReader.ExecuteNextAsync().Result;
+                        FeedResponse<Document> response = feedReader.ExecuteNextAsync<Document>().Result;
                         docs.AddRange(response);
 
                         responseHeaders = response.ResponseHeaders;
                     }
                 }
 
-                //var listDisplayCollectionsForHost = SettingsProvider.CustomDocumentListDisplayCollection.FindAll(s => s.HostName == host);
                 var host = _client.ServiceEndpoint.Host;
 
                 string customDocumentDisplayIdentifier;
@@ -417,7 +416,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                     else
                     {
                         var node = new ResourceNode(_client, doc, ResourceType.Document, dc.PartitionKey, dataBaseId: _databaseId, documentCollectionId: dcId);
-                        Nodes.Add(node);
+                        Nodes.Add(node); 
                     }
                 }
 

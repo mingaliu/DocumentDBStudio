@@ -7,6 +7,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
+using Microsoft.Azure.DocumentDBStudio.CustomDocumentListDisplay;
 using Microsoft.Azure.DocumentDBStudio.Helpers;
 using Microsoft.Azure.Documents;
 using Microsoft.Azure.Documents.Client;
@@ -22,11 +23,15 @@ namespace Microsoft.Azure.DocumentDBStudio
         private string _currentContinuation = null;
         private CommandContext _currentQueryCommandContext = null;
         private readonly string _databaseId;
+        private readonly string _documentCollectionId;
+
+        private readonly CustomDocumentListDisplayManager _customDocumentListDisplayManager = new CustomDocumentListDisplayManager();
 
         public DocumentCollectionNode(DocumentClient client, DocumentCollection coll, string databaseId)
         {
-            _databaseId = databaseId; 
-            Text = coll.Id;
+            _databaseId = databaseId;
+            _documentCollectionId = coll.Id;
+            Text = _documentCollectionId;
             Tag = coll;
             _client = client;
             ImageKey = "SystemFeed";
@@ -52,6 +57,31 @@ namespace Microsoft.Azure.DocumentDBStudio
 
             AddMenuItem("Refresh Documents feed", (sender, e) => Refresh(true));
             AddMenuItem("Query Documents", myMenuItemQueryDocument_Click);
+
+            _contextMenu.MenuItems.Add("-");
+            AddMenuItem("Configure Document Listing settings...", myMenuConfigureDocumentListingDisplay_Click);
+
+        }
+
+        private void myMenuConfigureDocumentListingDisplay_Click(object sender, EventArgs e)
+        {
+            if (Nodes.Count == 0)
+            {
+                MessageBox.Show("No documents available, cannot configure display settings.", "Cannot configure display settings", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            var query = _client.CreateDocumentQuery<Document>((Tag as DocumentCollection).GetLink(_client), "SELECT TOP 1 * FROM c");
+            var doc = query.ToList().First();
+            var docConverted = JsonConvert.DeserializeObject(DocumentHelper.RemoveInternalDocumentValues(JsonConvert.SerializeObject(doc)));
+
+            var dlg = new CustomDocumentListDisplayConfigurationForm(_client.ServiceEndpoint.Host, _databaseId, _documentCollectionId, docConverted);
+            
+            var dr = dlg.ShowDialog();
+            if (dr == DialogResult.OK)
+            {
+                Refresh(true);
+            }
         }
 
         private void AddMenuItem(string menuItemText, EventHandler eventHandler)
@@ -234,7 +264,6 @@ namespace Microsoft.Azure.DocumentDBStudio
             _currentContinuation = null;
 
             Program.GetMain().SetCrudContext(this, OperationType.Query, ResourceType.Document, "select * from c", QueryDocumentsAsync, _currentQueryCommandContext);
-
         }
 
         async void CreateDocumentAsync(object resource, RequestOptions requestOptions)
@@ -252,7 +281,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 }
 
                 var hostName = _client.ServiceEndpoint.Host;
-                var displayText = DocumentHelper.GetDisplayText(newdocument.Resource, hostName, dcId, _databaseId);
+                var displayText = _customDocumentListDisplayManager.GetDisplayText(newdocument.Resource, hostName, dcId, _databaseId);
 
                 Nodes.Add(
                     new ResourceNode(_client, newdocument.Resource, ResourceType.Document, dc.PartitionKey, displayText)
@@ -294,7 +323,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                     }
                 }
 
-                q = _client.CreateDocumentQuery((Tag as DocumentCollection).GetLink(_client), queryText, feedOptions).AsDocumentQuery();
+                q = CreateDocumentQuery(queryText, feedOptions);
 
                 var sw = Stopwatch.StartNew();
 
@@ -386,8 +415,7 @@ namespace Microsoft.Azure.DocumentDBStudio
 
                 using (PerfStatus.Start("ReadDocumentFeed"))
                 {
-                    IDocumentQuery<dynamic> feedReader = _client.CreateDocumentQuery((Tag as DocumentCollection).GetLink(_client), "Select * from c", 
-                        new FeedOptions { EnableCrossPartitionQuery = true }).AsDocumentQuery();
+                    var feedReader = CreateDocumentQuery("Select * from c", new FeedOptions {EnableCrossPartitionQuery = true});
 
                     while (feedReader.HasMoreResults && docs.Count() < 100)
                     {
@@ -401,15 +429,17 @@ namespace Microsoft.Azure.DocumentDBStudio
                 var host = _client.ServiceEndpoint.Host;
 
                 string customDocumentDisplayIdentifier;
-                var useCustom = DocumentHelper.GetCustomDocumentDisplayIdentifier(docs, host, dc.Id, _databaseId, out customDocumentDisplayIdentifier);
+                string sortField;
+                bool reverseSort;
+                var useCustom = _customDocumentListDisplayManager.GetCustomDocumentDisplayIdentifier(docs, host, dc.Id, _databaseId, out customDocumentDisplayIdentifier, out sortField, out reverseSort);
 
-                DocumentHelper.SortDocuments(useCustom, docs, customDocumentDisplayIdentifier);
+                DocumentHelper.SortDocuments(useCustom, docs, sortField, reverseSort);
 
                 foreach (var doc in docs)
                 {
                     if (useCustom)
                     {
-                        var displayText = DocumentHelper.GetDisplayText(true, doc, customDocumentDisplayIdentifier);
+                        var displayText = _customDocumentListDisplayManager.GetDisplayText(true, doc, customDocumentDisplayIdentifier);
                         var node = new ResourceNode(_client, doc, ResourceType.Document, dc.PartitionKey, displayText, dataBaseId: _databaseId, documentCollectionId: dcId);
                         Nodes.Add(node);
                     }
@@ -431,5 +461,11 @@ namespace Microsoft.Azure.DocumentDBStudio
                 Program.GetMain().SetResultInBrowser(null, e.ToString(), true);
             }
         }
+
+        private IDocumentQuery<dynamic> CreateDocumentQuery(string queryText, FeedOptions feedOptions)
+        {
+            return _client.CreateDocumentQuery((Tag as DocumentCollection).GetLink(_client), queryText, feedOptions).AsDocumentQuery();
+        }
+
     }  
 }

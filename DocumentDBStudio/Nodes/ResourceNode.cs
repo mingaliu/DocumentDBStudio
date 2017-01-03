@@ -5,6 +5,7 @@ using System.Drawing;
 using System.IO;
 using System.Text;
 using System.Windows.Forms;
+using Microsoft.Azure.DocumentDBStudio.CustomDocumentListDisplay;
 using Microsoft.Azure.DocumentDBStudio.Helpers;
 using Microsoft.Azure.DocumentDBStudio.Providers;
 using Microsoft.Azure.Documents;
@@ -21,6 +22,7 @@ namespace Microsoft.Azure.DocumentDBStudio
         private readonly ResourceType _resourceType = 0;
         private readonly string _databaseId;
         private readonly string _documentCollectionId;
+        private readonly CustomDocumentListDisplayManager _customDocumentListDisplayManager = new CustomDocumentListDisplayManager();
 
         public ResourceNode(
             DocumentClient client, 
@@ -669,7 +671,7 @@ namespace Microsoft.Azure.DocumentDBStudio
 
                     Tag = rr.Resource;
 
-                    Text = DocumentHelper.GetDisplayText(rr.Resource, hostName, _documentCollectionId, _databaseId);
+                    Text = _customDocumentListDisplayManager.GetDisplayText(rr.Resource, hostName, _documentCollectionId, _databaseId);
                     // set the result window
                     SetResultInBrowser(DocumentHelper.RemoveInternalDocumentValues(json), null, false, rr.ResponseHeaders);
                 }

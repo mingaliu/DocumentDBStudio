@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Microsoft.Azure.DocumentDBStudio.Models
+namespace Microsoft.Azure.DocumentDBStudio.CustomDocumentListDisplay.Models
 {
     public class CustomDocumentListDisplayCollection
     {

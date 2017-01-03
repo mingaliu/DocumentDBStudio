@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
-using Microsoft.Azure.DocumentDBStudio.Models;
+using Microsoft.Azure.DocumentDBStudio.CustomDocumentListDisplay.Models;
 using Newtonsoft.Json;
 
 namespace Microsoft.Azure.DocumentDBStudio.Providers
@@ -18,8 +19,9 @@ namespace Microsoft.Azure.DocumentDBStudio.Providers
                 return Path.Combine(SystemInfoProvider.LocalApplicationDataPath, "Settings.CustomDocumentListDisplay.json");
             }
         }
-        private static void SaveCustomDocumentListDisplayCollectionToFile()
+        public static void SaveCustomDocumentListDisplayCollectionToFile()
         {
+            _customDocumentListDisplayCollections = _customDocumentListDisplayCollections.Where(cdc => cdc.Items != null && cdc.Items.Count > 0).ToList();
             File.WriteAllText(CustomDocumentListDisplayFileName, JsonConvert.SerializeObject(_customDocumentListDisplayCollections, Formatting.Indented));
         }
 
@@ -30,39 +32,49 @@ namespace Microsoft.Azure.DocumentDBStudio.Providers
             {
                 if (_customDocumentListDisplayCollections == null)
                 {
-                    if (Monitor.TryEnter(SettingsLock, TimeSpan.FromSeconds(5)))
+                    ReadCustomDocumentListDisplayCollectionsFromFile();
+                }
+                return _customDocumentListDisplayCollections;
+            }
+            set
+            {
+                _customDocumentListDisplayCollections = value;
+            }
+        }
+
+        public static void ReadCustomDocumentListDisplayCollectionsFromFile()
+        {
+            if (Monitor.TryEnter(SettingsLock, TimeSpan.FromSeconds(5)))
+            {
+                try
+                {
+                    if (!Directory.Exists(SystemInfoProvider.LocalApplicationDataPath))
+                    {
+                        Directory.CreateDirectory(SystemInfoProvider.LocalApplicationDataPath);
+                    }
+
+                    if (!File.Exists(CustomDocumentListDisplayFileName))
+                    {
+                        _customDocumentListDisplayCollections = new List<CustomDocumentListDisplayCollection>();
+                        SaveCustomDocumentListDisplayCollectionToFile();
+                    }
+                    else
                     {
                         try
                         {
-                            if (!Directory.Exists(SystemInfoProvider.LocalApplicationDataPath))
-                            {
-                                Directory.CreateDirectory(SystemInfoProvider.LocalApplicationDataPath);
-                            }
-
-                            if (!File.Exists(CustomDocumentListDisplayFileName))
-                            {
-                                _customDocumentListDisplayCollections = new List<CustomDocumentListDisplayCollection>();
-                                SaveCustomDocumentListDisplayCollectionToFile();
-                            }
-                            else
-                            {
-                                try
-                                {
-                                    var contents = File.ReadAllText(CustomDocumentListDisplayFileName);
-                                    _customDocumentListDisplayCollections = JsonConvert.DeserializeObject<List<CustomDocumentListDisplayCollection>>(contents);
-                                }
-                                catch
-                                {
-                                }
-                            }
+                            var contents = File.ReadAllText(CustomDocumentListDisplayFileName);
+                            _customDocumentListDisplayCollections =
+                                JsonConvert.DeserializeObject<List<CustomDocumentListDisplayCollection>>(contents);
                         }
-                        finally
+                        catch
                         {
-                            Monitor.Exit(SettingsLock);
-                        }                     
+                        }
                     }
                 }
-                return _customDocumentListDisplayCollections;
+                finally
+                {
+                    Monitor.Exit(SettingsLock);
+                }
             }
         }
     }

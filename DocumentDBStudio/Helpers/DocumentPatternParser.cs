@@ -6,13 +6,13 @@ namespace Microsoft.Azure.DocumentDBStudio.Helpers
     {
         private const string VariableRegexPattern = @"{\w+}";
 
-        public string ParsePattern(string pattern, dynamic document)
+        public string ParsePattern(string pattern, dynamic document, bool useDirectAccess = false)
         {
             if (string.IsNullOrWhiteSpace(pattern)) return pattern;
             var returnData = pattern;
             var variableMatches = Regex.Matches(pattern, VariableRegexPattern);
 
-            returnData = ParsePatternMatches(variableMatches, returnData, document);
+            returnData = ParsePatternMatches(variableMatches, returnData, document, useDirectAccess);
 
             variableMatches = Regex.Matches(returnData, VariableRegexPattern);
 
@@ -21,13 +21,13 @@ namespace Microsoft.Azure.DocumentDBStudio.Helpers
                 : returnData;
         }
 
-        private string ParsePatternMatches(MatchCollection variableMatches, string returnData, dynamic document)
+        private string ParsePatternMatches(MatchCollection variableMatches, string returnData, dynamic document, bool useDirectAccess = false)
         {
             foreach (Match match in variableMatches)
             {
                 var matchedValue = match.Value;
                 var expression = GetPartFromMatch(matchedValue);
-                returnData = returnData.Replace(matchedValue, document.GetPropertyValue<string>(expression));
+                returnData = returnData.Replace(matchedValue, DynamicHelper.GetPropertyValue(document, expression, useDirectAccess));
             }
             return returnData;
         }

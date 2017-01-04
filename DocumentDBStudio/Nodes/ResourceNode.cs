@@ -3,9 +3,12 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Drawing;
 using System.IO;
+using System.Reflection;
 using System.Text;
 using System.Windows.Forms;
+using Microsoft.Azure.DocumentDBStudio.CustomDocumentListDisplay;
 using Microsoft.Azure.DocumentDBStudio.Helpers;
+using Microsoft.Azure.DocumentDBStudio.Providers;
 using Microsoft.Azure.Documents;
 using Microsoft.Azure.Documents.Client;
 using Newtonsoft.Json;
@@ -18,9 +21,22 @@ namespace Microsoft.Azure.DocumentDBStudio
         private readonly DocumentClient _client;
         private readonly ContextMenu _contextMenu = new ContextMenu();
         private readonly ResourceType _resourceType = 0;
+        private readonly string _databaseId;
+        private readonly string _documentCollectionId;
+        private readonly CustomDocumentListDisplayManager _customDocumentListDisplayManager = new CustomDocumentListDisplayManager();
 
-        public ResourceNode(DocumentClient client, dynamic document, ResourceType resoureType, PartitionKeyDefinition partitionKey = null, string nodeText = null)
+        public ResourceNode(
+            DocumentClient client, 
+            dynamic document, 
+            ResourceType resoureType, 
+            PartitionKeyDefinition partitionKey = null, 
+            string nodeText = null,
+            string dataBaseId = null,
+            string documentCollectionId = null
+        )
         {
+            _databaseId = dataBaseId;
+            _documentCollectionId = documentCollectionId;
             _resourceType = resoureType;
             var docAsResource = (document as Resource);
             var isDocument = _resourceType == ResourceType.Document;
@@ -71,24 +87,25 @@ namespace Microsoft.Azure.DocumentDBStudio
             Tag = document;
             _client = client;
 
-            AddMenuItem(string.Format("Read {0}", _resourceType), myMenuItemRead_Click);
+            AddMenuItem(string.Format("Read {0}", _resourceType), myMenuItemRead_Click, Shortcut.F5);
 
             if (!isConflict && !isOffer)
             {
-                AddMenuItem(string.Format("Replace {0}", _resourceType), myMenuItemUpdate_Click);
+                AddMenuItem(string.Format("Replace {0}", _resourceType), myMenuItemUpdate_Click, Shortcut.CtrlR);
             }
             if (!isOffer)
             {
-                AddMenuItem(string.Format("Delete {0}", _resourceType), myMenuItemDelete_Click);
+                AddMenuItem(string.Format("Delete {0}", _resourceType), myMenuItemDelete_Click, Shortcut.Del);
             }
 
             if (!isConflict && !isOffer)
             {
                 _contextMenu.MenuItems.Add("-");
 
-                AddMenuItem("Copy id to clipboard", myMenuItemCopyIdToClipBoard_Click);
-                AddMenuItem(string.Format("Copy {0} to clipboard", _resourceType), myMenuItemCopyToClipBoard_Click);
-                AddMenuItem(string.Format("Copy {0} to clipboard with new id", _resourceType), myMenuItemCopyToClipBoardWithNewId_Click);
+                AddMenuItem("Copy id to clipboard", myMenuItemCopyIdToClipBoard_Click, Shortcut.CtrlShiftC);
+                AddMenuItem(string.Format("Copy {0} to clipboard", _resourceType), myMenuItemCopyToClipBoard_Click, Shortcut.CtrlC);
+                var cpWithnewIdItem = AddMenuItem(string.Format("Copy {0} to clipboard with new id", _resourceType), myMenuItemCopyToClipBoardWithNewId_Click);
+                MenuItemHelper.SetCustomShortcut(cpWithnewIdItem, Keys.Control | Keys.Alt | Keys.C);
             }
 
             if (isPermission)
@@ -139,16 +156,30 @@ namespace Microsoft.Azure.DocumentDBStudio
                 ImageKey = "Offer";
                 SelectedImageKey = "Offer";
             }
+
+            
         }
 
-        private void AddMenuItem(string menuItemText, EventHandler eventHandler)
+        private MenuItem AddMenuItem(string menuItemText, EventHandler eventHandler, Shortcut shortcut = Shortcut.None)
         {
             var menuItem = new MenuItem(menuItemText);
             menuItem.Click += eventHandler;
+            if (shortcut != Shortcut.None)
+            {
+                menuItem.Shortcut = shortcut;
+            }
+
             _contextMenu.MenuItems.Add(menuItem);
+
+            return menuItem;
         }
 
         void myMenuItemCopyIdToClipBoard_Click(object sender, EventArgs eventArg)
+        {
+            CopyCurrentResourceIdToClipBoard();
+        }
+
+        private void CopyCurrentResourceIdToClipBoard()
         {
             try
             {
@@ -171,16 +202,28 @@ namespace Microsoft.Azure.DocumentDBStudio
                 }
                 Clipboard.SetText(clipBoardContent);
             }
-            catch { }
+            catch
+            {
+            }
         }
-        
+
         void myMenuItemCopyToClipBoard_Click(object sender, EventArgs eventArg)
+        {
+            CopyCurrentResourceToClipBoard();
+        }
+
+        private void CopyCurrentResourceToClipBoard()
         {
             var clipBoardContent = GetCurrentObjectContents();
             Clipboard.SetText(clipBoardContent);
         }
 
         void myMenuItemCopyToClipBoardWithNewId_Click(object sender, EventArgs eventArg)
+        {
+            CopyCurrentResourceToClipBoardWithNewId();
+        }
+
+        private void CopyCurrentResourceToClipBoardWithNewId()
         {
             var clipBoardContent = GetCurrentObjectContents();
             clipBoardContent = DocumentHelper.AssignNewIdToDocument(clipBoardContent);
@@ -211,16 +254,23 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         void myMenuItemUpdate_Click(object sender, EventArgs e)
         {
+            InvokeReplaceResource();
+        }
+
+        private void InvokeReplaceResource()
+        {
             switch (_resourceType)
             {
                 case ResourceType.StoredProcedure:
-                    SetCrudContext(this, OperationType.Replace, _resourceType, (Tag as StoredProcedure).Body, ReplaceResourceAsync);
+                    SetCrudContext(this, OperationType.Replace, _resourceType, (Tag as StoredProcedure).Body,
+                        ReplaceResourceAsync);
                     break;
                 case ResourceType.Trigger:
                     SetCrudContext(this, OperationType.Replace, _resourceType, (Tag as Trigger).Body, ReplaceResourceAsync);
                     break;
                 case ResourceType.UserDefinedFunction:
-                    SetCrudContext(this, OperationType.Replace, _resourceType, (Tag as UserDefinedFunction).Body, ReplaceResourceAsync);
+                    SetCrudContext(this, OperationType.Replace, _resourceType, (Tag as UserDefinedFunction).Body,
+                        ReplaceResourceAsync);
                     break;
                 default:
                     var tag = Tag.ToString();
@@ -403,7 +453,6 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         async void myMenuItemRenderMedia_Click(object sender, EventArgs eventArg)
         {
-            var appTempPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DocumentDBStudio");
             var guidFileName = Guid.NewGuid().ToString();
             string fileName;
 
@@ -425,7 +474,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 fileName = guidFileName + ".txt";
             }
 
-            fileName = Path.Combine(appTempPath, fileName);
+            fileName = Path.Combine(SystemInfoProvider.LocalApplicationDataPath, fileName);
             try
             {
                 MediaResponse rr;
@@ -551,10 +600,14 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         void myMenuItemDelete_Click(object sender, EventArgs e)
         {
-            var x = Tag.ToString();
-            var context = new CommandContext();
-            context.IsDelete = true;
-            SetCrudContext(this, OperationType.Delete, _resourceType, x, DeleteResourceAsync, context);
+            InvokeDeleteResource();
+        }
+
+        private void InvokeDeleteResource()
+        {
+            var bodytext = Tag.ToString();
+            var context = new CommandContext {IsDelete = true};
+            SetCrudContext(this, OperationType.Delete, _resourceType, bodytext, DeleteResourceAsync, context);
         }
 
         async void CreateAttachmentAsync(object resource, RequestOptions requestOptions)
@@ -646,8 +699,10 @@ namespace Microsoft.Azure.DocumentDBStudio
                 {
                     var text = resource as string;
                     var doc = (Document)JsonConvert.DeserializeObject(text, typeof(Document));
-                    doc.SetReflectedPropertyValue("AltLink", (Tag as Document).GetAltLink());
+                    var tagAsDoc = (Tag as Document);
+                    doc.SetReflectedPropertyValue("AltLink", tagAsDoc.GetAltLink());
                     ResourceResponse<Document> rr;
+                    var hostName = _client.ServiceEndpoint.Host;
                     using (PerfStatus.Start("ReplaceDocument"))
                     {
                         rr = await _client.ReplaceDocumentAsync(doc.GetLink(_client), doc, requestOptions);
@@ -656,7 +711,7 @@ namespace Microsoft.Azure.DocumentDBStudio
 
                     Tag = rr.Resource;
 
-                    Text = DocumentHelper.GetDisplayText(rr.Resource);
+                    Text = _customDocumentListDisplayManager.GetDisplayText(rr.Resource, hostName, _documentCollectionId, _databaseId);
                     // set the result window
                     SetResultInBrowser(DocumentHelper.RemoveInternalDocumentValues(json), null, false, rr.ResponseHeaders);
                 }
@@ -989,6 +1044,43 @@ namespace Microsoft.Azure.DocumentDBStudio
             {
                 SetResultInBrowser(null, e.ToString(), true);
             }
+        }
+
+        public override void HandleNodeKeyDown(object sender, KeyEventArgs keyEventArgs)
+        {
+            var kv = keyEventArgs.KeyValue;
+            var ctrl = keyEventArgs.Control;
+            var shift = keyEventArgs.Shift;
+            var alt = keyEventArgs.Alt;
+
+            if (kv == 46) // del
+            {
+                InvokeDeleteResource();
+            }
+
+            if (ctrl && kv == 67) // ctrl+c
+            {
+                CopyCurrentResourceToClipBoard();
+            }
+
+            if (ctrl && shift && kv == 67) // ctrl+shift+c
+            {
+                CopyCurrentResourceIdToClipBoard();
+            }
+
+            if (ctrl && alt && kv == 67) // ctrl+alt+c
+            {
+                CopyCurrentResourceToClipBoardWithNewId();
+            }
+
+            if (ctrl && kv == 82) // ctrl+r
+            {
+                InvokeReplaceResource();
+            }
+        }
+
+        public override void HandleNodeKeyPress(object sender, KeyPressEventArgs keyPressEventArgs)
+        {
         }
     }
 }

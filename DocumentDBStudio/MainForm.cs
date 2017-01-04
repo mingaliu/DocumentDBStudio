@@ -3,6 +3,7 @@
 //-----------------------------------------------------------------------------
 
 using Microsoft.Azure.DocumentDBStudio.Helpers;
+using Microsoft.Azure.DocumentDBStudio.Providers;
 
 namespace Microsoft.Azure.DocumentDBStudio
 {
@@ -36,7 +37,6 @@ namespace Microsoft.Azure.DocumentDBStudio
         private string currentText;
         private string homepage;
 
-        private string appTempPath;
         Action<object, RequestOptions> currentOperationCallback;
 
         private RequestOptions requestOptions;
@@ -63,17 +63,11 @@ namespace Microsoft.Azure.DocumentDBStudio
             Top = 0;
             Text = Constants.ApplicationName;
 
-            using (Stream stm = Assembly.GetExecutingAssembly().GetManifestResourceStream("Microsoft.Azure.DocumentDBStudio.Resources.home.html"))
-            {
-                using (StreamReader reader = new StreamReader(stm))
-                {
-                    homepage = reader.ReadToEnd();
-                }
-            }
+            homepage = EmbeddedResourceProvider.ReadEmbeddedResource("Microsoft.Azure.DocumentDBStudio.Resources.home.html");
+
             homepage = homepage.Replace("&VERSION&", Constants.ProductVersion);
 
-            DateTime t = File.GetLastWriteTime(Assembly.GetExecutingAssembly().Location);
-            DateTimeOffset dateOffset = new DateTimeOffset(t, TimeZoneInfo.Local.GetUtcOffset(t));
+            var t = File.GetLastWriteTime(Assembly.GetExecutingAssembly().Location);
             homepage = homepage.Replace("&BUILDTIME&", t.ToString("f", CultureInfo.CurrentCulture));
 
             cbUrl.Items.Add("about:home");
@@ -146,7 +140,7 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         private static ImageList BuildImageList()
         {
-            ImageList imageList = new ImageList();
+            var imageList = new ImageList();
             imageList.Images.Add("Default", Resources.DocDBpng);
             imageList.Images.Add("Feed", Resources.Feedpng);
             imageList.Images.Add("Javascript", Resources.Javascriptpng);
@@ -160,69 +154,28 @@ namespace Microsoft.Azure.DocumentDBStudio
             return imageList;
         }
 
-
         private void UnpackEmbeddedResources()
         {
-            appTempPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DocumentDBStudio");
-
-            if (!Directory.Exists(appTempPath))
+            if (!Directory.Exists(SystemInfoProvider.LocalApplicationDataPath))
             {
-                Directory.CreateDirectory(appTempPath);
+                Directory.CreateDirectory(SystemInfoProvider.LocalApplicationDataPath);
             }
 
-            loadingGifPath = Path.Combine(appTempPath, "loading.gif");
+            loadingGifPath = CopyStreamToFile("loading.gif", "loading.gif");
+            CopyStreamToFile("prettyJSON.backbone-min.js", "backbone-min.js");
+            CopyStreamToFile("prettyJSON.jquery-1.11.1.min.js", "jquery-1.11.1.min.js");
+            CopyStreamToFile("prettyJSON.pretty-json.css", "pretty-json.css");
+            CopyStreamToFile("prettyJSON.pretty-json-min.js", "pretty-json-min.js");
+            CopyStreamToFile("prettyJSON.underscore-min.js", "underscore-min.js");
 
-            using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Microsoft.Azure.DocumentDBStudio.Resources.loading.gif"))
-            {
-                using (FileStream fileStream = File.Create(loadingGifPath))
-                {
-                    stream.CopyTo(fileStream);
-                }
-            }
+            prettyJSONTemplate = EmbeddedResourceProvider.ReadEmbeddedResource("Microsoft.Azure.DocumentDBStudio.Resources.prettyJSON.PrettyPrintJSONTemplate.html");
+        }
 
-            using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Microsoft.Azure.DocumentDBStudio.Resources.prettyJSON.backbone-min.js"))
-            {
-                using (FileStream fileStream = File.Create(Path.Combine(appTempPath, "backbone-min.js")))
-                {
-                    stream.CopyTo(fileStream);
-                }
-            }
-            using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Microsoft.Azure.DocumentDBStudio.Resources.prettyJSON.jquery-1.11.1.min.js"))
-            {
-                using (FileStream fileStream = File.Create(Path.Combine(appTempPath, "jquery-1.11.1.min.js")))
-                {
-                    stream.CopyTo(fileStream);
-                }
-            }
-            using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Microsoft.Azure.DocumentDBStudio.Resources.prettyJSON.pretty-json.css"))
-            {
-                using (FileStream fileStream = File.Create(Path.Combine(appTempPath, "pretty-json.css")))
-                {
-                    stream.CopyTo(fileStream);
-                }
-            }
-            using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Microsoft.Azure.DocumentDBStudio.Resources.prettyJSON.pretty-json-min.js"))
-            {
-                using (FileStream fileStream = File.Create(Path.Combine(appTempPath, "pretty-json-min.js")))
-                {
-                    stream.CopyTo(fileStream);
-                }
-            }
-            using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Microsoft.Azure.DocumentDBStudio.Resources.prettyJSON.underscore-min.js"))
-            {
-                using (FileStream fileStream = File.Create(Path.Combine(appTempPath, "underscore-min.js")))
-                {
-                    stream.CopyTo(fileStream);
-                }
-            }
-
-            using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Microsoft.Azure.DocumentDBStudio.Resources.prettyJSON.PrettyPrintJSONTemplate.html"))
-            {
-                using (StreamReader reader = new StreamReader(stream))
-                {
-                    prettyJSONTemplate = reader.ReadToEnd();
-                }
-            }
+        private string CopyStreamToFile(string resourceName, string fileName)
+        {
+            var fileLocation = Path.Combine(SystemInfoProvider.LocalApplicationDataPath, fileName);
+            EmbeddedResourceProvider.CopyStreamToFile(resourceName, fileLocation);
+            return fileLocation;
         }
 
         protected override void OnSizeChanged(EventArgs e)
@@ -700,7 +653,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             // load the account settings from the List.
             for (int i = 0; i < Settings.Default.AccountSettingsList.Count; i = i + 2)
             {
-                AccountSettings accountSettings = (AccountSettings)JsonConvert.DeserializeObject(Settings.Default.AccountSettingsList[i + 1], typeof(AccountSettings));
+                var accountSettings = (AccountSettings)JsonConvert.DeserializeObject(Settings.Default.AccountSettingsList[i + 1], typeof(AccountSettings));
                 AddConnectionTreeNode(Settings.Default.AccountSettingsList[i], accountSettings);
             }
         }
@@ -709,9 +662,9 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             try
             {
-                string suffix = Constants.ApplicationName + "/" + Constants.ProductVersion;
+                var suffix = Constants.ApplicationName + "/" + Constants.ProductVersion;
 
-                DocumentClient client = new DocumentClient(new Uri(accountEndpoint), accountSettings.MasterKey,
+                var client = new DocumentClient(new Uri(accountEndpoint), accountSettings.MasterKey,
                     new ConnectionPolicy
                     {
                         ConnectionMode = accountSettings.ConnectionMode,
@@ -721,19 +674,15 @@ namespace Microsoft.Azure.DocumentDBStudio
                         UserAgentSuffix = suffix
                     });
 
-                DatabaseAccountNode dbaNode = new DatabaseAccountNode(accountEndpoint, client);
+                var dbaNode = new DatabaseAccountNode(accountEndpoint, client);
                 treeView1.Nodes.Add(dbaNode);
 
                 // Update the map.
                 DocumentClientExtension.AddOrUpdate(client.ServiceEndpoint.Host, accountSettings.IsNameBased);
-                if (accountSettings.IsNameBased)
-                {
-                    dbaNode.ForeColor = Color.Green;
-                }
-                else
-                {
-                    dbaNode.ForeColor = Color.Blue;
-                }
+
+                dbaNode.ForeColor = accountSettings.IsNameBased 
+                    ? Color.Green 
+                    : Color.Blue;
             }
             catch (Exception e)
             {
@@ -745,7 +694,34 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             if (e.Node is FeedNode)
             {
-                (e.Node as FeedNode).Refresh(false);
+                ((FeedNode)e.Node).Refresh(false);
+            }
+        }
+        private void treeView1_NodeKeyDown(object sender, KeyEventArgs keyEventArgs)
+        {
+            if (treeView1.SelectedNode is FeedNode)
+            {
+                var node = (FeedNode)treeView1.SelectedNode;
+                if (keyEventArgs.KeyValue == 116) 
+                {
+                    // F5
+                    HandleNodeSelected(node);
+                }
+                node.HandleNodeKeyDown(sender, keyEventArgs);
+            }
+        }
+
+        private void treeView1_NodeKeyPress(object sender, KeyPressEventArgs keyPressEventArgs)
+        {
+            if (treeView1.SelectedNode is FeedNode)
+            {
+                var node = (FeedNode)treeView1.SelectedNode;
+                if (keyPressEventArgs.KeyChar == 13)
+                {
+                    // Enter
+                    HandleNodeSelected(node);
+                }
+                node.HandleNodeKeyPress(sender, keyPressEventArgs);
             }
         }
 
@@ -760,44 +736,49 @@ namespace Microsoft.Azure.DocumentDBStudio
                     }
                     break;
                 case MouseButtons.Left:
-                    // render the JSON in the right panel.
-                    currentText = null;
-                    currentJson = null;
-
-                    if (e.Node is ResourceNode)
-                    {
-                        var node = e.Node as ResourceNode;
-                        var body = node.GetBody();
-
-                        if (!string.IsNullOrEmpty(body))
-                        {
-                            currentText = body;
-                        }
-                    }
-
-                    if (e.Node.Tag is string)
-                    {
-                        currentText = e.Node.Tag.ToString();
-                    }
-                    else if (e.Node is DatabaseAccountNode)
-                    {
-                        currentJson = JsonConvert.SerializeObject(e.Node.Tag, Formatting.Indented);
-                    }
-                    else if (e.Node.Tag != null)
-                    {
-                        var tag = e.Node.Tag;
-                        currentJson = tag.ToString();
-                        currentJson = DocumentHelper.RemoveInternalDocumentValues(currentJson);
-                    }
-
-                    if (currentJson == null && currentText == null)
-                    {
-                        currentText = e.Node.Text;
-                    }
-
-                    DisplayResponseContent();
+                    HandleNodeSelected(e.Node);
                     break;
             }
+        }
+
+        private void HandleNodeSelected(TreeNode treeNode)
+        {
+            // render the JSON in the right panel.
+            currentText = null;
+            currentJson = null;
+
+            if (treeNode is ResourceNode)
+            {
+                var node = treeNode as ResourceNode;
+                var body = node.GetBody();
+
+                if (!string.IsNullOrEmpty(body))
+                {
+                    currentText = body;
+                }
+            }
+
+            if (treeNode.Tag is string)
+            {
+                currentText = treeNode.Tag.ToString();
+            }
+            else if (treeNode is DatabaseAccountNode)
+            {
+                currentJson = JsonConvert.SerializeObject(treeNode.Tag, Formatting.Indented);
+            }
+            else if (treeNode.Tag != null)
+            {
+                var tag = treeNode.Tag;
+                currentJson = tag.ToString();
+                currentJson = DocumentHelper.RemoveInternalDocumentValues(currentJson);
+            }
+
+            if (currentJson == null && currentText == null)
+            {
+                currentText = treeNode.Text;
+            }
+
+            DisplayResponseContent();
         }
 
         internal void SetCrudContext(
@@ -1113,7 +1094,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             prettyPrint = prettyPrint.Replace("&EXTRASTRINGREPLACE&", Helper.FormatTextAsHtml(extraText, false, false));
 
             // save prettyePrint to file.
-            string prettyPrintHtml = Path.Combine(appTempPath, "prettyPrint.Html");
+            string prettyPrintHtml = Path.Combine(SystemInfoProvider.LocalApplicationDataPath, "prettyPrint.Html");
 
             using (StreamWriter outfile = new StreamWriter(prettyPrintHtml))
             {

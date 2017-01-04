@@ -163,10 +163,10 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         void myMenuItemDeleteDatabase_Click(object sender, EventArgs e)
         {
-            var x = Tag.ToString();
+            var bodytext = Tag.ToString();
             var context = new CommandContext();
             context.IsDelete = true;
-            Program.GetMain().SetCrudContext(this, OperationType.Delete, ResourceType.Database, x, DeleteDatabaseAsync, context);
+            Program.GetMain().SetCrudContext(this, OperationType.Delete, ResourceType.Database, bodytext, DeleteDatabaseAsync, context);
         }
 
         void myMenuItemCreateDocumentCollection_Click(object sender, EventArgs e)
@@ -202,6 +202,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             {
                 var coll = resource as DocumentCollection;
                 var db = (Database)Tag;
+                var dbId = db.Id;
                 ResourceResponse<DocumentCollection> newcoll;
                 using (PerfStatus.Start("CreateDocumentCollection"))
                 {
@@ -213,7 +214,7 @@ namespace Microsoft.Azure.DocumentDBStudio
 
                 Program.GetMain().SetResultInBrowser(json, null, false, newcoll.ResponseHeaders);
 
-                Nodes.Add(new DocumentCollectionNode(_client, newcoll.Resource));
+                Nodes.Add(new DocumentCollectionNode(_client, newcoll.Resource, dbId));
             }
             catch (AggregateException e)
             {
@@ -255,14 +256,16 @@ namespace Microsoft.Azure.DocumentDBStudio
             try
             {
                 FeedResponse<DocumentCollection> colls;
+                var db = (Database) Tag;
+                var dbId = db.Id;
                 using (PerfStatus.Start("ReadDocumentCollectionFeed"))
                 {
-                    colls = await _client.ReadDocumentCollectionFeedAsync(((Database)Tag).GetLink(_client));
+                    colls = await _client.ReadDocumentCollectionFeedAsync(db.GetLink(_client));
                 }
 
                 foreach (var coll in colls)
                 {
-                    var node = new DocumentCollectionNode(_client, coll);
+                    var node = new DocumentCollectionNode(_client, coll, dbId);
                     Nodes.Add(node);
                 }
 
@@ -277,5 +280,14 @@ namespace Microsoft.Azure.DocumentDBStudio
                 Program.GetMain().SetResultInBrowser(null, e.ToString(), true);
             }
         }
+
+        public override void HandleNodeKeyDown(object sender, KeyEventArgs keyEventArgs)
+        {
+        }
+
+        public override void HandleNodeKeyPress(object sender, KeyPressEventArgs keyPressEventArgs)
+        {
+        }
+
     }
 }

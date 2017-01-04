@@ -7,6 +7,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
+using Microsoft.Azure.DocumentDBStudio.CustomDocumentListDisplay;
 using Microsoft.Azure.DocumentDBStudio.Helpers;
 using Microsoft.Azure.Documents;
 using Microsoft.Azure.Documents.Client;
@@ -21,10 +22,16 @@ namespace Microsoft.Azure.DocumentDBStudio
         private readonly ContextMenu _contextMenu = new ContextMenu();
         private string _currentContinuation = null;
         private CommandContext _currentQueryCommandContext = null;
+        private readonly string _databaseId;
+        private readonly string _documentCollectionId;
 
-        public DocumentCollectionNode(DocumentClient client, DocumentCollection coll)
+        private readonly CustomDocumentListDisplayManager _customDocumentListDisplayManager = new CustomDocumentListDisplayManager();
+
+        public DocumentCollectionNode(DocumentClient client, DocumentCollection coll, string databaseId)
         {
-            Text = coll.Id;
+            _databaseId = databaseId;
+            _documentCollectionId = coll.Id;
+            Text = _documentCollectionId;
             Tag = coll;
             _client = client;
             ImageKey = "SystemFeed";
@@ -50,6 +57,31 @@ namespace Microsoft.Azure.DocumentDBStudio
 
             AddMenuItem("Refresh Documents feed", (sender, e) => Refresh(true));
             AddMenuItem("Query Documents", myMenuItemQueryDocument_Click);
+
+            _contextMenu.MenuItems.Add("-");
+            AddMenuItem("Configure Document Listing settings...", myMenuConfigureDocumentListingDisplay_Click);
+
+        }
+
+        private void myMenuConfigureDocumentListingDisplay_Click(object sender, EventArgs e)
+        {
+            if (Nodes.Count == 0)
+            {
+                MessageBox.Show("No documents available, cannot configure display settings.", "Cannot configure display settings", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            var query = _client.CreateDocumentQuery<Document>((Tag as DocumentCollection).GetLink(_client), "SELECT TOP 1 * FROM c");
+            var doc = query.ToList().First();
+            var docConverted = JsonConvert.DeserializeObject(DocumentHelper.RemoveInternalDocumentValues(JsonConvert.SerializeObject(doc)));
+
+            var dlg = new CustomDocumentListDisplayConfigurationForm(_client.ServiceEndpoint.Host, _databaseId, _documentCollectionId, docConverted);
+            
+            var dr = dlg.ShowDialog();
+            if (dr == DialogResult.OK)
+            {
+                Refresh(true);
+            }
         }
 
         private void AddMenuItem(string menuItemText, EventHandler eventHandler)
@@ -232,7 +264,6 @@ namespace Microsoft.Azure.DocumentDBStudio
             _currentContinuation = null;
 
             Program.GetMain().SetCrudContext(this, OperationType.Query, ResourceType.Document, "select * from c", QueryDocumentsAsync, _currentQueryCommandContext);
-
         }
 
         async void CreateDocumentAsync(object resource, RequestOptions requestOptions)
@@ -240,15 +271,20 @@ namespace Microsoft.Azure.DocumentDBStudio
             try
             {
                 var document = JsonConvert.DeserializeObject(resource as string);
+                var dc = Tag as DocumentCollection;
+                var dcId = dc.Id;
 
                 ResourceResponse<Document> newdocument;
                 using (PerfStatus.Start("CreateDocument"))
                 {
-                    newdocument = await _client.CreateDocumentAsync((Tag as DocumentCollection).GetLink(_client), document, requestOptions);
+                    newdocument = await _client.CreateDocumentAsync(dc.GetLink(_client), document, requestOptions);
                 }
 
+                var hostName = _client.ServiceEndpoint.Host;
+                var displayText = _customDocumentListDisplayManager.GetDisplayText(newdocument.Resource, hostName, dcId, _databaseId);
+
                 Nodes.Add(
-                    new ResourceNode(_client, newdocument.Resource, ResourceType.Document, ((DocumentCollection)Tag).PartitionKey, DocumentHelper.GetDisplayText(newdocument.Resource))
+                    new ResourceNode(_client, newdocument.Resource, ResourceType.Document, dc.PartitionKey, displayText)
                 );
 
                 // set the result window
@@ -287,7 +323,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                     }
                 }
 
-                q = _client.CreateDocumentQuery((Tag as DocumentCollection).GetLink(_client), queryText, feedOptions).AsDocumentQuery();
+                q = CreateDocumentQuery(queryText, feedOptions);
 
                 var sw = Stopwatch.StartNew();
 
@@ -374,11 +410,12 @@ namespace Microsoft.Azure.DocumentDBStudio
             {
                 var docs = new List<dynamic>();
                 NameValueCollection responseHeaders = null;
+                var dc = (DocumentCollection)Tag;
+                var dcId = dc.Id;
 
                 using (PerfStatus.Start("ReadDocumentFeed"))
                 {
-                    IDocumentQuery<dynamic> feedReader = _client.CreateDocumentQuery((Tag as DocumentCollection).GetLink(_client), "Select * from c", 
-                        new FeedOptions { EnableCrossPartitionQuery = true }).AsDocumentQuery();
+                    var feedReader = CreateDocumentQuery("Select * from c", new FeedOptions {EnableCrossPartitionQuery = true});
 
                     while (feedReader.HasMoreResults && docs.Count() < 100)
                     {
@@ -389,23 +426,27 @@ namespace Microsoft.Azure.DocumentDBStudio
                     }
                 }
 
-                string customDocumentDisplayIdentifier;
-                var useCustom = DocumentHelper.GetCustomDocumentDisplayIdentifier(docs, out customDocumentDisplayIdentifier);
+                var host = _client.ServiceEndpoint.Host;
 
-                DocumentHelper.SortDocuments(useCustom, docs, customDocumentDisplayIdentifier);
+                string customDocumentDisplayIdentifier;
+                string sortField;
+                bool reverseSort;
+                var useCustom = _customDocumentListDisplayManager.GetCustomDocumentDisplayIdentifier(docs, host, dc.Id, _databaseId, out customDocumentDisplayIdentifier, out sortField, out reverseSort);
+
+                DocumentHelper.SortDocuments(useCustom, docs, sortField, reverseSort);
 
                 foreach (var doc in docs)
                 {
                     if (useCustom)
                     {
-                        var displayText = DocumentHelper.GetDisplayText(true, doc, customDocumentDisplayIdentifier);
-                        var node = new ResourceNode(_client, doc, ResourceType.Document, ((DocumentCollection)Tag).PartitionKey, displayText);
+                        var displayText = _customDocumentListDisplayManager.GetDisplayText(true, doc, customDocumentDisplayIdentifier);
+                        var node = new ResourceNode(_client, doc, ResourceType.Document, dc.PartitionKey, displayText, dataBaseId: _databaseId, documentCollectionId: dcId);
                         Nodes.Add(node);
                     }
                     else
                     {
-                        var node = new ResourceNode(_client, doc, ResourceType.Document, ((DocumentCollection) Tag).PartitionKey);
-                        Nodes.Add(node);
+                        var node = new ResourceNode(_client, doc, ResourceType.Document, dc.PartitionKey, dataBaseId: _databaseId, documentCollectionId: dcId);
+                        Nodes.Add(node); 
                     }
                 }
 
@@ -420,5 +461,20 @@ namespace Microsoft.Azure.DocumentDBStudio
                 Program.GetMain().SetResultInBrowser(null, e.ToString(), true);
             }
         }
+
+        private IDocumentQuery<dynamic> CreateDocumentQuery(string queryText, FeedOptions feedOptions)
+        {
+            return _client.CreateDocumentQuery((Tag as DocumentCollection).GetLink(_client), queryText, feedOptions).AsDocumentQuery();
+        }
+
+        public override void HandleNodeKeyDown(object sender, KeyEventArgs keyEventArgs)
+        {
+        }
+
+        public override void HandleNodeKeyPress(object sender, KeyPressEventArgs keyPressEventArgs)
+        {
+        }
+
+
     }  
 }

@@ -9,5 +9,9 @@ namespace Microsoft.Azure.DocumentDBStudio
         public abstract void ShowContextMenu(TreeView treeview, Point p);
 
         public abstract void Refresh(bool forceRefresh);
+
+        public abstract void HandleNodeKeyDown(object sender, KeyEventArgs keyEventArgs);
+
+        public abstract void HandleNodeKeyPress(object sender, KeyPressEventArgs keyPressEventArgs);
     }
 }

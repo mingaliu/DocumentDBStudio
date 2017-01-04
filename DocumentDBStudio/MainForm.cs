@@ -697,6 +697,33 @@ namespace Microsoft.Azure.DocumentDBStudio
                 ((FeedNode)e.Node).Refresh(false);
             }
         }
+        private void treeView1_NodeKeyDown(object sender, KeyEventArgs keyEventArgs)
+        {
+            if (treeView1.SelectedNode is FeedNode)
+            {
+                var node = (FeedNode)treeView1.SelectedNode;
+                if (keyEventArgs.KeyValue == 116) 
+                {
+                    // F5
+                    HandleNodeSelected(node);
+                }
+                node.HandleNodeKeyDown(sender, keyEventArgs);
+            }
+        }
+
+        private void treeView1_NodeKeyPress(object sender, KeyPressEventArgs keyPressEventArgs)
+        {
+            if (treeView1.SelectedNode is FeedNode)
+            {
+                var node = (FeedNode)treeView1.SelectedNode;
+                if (keyPressEventArgs.KeyChar == 13)
+                {
+                    // Enter
+                    HandleNodeSelected(node);
+                }
+                node.HandleNodeKeyPress(sender, keyPressEventArgs);
+            }
+        }
 
         private void treeView1_NodeMouseClick(object sender, TreeNodeMouseClickEventArgs e)
         {
@@ -709,44 +736,49 @@ namespace Microsoft.Azure.DocumentDBStudio
                     }
                     break;
                 case MouseButtons.Left:
-                    // render the JSON in the right panel.
-                    currentText = null;
-                    currentJson = null;
-
-                    if (e.Node is ResourceNode)
-                    {
-                        var node = e.Node as ResourceNode;
-                        var body = node.GetBody();
-
-                        if (!string.IsNullOrEmpty(body))
-                        {
-                            currentText = body;
-                        }
-                    }
-
-                    if (e.Node.Tag is string)
-                    {
-                        currentText = e.Node.Tag.ToString();
-                    }
-                    else if (e.Node is DatabaseAccountNode)
-                    {
-                        currentJson = JsonConvert.SerializeObject(e.Node.Tag, Formatting.Indented);
-                    }
-                    else if (e.Node.Tag != null)
-                    {
-                        var tag = e.Node.Tag;
-                        currentJson = tag.ToString();
-                        currentJson = DocumentHelper.RemoveInternalDocumentValues(currentJson);
-                    }
-
-                    if (currentJson == null && currentText == null)
-                    {
-                        currentText = e.Node.Text;
-                    }
-
-                    DisplayResponseContent();
+                    HandleNodeSelected(e.Node);
                     break;
             }
+        }
+
+        private void HandleNodeSelected(TreeNode treeNode)
+        {
+            // render the JSON in the right panel.
+            currentText = null;
+            currentJson = null;
+
+            if (treeNode is ResourceNode)
+            {
+                var node = treeNode as ResourceNode;
+                var body = node.GetBody();
+
+                if (!string.IsNullOrEmpty(body))
+                {
+                    currentText = body;
+                }
+            }
+
+            if (treeNode.Tag is string)
+            {
+                currentText = treeNode.Tag.ToString();
+            }
+            else if (treeNode is DatabaseAccountNode)
+            {
+                currentJson = JsonConvert.SerializeObject(treeNode.Tag, Formatting.Indented);
+            }
+            else if (treeNode.Tag != null)
+            {
+                var tag = treeNode.Tag;
+                currentJson = tag.ToString();
+                currentJson = DocumentHelper.RemoveInternalDocumentValues(currentJson);
+            }
+
+            if (currentJson == null && currentText == null)
+            {
+                currentText = treeNode.Text;
+            }
+
+            DisplayResponseContent();
         }
 
         internal void SetCrudContext(

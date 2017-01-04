@@ -131,5 +131,14 @@ namespace Microsoft.Azure.DocumentDBStudio
                 Program.GetMain().SetResultInBrowser(null, e.ToString(), true);
             }
         }
+
+        public override void HandleNodeKeyDown(object sender, KeyEventArgs keyEventArgs)
+        {
+        }
+
+        public override void HandleNodeKeyPress(object sender, KeyPressEventArgs keyPressEventArgs)
+        {
+        }
+
     }
 }

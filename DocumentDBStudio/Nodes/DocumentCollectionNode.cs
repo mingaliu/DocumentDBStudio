@@ -467,5 +467,14 @@ namespace Microsoft.Azure.DocumentDBStudio
             return _client.CreateDocumentQuery((Tag as DocumentCollection).GetLink(_client), queryText, feedOptions).AsDocumentQuery();
         }
 
+        public override void HandleNodeKeyDown(object sender, KeyEventArgs keyEventArgs)
+        {
+        }
+
+        public override void HandleNodeKeyPress(object sender, KeyPressEventArgs keyPressEventArgs)
+        {
+        }
+
+
     }  
 }

@@ -133,6 +133,7 @@
     <Compile Include="CustomDocumentListDisplayConfigurationForm.Designer.cs">
       <DependentUpon>CustomDocumentListDisplayConfigurationForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="Helpers\MenuItemHelper.cs" />
     <Compile Include="Helpers\DocumentPatternParser.cs" />
     <Compile Include="Helpers\DynamicHelper.cs" />
     <Compile Include="CustomDocumentListDisplay\CustomDocumentListDisplayManager.cs" />

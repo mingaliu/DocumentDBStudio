@@ -128,5 +128,14 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
 
         }
+
+        public override void HandleNodeKeyDown(object sender, KeyEventArgs keyEventArgs)
+        {
+        }
+
+        public override void HandleNodeKeyPress(object sender, KeyPressEventArgs keyPressEventArgs)
+        {
+        }
+
     }
 }

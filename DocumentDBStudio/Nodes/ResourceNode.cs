@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Drawing;
 using System.IO;
-using System.Reflection;
 using System.Text;
 using System.Windows.Forms;
 using Microsoft.Azure.DocumentDBStudio.CustomDocumentListDisplay;
@@ -87,7 +86,8 @@ namespace Microsoft.Azure.DocumentDBStudio
             Tag = document;
             _client = client;
 
-            AddMenuItem(string.Format("Read {0}", _resourceType), myMenuItemRead_Click, Shortcut.F5);
+            var readMenuItem = AddMenuItem(string.Format("Read {0}", _resourceType), myMenuItemRead_Click);
+            MenuItemHelper.SetCustomShortcut(readMenuItem, Keys.Enter);
 
             if (!isConflict && !isOffer)
             {
@@ -106,6 +106,14 @@ namespace Microsoft.Azure.DocumentDBStudio
                 AddMenuItem(string.Format("Copy {0} to clipboard", _resourceType), myMenuItemCopyToClipBoard_Click, Shortcut.CtrlC);
                 var cpWithnewIdItem = AddMenuItem(string.Format("Copy {0} to clipboard with new id", _resourceType), myMenuItemCopyToClipBoardWithNewId_Click);
                 MenuItemHelper.SetCustomShortcut(cpWithnewIdItem, Keys.Control | Keys.Alt | Keys.C);
+
+                if (isDocument)
+                {
+                    var createWithnewIdItem = AddMenuItem(
+                        string.Format("Create {0} with new id based on this", _resourceType), (sender, e) => InvokeCreateNewDocumentBasedOnSelectedWithNewId()
+                    ); 
+                    MenuItemHelper.SetCustomShortcut(createWithnewIdItem, Keys.Control | Keys.Alt | Keys.N);
+                }
             }
 
             if (isPermission)
@@ -144,7 +152,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 _contextMenu.MenuItems.Add("-");
 
                 AddMenuItem("Create attachment", myMenuItemCreateAttachment_Click);
-                AddMenuItem("Create attachment from file", myMenuItemAttachmentFromFile_Click);
+                AddMenuItem("Create attachment from file...", myMenuItemAttachmentFromFile_Click);
             }
             else if (isConflict)
             {
@@ -1046,6 +1054,17 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
         }
 
+        private void InvokeCreateNewDocumentBasedOnSelectedWithNewId()
+        {
+            if (Parent is DocumentCollectionNode)
+            {
+                var docContents = GetCurrentObjectContents();
+                docContents = DocumentHelper.AssignNewIdToDocument(docContents);
+                ((DocumentCollectionNode)Parent).InvokeCreateDocument(JObject.Parse(docContents));
+            }
+        }
+
+
         public override void HandleNodeKeyDown(object sender, KeyEventArgs keyEventArgs)
         {
             var kv = keyEventArgs.KeyValue;
@@ -1077,8 +1096,35 @@ namespace Microsoft.Azure.DocumentDBStudio
             {
                 InvokeReplaceResource();
             }
-        }
 
+            if (kv == 116) // F5
+            {
+                if (Parent is FeedNode)
+                {
+                    ((FeedNode) Parent).Refresh(true);
+                }
+            }
+
+            if (Parent is DocumentCollectionNode)
+            {
+                var dcn = (DocumentCollectionNode)Parent;
+                if (ctrl && kv == 78) // ctrl+n
+                {
+                    dcn.InvokeCreateDocument();
+                }
+
+                if (ctrl && shift && kv == 78) // ctrl+shift+n
+                {
+                    dcn.InvokeCreatedDocumentWithId();
+                }
+
+                if (ctrl && alt && kv == 78) // ctrl+alt+n
+                {
+                    InvokeCreateNewDocumentBasedOnSelectedWithNewId();
+                }
+            }
+
+        }
         public override void HandleNodeKeyPress(object sender, KeyPressEventArgs keyPressEventArgs)
         {
         }

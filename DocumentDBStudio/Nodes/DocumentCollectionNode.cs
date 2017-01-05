@@ -43,19 +43,20 @@ namespace Microsoft.Azure.DocumentDBStudio
             Nodes.Add(new ConflictNode(_client));
 
             AddMenuItem("Read DocumentCollection", myMenuItemReadDocumentCollection_Click);
+
             AddMenuItem("Replace DocumentCollection", myMenuItemReplaceDocumentCollection_Click);
             AddMenuItem("Delete DocumentCollection", myMenuItemDeleteDocumentCollection_Click);
 
             _contextMenu.MenuItems.Add("-");
             
-            AddMenuItem("Create Document", myMenuItemCreateDocument_Click);
-            AddMenuItem("Create Document with prefilled id", myMenuItemCreateDocumentWithId_Click);
-            AddMenuItem("Create Document From File", myMenuItemCreateDocumentFromFile_Click);
-            AddMenuItem("Create Multiple Documents From Folder", myMenuItemCreateDocumentsFromFolder_Click);
+            AddMenuItem("Create Document", myMenuItemCreateDocument_Click, Shortcut.CtrlN);
+            AddMenuItem("Create Document with prefilled id", myMenuItemCreateDocumentWithId_Click, Shortcut.CtrlShiftN);
+            AddMenuItem("Create Document From File...", myMenuItemCreateDocumentFromFile_Click);
+            AddMenuItem("Create Multiple Documents From Folder...", myMenuItemCreateDocumentsFromFolder_Click);
 
             _contextMenu.MenuItems.Add("-");
 
-            AddMenuItem("Refresh Documents feed", (sender, e) => Refresh(true));
+            AddMenuItem("Refresh Documents feed", (sender, e) => Refresh(true), Shortcut.F5);
             AddMenuItem("Query Documents", myMenuItemQueryDocument_Click);
 
             _contextMenu.MenuItems.Add("-");
@@ -84,12 +85,20 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
         }
 
-        private void AddMenuItem(string menuItemText, EventHandler eventHandler)
+        private MenuItem AddMenuItem(string menuItemText, EventHandler eventHandler, Shortcut shortcut = Shortcut.None)
         {
             var menuItem = new MenuItem(menuItemText);
             menuItem.Click += eventHandler;
+            if (shortcut != Shortcut.None)
+            {
+                menuItem.Shortcut = shortcut;
+            }
+
             _contextMenu.MenuItems.Add(menuItem);
+
+            return menuItem;
         }
+
         async void myMenuItemReadDocumentCollection_Click(object sender, EventArgs eArgs)
         {
             try
@@ -240,16 +249,27 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         void myMenuItemCreateDocument_Click(object sender, EventArgs e)
         {
-            // 
-            dynamic d = new System.Dynamic.ExpandoObject();
-            d.id = "Here is your Document Id";
+            InvokeCreateDocument();
+        }
+
+        public void InvokeCreateDocument(dynamic d = null)
+        {
+            if (d == null)
+            {
+                d = new System.Dynamic.ExpandoObject();
+                d.id = "Here is your Document Id";
+            }
             string x = JsonConvert.SerializeObject(d, Formatting.Indented);
             Program.GetMain().SetCrudContext(this, OperationType.Create, ResourceType.Document, x, CreateDocumentAsync);
         }
 
         void myMenuItemCreateDocumentWithId_Click(object sender, EventArgs e)
         {
-            // 
+            InvokeCreatedDocumentWithId();
+        }
+
+        public void InvokeCreatedDocumentWithId()
+        {
             dynamic d = new System.Dynamic.ExpandoObject();
             d.id = Guid.NewGuid();
             string x = JsonConvert.SerializeObject(d, Formatting.Indented);
@@ -469,6 +489,25 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         public override void HandleNodeKeyDown(object sender, KeyEventArgs keyEventArgs)
         {
+            var kv = keyEventArgs.KeyValue;
+            var ctrl = keyEventArgs.Control;
+            var shift = keyEventArgs.Shift;
+
+            if (kv == 116) // F5
+            {
+                Refresh(true);
+            }
+
+            if (ctrl && kv == 78) // ctrl+n
+            {
+                InvokeCreateDocument();
+            }
+
+            if (ctrl && shift && kv == 78) // ctrl+n
+            {
+                InvokeCreatedDocumentWithId();
+            }
+
         }
 
         public override void HandleNodeKeyPress(object sender, KeyPressEventArgs keyPressEventArgs)

@@ -702,11 +702,6 @@ namespace Microsoft.Azure.DocumentDBStudio
             if (treeView1.SelectedNode is FeedNode)
             {
                 var node = (FeedNode)treeView1.SelectedNode;
-                if (keyEventArgs.KeyValue == 116) 
-                {
-                    // F5
-                    HandleNodeSelected(node);
-                }
                 node.HandleNodeKeyDown(sender, keyEventArgs);
             }
         }

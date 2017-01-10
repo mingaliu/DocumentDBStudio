@@ -272,17 +272,18 @@ namespace Microsoft.Azure.DocumentDBStudio
         //
         private void DisplayResponseContent()
         {
+            var workJson = DocumentHelper.RemoveInternalDocumentValues(currentJson);
             if (tsbViewType.Checked)
             {
-                PrettyPrintJson(currentJson, currentText);
+                PrettyPrintJson(workJson, currentText);
             }
             else
             {
                 string htmlResponse = "";
 
-                if (!string.IsNullOrEmpty(currentJson))
+                if (!string.IsNullOrEmpty(workJson))
                 {
-                    htmlResponse = Helper.FormatTextAsHtml(currentJson, false);
+                    htmlResponse = Helper.FormatTextAsHtml(workJson, false);
                 }
                 if (!string.IsNullOrEmpty(currentText))
                 {
@@ -382,6 +383,20 @@ namespace Microsoft.Azure.DocumentDBStudio
             Settings.Default.Save();
 
             SetViewTypeTabText();
+
+            if ((webBrowserResponse.Url.AbsoluteUri == "about:blank" && webBrowserResponse.DocumentTitle != "DataModelBrowserHome")
+                || webBrowserResponse.Url.Scheme == "file")
+            {
+                DisplayResponseContent();
+            }
+        }
+
+        private void tsbHideDocumentSystemProperties_Click(object sender, EventArgs e)
+        {
+            Settings.Default.HideDocumentSystemProperties = tsbHideDocumentSystemProperties.Checked;
+            Settings.Default.Save();
+
+            SetDocumentSystemPropertiesTabText();
 
             if ((webBrowserResponse.Url.AbsoluteUri == "about:blank" && webBrowserResponse.DocumentTitle != "DataModelBrowserHome")
                 || webBrowserResponse.Url.Scheme == "file")
@@ -765,7 +780,6 @@ namespace Microsoft.Azure.DocumentDBStudio
             {
                 var tag = treeNode.Tag;
                 currentJson = tag.ToString();
-                currentJson = DocumentHelper.RemoveInternalDocumentValues(currentJson);
             }
 
             if (currentJson == null && currentText == null)
@@ -1550,20 +1564,6 @@ namespace Microsoft.Azure.DocumentDBStudio
         private void feedToolStrip_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
         {
 
-        }
-
-        private void tsbHideDocumentSystemProperties_Click(object sender, EventArgs e)
-        {
-            Settings.Default.HideDocumentSystemProperties = tsbHideDocumentSystemProperties.Checked;
-            Settings.Default.Save();
-
-            SetDocumentSystemPropertiesTabText();
-
-            if ((webBrowserResponse.Url.AbsoluteUri == "about:blank" && webBrowserResponse.DocumentTitle != "DataModelBrowserHome")
-                || webBrowserResponse.Url.Scheme == "file")
-            {
-                DisplayResponseContent();
-            }
         }
 
         private void SetDocumentSystemPropertiesTabText()

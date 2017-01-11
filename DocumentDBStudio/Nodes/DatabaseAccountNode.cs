@@ -39,6 +39,14 @@ namespace Microsoft.Azure.DocumentDBStudio
 
             AddMenuItem("Remove setting", myMenuItemRemoveDatabaseAccount_Click);
             AddMenuItem("Change setting", myMenuItemChangeSetting_Click);
+
+            _contextMenu.MenuItems.Add("-");
+            AddMenuItem("Collapse all", myMenuItemCollapseAll_Click);
+        }
+
+        private void myMenuItemCollapseAll_Click(object sender, EventArgs e)
+        {
+            this.Collapse();
         }
 
         private void AddMenuItem(string menuItemText, EventHandler eventHandler)

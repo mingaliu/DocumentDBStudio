@@ -1569,8 +1569,8 @@ namespace Microsoft.Azure.DocumentDBStudio
         private void SetDocumentSystemPropertiesTabText()
         {
             tsbHideDocumentSystemProperties.Text = Settings.Default.HideDocumentSystemProperties
-                ? "Hide SysProperties"
-                : "Show SysProperties";
+                ? "Hide System resources"
+                : "Show System resources";
         }
     }
 }

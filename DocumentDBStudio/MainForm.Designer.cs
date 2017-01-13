@@ -1249,7 +1249,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.tsbHideDocumentSystemProperties.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.tsbHideDocumentSystemProperties.Name = "tsbHideDocumentSystemProperties";
             this.tsbHideDocumentSystemProperties.Size = new System.Drawing.Size(106, 22);
-            this.tsbHideDocumentSystemProperties.Text = "Show SysProperties";
+            this.tsbHideDocumentSystemProperties.Text = "Show System resources";
             this.tsbHideDocumentSystemProperties.Click += new System.EventHandler(this.tsbHideDocumentSystemProperties_Click);
             // 
             // tsAddress

@@ -35,6 +35,14 @@ namespace Microsoft.Azure.DocumentDBStudio
             AddMenuItem("Create DocumentCollection", myMenuItemCreateDocumentCollection_Click);
             AddMenuItem("Refresh DocumentCollections Feed", (sender, e) => Refresh(true));
             AddMenuItem("Query DocumentCollections", myMenuItemQueryDocumentCollection_Click);
+
+            _contextMenu.MenuItems.Add("-");
+            AddMenuItem("Collapse all", myMenuItemCollapseAll_Click);
+        }
+
+        private void myMenuItemCollapseAll_Click(object sender, EventArgs e)
+        {
+            this.Collapse();
         }
 
         private void AddMenuItem(string menuItemText, EventHandler eventHandler)

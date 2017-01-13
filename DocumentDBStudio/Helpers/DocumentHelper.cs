@@ -8,6 +8,26 @@ namespace Microsoft.Azure.DocumentDBStudio.Helpers
 {
     static class DocumentHelper
     {
+        private static readonly List<string> SystemResourceNames = new List<string>
+        {
+            "_rid",
+            "_etag",
+            "_ts",
+            "_self",
+            "_id",
+            "_attachments",
+
+            "_docs",
+            "_sprocs",
+            "_triggers",
+            "_udfs",
+            "_conflicts",
+
+            "_colls",
+            "_users"
+
+        };
+
         public static string AssignNewIdToDocument(string json)
         {
             try
@@ -30,10 +50,14 @@ namespace Microsoft.Azure.DocumentDBStudio.Helpers
                     var removeList = new List<string>();
                     foreach (var prop in obj)
                     {
-                        if (prop.Name.ToString().StartsWith("_"))
+                        if (SystemResourceNames.Contains(prop.Name.ToString()))
                         {
                             removeList.Add(prop.Name);
                         }
+                        /*if (prop.Name.ToString().StartsWith("_"))
+                        {
+                            removeList.Add(prop.Name);
+                        }*/
                     }
                     foreach (var remove in removeList)
                     {

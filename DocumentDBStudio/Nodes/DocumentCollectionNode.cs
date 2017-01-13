@@ -62,6 +62,14 @@ namespace Microsoft.Azure.DocumentDBStudio
             _contextMenu.MenuItems.Add("-");
             AddMenuItem("Configure Document Listing settings...", myMenuConfigureDocumentListingDisplay_Click);
 
+            _contextMenu.MenuItems.Add("-");
+            AddMenuItem("Collapse all", myMenuItemCollapseAll_Click);
+
+        }
+
+        private void myMenuItemCollapseAll_Click(object sender, EventArgs e)
+        {
+            this.Collapse();
         }
 
         private void myMenuConfigureDocumentListingDisplay_Click(object sender, EventArgs e)

@@ -109,10 +109,18 @@ namespace Microsoft.Azure.DocumentDBStudio
 
                 if (isDocument)
                 {
+                    _contextMenu.MenuItems.Add("-");
+
                     var createWithnewIdItem = AddMenuItem(
                         string.Format("Create {0} with new id based on this", _resourceType), (sender, e) => InvokeCreateNewDocumentBasedOnSelectedWithNewId()
                     ); 
                     MenuItemHelper.SetCustomShortcut(createWithnewIdItem, Keys.Control | Keys.Alt | Keys.N);
+
+                    AddMenuItem(string.Format("Create {0}", _resourceType), myMenuItemCreateNewDocument_Click, Shortcut.CtrlN);
+                    AddMenuItem(string.Format("Create {0} with prefilled id", _resourceType), myMenuItemCreateNewDocumentWithId_Click, Shortcut.CtrlShiftN);
+                    AddMenuItem("Create Document From File...", myMenuItemCreateDocumentFromFile_Click);
+                    AddMenuItem("Create Multiple Documents From Folder...", myMenuItemCreateDocumentsFromFolder_Click);
+
                 }
             }
 
@@ -166,6 +174,26 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
 
             
+        }
+
+        private void myMenuItemCreateDocumentsFromFolder_Click(object sender, EventArgs e)
+        {
+            ((DocumentCollectionNode)Parent).InvokeCreateDocumentsFromFolder();
+        }
+
+        private void myMenuItemCreateDocumentFromFile_Click(object sender, EventArgs e)
+        {
+            ((DocumentCollectionNode)Parent).InvokeCreateDocumentFromFile();
+        }
+
+        private void myMenuItemCreateNewDocument_Click(object sender, EventArgs e)
+        {
+            ((DocumentCollectionNode) Parent).InvokeCreateDocument();
+        }
+
+        private void myMenuItemCreateNewDocumentWithId_Click(object sender, EventArgs e)
+        {
+            ((DocumentCollectionNode)Parent).InvokeCreatedDocumentWithId();
         }
 
         private MenuItem AddMenuItem(string menuItemText, EventHandler eventHandler, Shortcut shortcut = Shortcut.None)

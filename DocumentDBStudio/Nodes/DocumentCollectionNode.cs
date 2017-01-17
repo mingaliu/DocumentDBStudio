@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Azure.DocumentDBStudio.CustomDocumentListDisplay;
 using Microsoft.Azure.DocumentDBStudio.Helpers;
@@ -200,6 +201,11 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         void myMenuItemCreateDocumentFromFile_Click(object sender, EventArgs e)
         {
+            InvokeCreateDocumentFromFile();
+        }
+
+        public void InvokeCreateDocumentFromFile()
+        {
             var ofd = new OpenFileDialog();
             var dr = ofd.ShowDialog();
 
@@ -215,17 +221,22 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         async void myMenuItemCreateDocumentsFromFolder_Click(object sender, EventArgs e)
         {
+            await InvokeCreateDocumentsFromFolder();
+        }
+
+        public async Task InvokeCreateDocumentsFromFolder()
+        {
             var ofd = new OpenFileDialog {Multiselect = true};
 
             var dr = ofd.ShowDialog();
 
             if (dr == DialogResult.OK)
             {
-                var status = string.Format(CultureInfo.InvariantCulture, "Create {0} documents in collection\r\n", ofd.FileNames.Length);
+                var status = string.Format(CultureInfo.InvariantCulture, "Create {0} documents in collection\r\n",
+                    ofd.FileNames.Length);
                 // Read the files 
                 foreach (var filename in ofd.FileNames)
                 {
-
                     // right now assume every file is JSON content
                     var jsonText = File.ReadAllText(filename);
                     var fileRootName = Path.GetFileName(filename);
@@ -236,21 +247,25 @@ namespace Microsoft.Azure.DocumentDBStudio
                     {
                         using (PerfStatus.Start("CreateDocument"))
                         {
-                            var newdocument = await _client.CreateDocumentAsync((Tag as DocumentCollection).GetLink(_client), document, Program.GetMain().GetRequestOptions());
+                            var newdocument =
+                                await
+                                    _client.CreateDocumentAsync((Tag as DocumentCollection).GetLink(_client), document,
+                                        Program.GetMain().GetRequestOptions());
                             status += string.Format(CultureInfo.InvariantCulture, "Succeed adding {0} \r\n", fileRootName);
                         }
                     }
                     catch (DocumentClientException ex)
                     {
-                        status += string.Format(CultureInfo.InvariantCulture, "Failed adding {0}, statusCode={1} \r\n", fileRootName, ex.StatusCode);
+                        status += string.Format(CultureInfo.InvariantCulture, "Failed adding {0}, statusCode={1} \r\n",
+                            fileRootName, ex.StatusCode);
                     }
                     catch (Exception ex)
                     {
-                        status += string.Format(CultureInfo.InvariantCulture, "Failed adding {0}, unknown exception \r\n", fileRootName, ex.Message);
+                        status += string.Format(CultureInfo.InvariantCulture, "Failed adding {0}, unknown exception \r\n",
+                            fileRootName, ex.Message);
                     }
 
                     Program.GetMain().SetResultInBrowser(null, status, false);
-
                 }
             }
         }

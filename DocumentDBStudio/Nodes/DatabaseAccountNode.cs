@@ -31,9 +31,9 @@ namespace Microsoft.Azure.DocumentDBStudio
             Nodes.Add(new OfferNode(_client));
 
             AddMenuItem("Read DatabaseAccount", myMenuItemReadDatabaseAccount_Click);
-            AddMenuItem("Create Database", myMenuItemCreateDatabase_Click);
-            AddMenuItem("Refresh Databases feed", (sender, e) => Refresh(true));
-            AddMenuItem("Query Database", myMenuItemQueryDatabase_Click);
+            AddMenuItem("Create Database", myMenuItemCreateDatabase_Click, Shortcut.CtrlN);
+            AddMenuItem("Refresh Databases feed", (sender, e) => Refresh(true), Shortcut.F5);
+            AddMenuItem("Query Database", myMenuItemQueryDatabase_Click, Shortcut.CtrlQ);
 
             _contextMenu.MenuItems.Add("-");
 
@@ -49,11 +49,18 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.Collapse();
         }
 
-        private void AddMenuItem(string menuItemText, EventHandler eventHandler)
+        private MenuItem AddMenuItem(string menuItemText, EventHandler eventHandler, Shortcut shortcut = Shortcut.None)
         {
             var menuItem = new MenuItem(menuItemText);
             menuItem.Click += eventHandler;
+            if (shortcut != Shortcut.None)
+            {
+                menuItem.Shortcut = shortcut;
+            }
+
             _contextMenu.MenuItems.Add(menuItem);
+
+            return menuItem;
         }
 
         void myMenuItemChangeSetting_Click(object sender, EventArgs e)
@@ -90,6 +97,11 @@ namespace Microsoft.Azure.DocumentDBStudio
         void myMenuItemCreateDatabase_Click(object sender, EventArgs e)
         {
             // 
+            InvokeCreateDatabase();
+        }
+
+        private void InvokeCreateDatabase()
+        {
             dynamic d = new System.Dynamic.ExpandoObject();
             d.id = "Here is your Database Id";
             string x = JsonConvert.SerializeObject(d, Formatting.Indented);
@@ -98,7 +110,13 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         void myMenuItemQueryDatabase_Click(object sender, EventArgs e)
         {
-            Program.GetMain().SetCrudContext(this, OperationType.Query, ResourceType.Database, "select * from c", QueryDatabasesAsync);
+            InvokeQueryDatabase();
+        }
+
+        private void InvokeQueryDatabase()
+        {
+            Program.GetMain()
+                .SetCrudContext(this, OperationType.Query, ResourceType.Database, "select * from c", QueryDatabasesAsync);
         }
 
         void myMenuItemRemoveDatabaseAccount_Click(object sender, EventArgs e)
@@ -238,6 +256,23 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         public override void HandleNodeKeyDown(object sender, KeyEventArgs keyEventArgs)
         {
+            var kv = keyEventArgs.KeyValue;
+            var ctrl = keyEventArgs.Control;
+
+            if (ctrl && kv == 78) // ctrl+n
+            {
+                InvokeCreateDatabase();
+            }
+
+            if (ctrl && kv == 81) // ctrl+q
+            {
+                InvokeQueryDatabase();
+            }
+
+            if (kv == 116) // F5
+            {
+                Refresh(true);
+            }
         }
 
         public override void HandleNodeKeyPress(object sender, KeyPressEventArgs keyPressEventArgs)

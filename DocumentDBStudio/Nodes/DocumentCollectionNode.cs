@@ -47,7 +47,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             AddMenuItem("Read DocumentCollection", myMenuItemReadDocumentCollection_Click);
 
             AddMenuItem("Replace DocumentCollection", myMenuItemReplaceDocumentCollection_Click);
-            AddMenuItem("Delete DocumentCollection", myMenuItemDeleteDocumentCollection_Click);
+            AddMenuItem("Delete DocumentCollection", myMenuItemDeleteDocumentCollection_Click, Shortcut.Del);
 
             _contextMenu.MenuItems.Add("-");
             
@@ -62,7 +62,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             _contextMenu.MenuItems.Add("-");
 
             AddMenuItem("Refresh Documents feed", (sender, e) => Refresh(true), Shortcut.F5);
-            AddMenuItem("Query Documents", myMenuItemQueryDocument_Click);
+            AddMenuItem("Query Documents", myMenuItemQueryDocument_Click, Shortcut.CtrlQ);
 
             _contextMenu.MenuItems.Add("-");
             AddMenuItem("Configure Document Listing settings...", myMenuConfigureDocumentListingDisplay_Click);
@@ -139,9 +139,16 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         void myMenuItemDeleteDocumentCollection_Click(object sender, EventArgs e)
         {
+            InvokeDeleteDocumentCollection();
+        }
+
+        private void InvokeDeleteDocumentCollection()
+        {
             var bodytext = Tag.ToString();
             var context = new CommandContext {IsDelete = true};
-            Program.GetMain().SetCrudContext(this, OperationType.Delete, ResourceType.DocumentCollection, bodytext, DeleteDocumentCollectionAsync, context);
+            Program.GetMain()
+                .SetCrudContext(this, OperationType.Delete, ResourceType.DocumentCollection, bodytext,
+                    DeleteDocumentCollectionAsync, context);
         }
 
         void myMenuItemReplaceDocumentCollection_Click(object sender, EventArgs e)
@@ -332,12 +339,19 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         void myMenuItemQueryDocument_Click(object sender, EventArgs e)
         {
+            InvokeQueryDocuments();
+        }
+
+        public void InvokeQueryDocuments()
+        {
             _currentQueryCommandContext = new CommandContext {IsFeed = true};
 
             // reset continuation token
             _currentContinuation = null;
 
-            Program.GetMain().SetCrudContext(this, OperationType.Query, ResourceType.Document, "select * from c", QueryDocumentsAsync, _currentQueryCommandContext);
+            Program.GetMain()
+                .SetCrudContext(this, OperationType.Query, ResourceType.Document, "select * from c", QueryDocumentsAsync,
+                    _currentQueryCommandContext);
         }
 
         async void CreateDocumentAsync(object resource, RequestOptions requestOptions)
@@ -547,6 +561,12 @@ namespace Microsoft.Azure.DocumentDBStudio
             var ctrl = keyEventArgs.Control;
             var shift = keyEventArgs.Shift;
 
+            if (kv == 46) // del
+            {
+                InvokeDeleteDocumentCollection();
+            }
+
+
             if (kv == 116) // F5
             {
                 Refresh(true);
@@ -555,6 +575,11 @@ namespace Microsoft.Azure.DocumentDBStudio
             if (ctrl && kv == 78) // ctrl+n
             {
                 InvokeCreateDocument();
+            }
+
+            if (ctrl && kv == 81) // ctrl+q
+            {
+                InvokeQueryDocuments();
             }
 
             if (ctrl && shift && kv == 78) // ctrl+n
@@ -566,6 +591,9 @@ namespace Microsoft.Azure.DocumentDBStudio
             {
                 InvokeCreateNewDocumentBasedOnClipboard();
             }
+
+
+            
 
         }
 

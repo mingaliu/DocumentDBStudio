@@ -1161,6 +1161,11 @@ namespace Microsoft.Azure.DocumentDBStudio
                     InvokeCreateNewDocumentBasedOnSelectedWithNewId();
                 }
 
+                if (ctrl && kv == 81) // ctrl+q
+                {
+                    dcn.InvokeQueryDocuments();
+                }
+
                 if (ctrl && kv == 86) // ctrl+v
                 {
                     dcn.InvokeCreateNewDocumentBasedOnClipboard();

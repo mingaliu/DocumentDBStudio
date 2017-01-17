@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Azure.DocumentDBStudio.CustomDocumentListDisplay;
 using Microsoft.Azure.DocumentDBStudio.Helpers;
@@ -13,6 +14,7 @@ using Microsoft.Azure.Documents;
 using Microsoft.Azure.Documents.Client;
 using Microsoft.Azure.Documents.Linq;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Microsoft.Azure.DocumentDBStudio
 {
@@ -45,19 +47,22 @@ namespace Microsoft.Azure.DocumentDBStudio
             AddMenuItem("Read DocumentCollection", myMenuItemReadDocumentCollection_Click);
 
             AddMenuItem("Replace DocumentCollection", myMenuItemReplaceDocumentCollection_Click);
-            AddMenuItem("Delete DocumentCollection", myMenuItemDeleteDocumentCollection_Click);
+            AddMenuItem("Delete DocumentCollection", myMenuItemDeleteDocumentCollection_Click, Shortcut.Del);
 
             _contextMenu.MenuItems.Add("-");
             
             AddMenuItem("Create Document", myMenuItemCreateDocument_Click, Shortcut.CtrlN);
             AddMenuItem("Create Document with prefilled id", myMenuItemCreateDocumentWithId_Click, Shortcut.CtrlShiftN);
-            AddMenuItem("Create Document From File...", myMenuItemCreateDocumentFromFile_Click);
-            AddMenuItem("Create Multiple Documents From Folder...", myMenuItemCreateDocumentsFromFolder_Click);
+            AddMenuItem("Create Document from File...", myMenuItemCreateDocumentFromFile_Click);
+            AddMenuItem("Create Multiple Documents from Folder...", myMenuItemCreateDocumentsFromFolder_Click);
+            _contextMenu.MenuItems.Add("-");
+            AddMenuItem("Paste Document from clipboard", (sender, e) => InvokeCreateNewDocumentBasedOnClipboard(), Shortcut.CtrlV);
+
 
             _contextMenu.MenuItems.Add("-");
 
             AddMenuItem("Refresh Documents feed", (sender, e) => Refresh(true), Shortcut.F5);
-            AddMenuItem("Query Documents", myMenuItemQueryDocument_Click);
+            AddMenuItem("Query Documents", myMenuItemQueryDocument_Click, Shortcut.CtrlQ);
 
             _contextMenu.MenuItems.Add("-");
             AddMenuItem("Configure Document Listing settings...", myMenuConfigureDocumentListingDisplay_Click);
@@ -134,9 +139,16 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         void myMenuItemDeleteDocumentCollection_Click(object sender, EventArgs e)
         {
+            InvokeDeleteDocumentCollection();
+        }
+
+        private void InvokeDeleteDocumentCollection()
+        {
             var bodytext = Tag.ToString();
             var context = new CommandContext {IsDelete = true};
-            Program.GetMain().SetCrudContext(this, OperationType.Delete, ResourceType.DocumentCollection, bodytext, DeleteDocumentCollectionAsync, context);
+            Program.GetMain()
+                .SetCrudContext(this, OperationType.Delete, ResourceType.DocumentCollection, bodytext,
+                    DeleteDocumentCollectionAsync, context);
         }
 
         void myMenuItemReplaceDocumentCollection_Click(object sender, EventArgs e)
@@ -200,6 +212,11 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         void myMenuItemCreateDocumentFromFile_Click(object sender, EventArgs e)
         {
+            InvokeCreateDocumentFromFile();
+        }
+
+        public void InvokeCreateDocumentFromFile()
+        {
             var ofd = new OpenFileDialog();
             var dr = ofd.ShowDialog();
 
@@ -215,17 +232,22 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         async void myMenuItemCreateDocumentsFromFolder_Click(object sender, EventArgs e)
         {
+            await InvokeCreateDocumentsFromFolder();
+        }
+
+        public async Task InvokeCreateDocumentsFromFolder()
+        {
             var ofd = new OpenFileDialog {Multiselect = true};
 
             var dr = ofd.ShowDialog();
 
             if (dr == DialogResult.OK)
             {
-                var status = string.Format(CultureInfo.InvariantCulture, "Create {0} documents in collection\r\n", ofd.FileNames.Length);
+                var status = string.Format(CultureInfo.InvariantCulture, "Create {0} documents in collection\r\n",
+                    ofd.FileNames.Length);
                 // Read the files 
                 foreach (var filename in ofd.FileNames)
                 {
-
                     // right now assume every file is JSON content
                     var jsonText = File.ReadAllText(filename);
                     var fileRootName = Path.GetFileName(filename);
@@ -236,21 +258,25 @@ namespace Microsoft.Azure.DocumentDBStudio
                     {
                         using (PerfStatus.Start("CreateDocument"))
                         {
-                            var newdocument = await _client.CreateDocumentAsync((Tag as DocumentCollection).GetLink(_client), document, Program.GetMain().GetRequestOptions());
+                            var newdocument =
+                                await
+                                    _client.CreateDocumentAsync((Tag as DocumentCollection).GetLink(_client), document,
+                                        Program.GetMain().GetRequestOptions());
                             status += string.Format(CultureInfo.InvariantCulture, "Succeed adding {0} \r\n", fileRootName);
                         }
                     }
                     catch (DocumentClientException ex)
                     {
-                        status += string.Format(CultureInfo.InvariantCulture, "Failed adding {0}, statusCode={1} \r\n", fileRootName, ex.StatusCode);
+                        status += string.Format(CultureInfo.InvariantCulture, "Failed adding {0}, statusCode={1} \r\n",
+                            fileRootName, ex.StatusCode);
                     }
                     catch (Exception ex)
                     {
-                        status += string.Format(CultureInfo.InvariantCulture, "Failed adding {0}, unknown exception \r\n", fileRootName, ex.Message);
+                        status += string.Format(CultureInfo.InvariantCulture, "Failed adding {0}, unknown exception \r\n",
+                            fileRootName, ex.Message);
                     }
 
                     Program.GetMain().SetResultInBrowser(null, status, false);
-
                 }
             }
         }
@@ -271,6 +297,33 @@ namespace Microsoft.Azure.DocumentDBStudio
             Program.GetMain().SetCrudContext(this, OperationType.Create, ResourceType.Document, x, CreateDocumentAsync);
         }
 
+        public void InvokeCreateNewDocumentBasedOnClipboard()
+        {
+            try
+            {
+                if (Clipboard.ContainsText(TextDataFormat.Text) || Clipboard.ContainsText(TextDataFormat.UnicodeText))
+                {
+                    var clipboardText = Clipboard.GetText();
+                    if (!string.IsNullOrWhiteSpace(clipboardText))
+                    {
+                        // Attempt parsing to validate we got a proper json payload:
+                        var doc = JObject.Parse(clipboardText);
+                        var id = doc["id"];
+                        Guid docId;
+                        if (Guid.TryParse(id.ToString(), out docId))
+                        {
+                            InvokeCreateDocument(JObject.Parse(clipboardText));
+                            return;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+            }
+            MessageBox.Show("The clipboard does not seem to contain a valid document", "Invalid json", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+
         void myMenuItemCreateDocumentWithId_Click(object sender, EventArgs e)
         {
             InvokeCreatedDocumentWithId();
@@ -286,12 +339,19 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         void myMenuItemQueryDocument_Click(object sender, EventArgs e)
         {
+            InvokeQueryDocuments();
+        }
+
+        public void InvokeQueryDocuments()
+        {
             _currentQueryCommandContext = new CommandContext {IsFeed = true};
 
             // reset continuation token
             _currentContinuation = null;
 
-            Program.GetMain().SetCrudContext(this, OperationType.Query, ResourceType.Document, "select * from c", QueryDocumentsAsync, _currentQueryCommandContext);
+            Program.GetMain()
+                .SetCrudContext(this, OperationType.Query, ResourceType.Document, "select * from c", QueryDocumentsAsync,
+                    _currentQueryCommandContext);
         }
 
         async void CreateDocumentAsync(object resource, RequestOptions requestOptions)
@@ -501,6 +561,12 @@ namespace Microsoft.Azure.DocumentDBStudio
             var ctrl = keyEventArgs.Control;
             var shift = keyEventArgs.Shift;
 
+            if (kv == 46) // del
+            {
+                InvokeDeleteDocumentCollection();
+            }
+
+
             if (kv == 116) // F5
             {
                 Refresh(true);
@@ -511,10 +577,23 @@ namespace Microsoft.Azure.DocumentDBStudio
                 InvokeCreateDocument();
             }
 
+            if (ctrl && kv == 81) // ctrl+q
+            {
+                InvokeQueryDocuments();
+            }
+
             if (ctrl && shift && kv == 78) // ctrl+n
             {
                 InvokeCreatedDocumentWithId();
             }
+
+            if (ctrl && kv == 86) // ctrl+v
+            {
+                InvokeCreateNewDocumentBasedOnClipboard();
+            }
+
+
+            
 
         }
 

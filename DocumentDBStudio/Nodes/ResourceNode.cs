@@ -118,8 +118,10 @@ namespace Microsoft.Azure.DocumentDBStudio
 
                     AddMenuItem(string.Format("Create {0}", _resourceType), myMenuItemCreateNewDocument_Click, Shortcut.CtrlN);
                     AddMenuItem(string.Format("Create {0} with prefilled id", _resourceType), myMenuItemCreateNewDocumentWithId_Click, Shortcut.CtrlShiftN);
-                    AddMenuItem("Create Document From File...", myMenuItemCreateDocumentFromFile_Click);
-                    AddMenuItem("Create Multiple Documents From Folder...", myMenuItemCreateDocumentsFromFolder_Click);
+                    AddMenuItem(string.Format("Create {0} from File...", _resourceType), myMenuItemCreateDocumentFromFile_Click);
+                    AddMenuItem(string.Format("Create Multiple {0}s from Folder...", _resourceType), myMenuItemCreateDocumentsFromFolder_Click);
+                    _contextMenu.MenuItems.Add("-");
+                    AddMenuItem(string.Format("Paste {0} from clipboard", _resourceType), (sender, e) => InvokeCreateNewDocumentBasedOnClipboard(), Shortcut.CtrlV);
 
                 }
             }
@@ -1092,6 +1094,13 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
         }
 
+        private void InvokeCreateNewDocumentBasedOnClipboard()
+        {
+            if (Parent is DocumentCollectionNode)
+            {
+                (Parent as DocumentCollectionNode).InvokeCreateNewDocumentBasedOnClipboard();
+            }
+        }
 
         public override void HandleNodeKeyDown(object sender, KeyEventArgs keyEventArgs)
         {
@@ -1099,6 +1108,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             var ctrl = keyEventArgs.Control;
             var shift = keyEventArgs.Shift;
             var alt = keyEventArgs.Alt;
+
 
             if (kv == 46) // del
             {
@@ -1149,6 +1159,11 @@ namespace Microsoft.Azure.DocumentDBStudio
                 if (ctrl && alt && kv == 78) // ctrl+alt+n
                 {
                     InvokeCreateNewDocumentBasedOnSelectedWithNewId();
+                }
+
+                if (ctrl && kv == 86) // ctrl+v
+                {
+                    dcn.InvokeCreateNewDocumentBasedOnClipboard();
                 }
             }
 

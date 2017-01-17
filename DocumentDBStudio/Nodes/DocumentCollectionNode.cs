@@ -14,6 +14,7 @@ using Microsoft.Azure.Documents;
 using Microsoft.Azure.Documents.Client;
 using Microsoft.Azure.Documents.Linq;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Microsoft.Azure.DocumentDBStudio
 {
@@ -52,8 +53,11 @@ namespace Microsoft.Azure.DocumentDBStudio
             
             AddMenuItem("Create Document", myMenuItemCreateDocument_Click, Shortcut.CtrlN);
             AddMenuItem("Create Document with prefilled id", myMenuItemCreateDocumentWithId_Click, Shortcut.CtrlShiftN);
-            AddMenuItem("Create Document From File...", myMenuItemCreateDocumentFromFile_Click);
-            AddMenuItem("Create Multiple Documents From Folder...", myMenuItemCreateDocumentsFromFolder_Click);
+            AddMenuItem("Create Document from File...", myMenuItemCreateDocumentFromFile_Click);
+            AddMenuItem("Create Multiple Documents from Folder...", myMenuItemCreateDocumentsFromFolder_Click);
+            _contextMenu.MenuItems.Add("-");
+            AddMenuItem("Paste Document from clipboard", (sender, e) => InvokeCreateNewDocumentBasedOnClipboard(), Shortcut.CtrlV);
+
 
             _contextMenu.MenuItems.Add("-");
 
@@ -284,6 +288,33 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
             string x = JsonConvert.SerializeObject(d, Formatting.Indented);
             Program.GetMain().SetCrudContext(this, OperationType.Create, ResourceType.Document, x, CreateDocumentAsync);
+        }
+
+        public void InvokeCreateNewDocumentBasedOnClipboard()
+        {
+            try
+            {
+                if (Clipboard.ContainsText(TextDataFormat.Text) || Clipboard.ContainsText(TextDataFormat.UnicodeText))
+                {
+                    var clipboardText = Clipboard.GetText();
+                    if (!string.IsNullOrWhiteSpace(clipboardText))
+                    {
+                        // Attempt parsing to validate we got a proper json payload:
+                        var doc = JObject.Parse(clipboardText);
+                        var id = doc["id"];
+                        Guid docId;
+                        if (Guid.TryParse(id.ToString(), out docId))
+                        {
+                            InvokeCreateDocument(JObject.Parse(clipboardText));
+                            return;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+            }
+            MessageBox.Show("The clipboard does not seem to contain a valid document", "Invalid json", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 
         void myMenuItemCreateDocumentWithId_Click(object sender, EventArgs e)
@@ -529,6 +560,11 @@ namespace Microsoft.Azure.DocumentDBStudio
             if (ctrl && shift && kv == 78) // ctrl+n
             {
                 InvokeCreatedDocumentWithId();
+            }
+
+            if (ctrl && kv == 86) // ctrl+v
+            {
+                InvokeCreateNewDocumentBasedOnClipboard();
             }
 
         }

@@ -27,7 +27,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 _contextMenu.MenuItems.Add(menuItem);
             }
             {
-                var menuItem = new MenuItem("Create StoredProcedure From File");
+                var menuItem = new MenuItem("Create StoredProcedure from File");
                 menuItem.Click += myMenuItemCreateStoredProcedureFromFile_Click;
                 _contextMenu.MenuItems.Add(menuItem);
             }

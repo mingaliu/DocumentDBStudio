@@ -791,8 +791,12 @@ namespace Microsoft.Azure.DocumentDBStudio
         }
 
         internal void SetCrudContext(
-            TreeNode node, OperationType operation, ResourceType resourceType, string bodytext, 
-            Action<object, RequestOptions> func, CommandContext commandContext = null
+            TreeNode node, 
+            OperationType operation, 
+            ResourceType resourceType, 
+            string bodytext, 
+            Action<object, RequestOptions> func, 
+            CommandContext commandContext = null
         )
         {
             if (commandContext == null)
@@ -808,6 +812,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             tabCrudContext.Text = string.Format("{0} {1}", operation, resourceType);
             tbCrudContext.Text = bodytext;
 
+            SetToolStripBtnExecuteTooltip(true);
             toolStripBtnExecute.Enabled = true;
             tbCrudContext.ReadOnly = commandContext.IsDelete;
 
@@ -851,6 +856,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             if (this.resourceType == ResourceType.DocumentCollection && (operationType == OperationType.Create || operationType == OperationType.Replace))
             {
                 tabControl.TabPages.Insert(0, tabDocumentCollection);
+                SetToolStripBtnExecuteTooltip();
                 if (operationType == OperationType.Create)
                 {
                     tbCollectionId.Enabled = true;
@@ -945,6 +951,11 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
 
             return true;
+        }
+
+        public void SetToolStripBtnExecuteTooltip(bool includeF5 = false)
+        {
+            toolStripBtnExecute.ToolTipText = includeF5 ? "Execute (F5)" : "Execute";
         }
 
         private void toolStripBtnExecute_Click(object sender, EventArgs e)

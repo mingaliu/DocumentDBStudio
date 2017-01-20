@@ -275,7 +275,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             var workJson = DocumentHelper.RemoveInternalDocumentValues(currentJson);
             if (tsbViewType.Checked)
             {
-                PrettyPrintJson(workJson, currentText);
+                PrettyPrintJson(workJson, currentText, Settings.Default.ExpandPrettyPrintJson);
             }
             else
             {
@@ -416,7 +416,7 @@ namespace Microsoft.Azure.DocumentDBStudio
         private void settingsToolStripMenuItem_Click(object sender, EventArgs e)
         {
             // Bring up account setings dialog
-            SettingsForm dlg = new SettingsForm();
+            AccountSettingsForm dlg = new AccountSettingsForm();
             DialogResult dr = dlg.ShowDialog(this);
             if (dr == DialogResult.OK)
             {
@@ -435,7 +435,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                     AccountSettings accountSettings = (AccountSettings)JsonConvert.DeserializeObject(Settings.Default.AccountSettingsList[i + 1], typeof(AccountSettings));
 
                     // Bring up account setings dialog
-                    SettingsForm dlg = new SettingsForm
+                    AccountSettingsForm dlg = new AccountSettingsForm
                     {
                         AccountEndpoint = accountEndpoint,
                         AccountSettings = accountSettings
@@ -1098,7 +1098,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             tsStatus.Text = status;
         }
 
-        private void PrettyPrintJson(string json, string extraText)
+        private void PrettyPrintJson(string json, string extraText, bool expandAllNodes)
         {
             if (string.IsNullOrEmpty(json))
             {
@@ -1112,6 +1112,15 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
 
             prettyPrint = prettyPrint.Replace("&EXTRASTRINGREPLACE&", Helper.FormatTextAsHtml(extraText, false, false));
+
+            if (expandAllNodes)
+            {
+                prettyPrint = prettyPrint.Replace("&EXPANDALLNODES&", "node.expandAll();");
+            }
+            else
+            {
+                prettyPrint = prettyPrint.Replace("&EXPANDALLNODES&", "");
+            }
 
             // save prettyePrint to file.
             string prettyPrintHtml = Path.Combine(SystemInfoProvider.LocalApplicationDataPath, "prettyPrint.Html");
@@ -1582,6 +1591,13 @@ namespace Microsoft.Azure.DocumentDBStudio
             tsbHideDocumentSystemProperties.Text = Settings.Default.HideDocumentSystemProperties
                 ? "Hide System resources"
                 : "Show System resources";
+        }
+
+        private void settingsToolStripMenuItem_Click_1(object sender, EventArgs e)
+        {
+            // Bring up account setings dialog
+            var dlg = new AppSettingsForm();
+            DialogResult dr = dlg.ShowDialog(this);
         }
     }
 }

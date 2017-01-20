@@ -127,6 +127,12 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AppSettingsForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="AppSettingsForm.Designer.cs">
+      <DependentUpon>AppSettingsForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="CustomDocumentListDisplayConfigurationForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -185,17 +191,20 @@
     <Compile Include="Nodes\StoredProcedureNode.cs" />
     <Compile Include="Nodes\TreeNodes.cs" />
     <Compile Include="Providers\SystemInfoProvider.cs" />
-    <Compile Include="SettingsForm.cs">
+    <Compile Include="AccountSettingsForm.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="SettingsForm.Designer.cs">
-      <DependentUpon>SettingsForm.cs</DependentUpon>
+    <Compile Include="AccountSettingsForm.Designer.cs">
+      <DependentUpon>AccountSettingsForm.cs</DependentUpon>
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Nodes\TriggerNode.cs" />
     <Compile Include="Nodes\UserDefinedFunctionNode.cs" />
     <Compile Include="Nodes\UserNode.cs" />
+    <EmbeddedResource Include="AppSettingsForm.resx">
+      <DependentUpon>AppSettingsForm.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="CustomDocumentListDisplayConfigurationForm.resx">
       <DependentUpon>CustomDocumentListDisplayConfigurationForm.cs</DependentUpon>
     </EmbeddedResource>
@@ -251,8 +260,8 @@
     <Content Include="Resources\special_offer.png" />
     <Content Include="Resources\SystemFeed.png" />
     <Content Include="Resources\User.png" />
-    <EmbeddedResource Include="SettingsForm.resx">
-      <DependentUpon>SettingsForm.cs</DependentUpon>
+    <EmbeddedResource Include="AccountSettingsForm.resx">
+      <DependentUpon>AccountSettingsForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Resources\home.html" />
   </ItemGroup>

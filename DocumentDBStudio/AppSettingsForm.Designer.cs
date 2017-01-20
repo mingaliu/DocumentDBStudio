@@ -59,9 +59,9 @@
             this.cbExpandJson.AutoSize = true;
             this.cbExpandJson.Location = new System.Drawing.Point(12, 12);
             this.cbExpandJson.Name = "cbExpandJson";
-            this.cbExpandJson.Size = new System.Drawing.Size(197, 17);
+            this.cbExpandJson.Size = new System.Drawing.Size(212, 17);
             this.cbExpandJson.TabIndex = 12;
-            this.cbExpandJson.Text = "Expand pretty printed json by default";
+            this.cbExpandJson.Text = "Automatically expand pretty printed json";
             this.cbExpandJson.UseVisualStyleBackColor = true;
             this.cbExpandJson.CheckedChanged += new System.EventHandler(this.cbExpandJson_CheckedChanged);
             // 

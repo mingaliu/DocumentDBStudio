@@ -10,12 +10,16 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             InitializeComponent();
             cbExpandJson.Checked = Settings.Default.ExpandPrettyPrintJson;
+            cbDocumentTreeCount.SelectedIndex = cbDocumentTreeCount.FindStringExact(Settings.Default.DocumentTreeCount.ToString());
+            
         }
 
         private void btnSave_Click(object sender, EventArgs e)
         {
             Settings.Default.ExpandPrettyPrintJson = cbExpandJson.Checked;
+            Settings.Default.DocumentTreeCount = Convert.ToInt32(cbDocumentTreeCount.SelectedItem);
             Settings.Default.Save();
+
 
             DialogResult = DialogResult.OK;
             Close();

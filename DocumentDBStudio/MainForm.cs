@@ -1136,30 +1136,46 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         public void SetResponseHeaders(NameValueCollection responseHeaders)
         {
+            SetResponseHeaders(new List<NameValueCollection> {responseHeaders});
+        }
+
+        public void SetResponseHeaders(List<NameValueCollection> responseHeaders)
+        {
             if (responseHeaders != null)
             {
                 string headers = "";
 
-                string itemCountValue = null;
+                int? itemCountValue = null;
                 string continuationValue = null;
+                decimal charge = 0;
 
-                foreach (string key in responseHeaders.Keys)
+                foreach (var nvc in responseHeaders)
                 {
-                    headers += string.Format(CultureInfo.InvariantCulture, "{0}: {1}\r\n", key, responseHeaders[key]);
+                    foreach (string key in nvc.Keys)
+                    {
+                        headers += string.Format(CultureInfo.InvariantCulture, "{0}: {1}\r\n", key, nvc[key]);
 
-                    if (string.Compare("x-ms-request-charge", key, StringComparison.OrdinalIgnoreCase) == 0)
-                    {
-                        tsStatus.Text = tsStatus.Text + ", Request Charge: " + responseHeaders[key];
-                    }
-                    if (string.Compare("x-ms-item-count", key, StringComparison.OrdinalIgnoreCase) == 0)
-                    {
-                        itemCountValue = responseHeaders[key];
-                    }
-                    if (string.Compare("x-ms-continuation", key, StringComparison.OrdinalIgnoreCase) == 0)
-                    {
-                        continuationValue = responseHeaders[key];
+                        if (string.Compare("x-ms-request-charge", key, StringComparison.OrdinalIgnoreCase) == 0)
+                        {
+                            charge += decimal.Parse(nvc[key].Replace(".", ","));
+                        }
+                        if (string.Compare("x-ms-item-count", key, StringComparison.OrdinalIgnoreCase) == 0)
+                        {
+                            if (itemCountValue == null) itemCountValue = 0;
+                            itemCountValue += Convert.ToInt32(nvc[key]);
+                        }
+                        if (string.Compare("x-ms-continuation", key, StringComparison.OrdinalIgnoreCase) == 0)
+                        {
+                            continuationValue = nvc[key];
+                        }
+                        else
+                        {
+                            continuationValue = null;
+                        }
                     }
                 }
+
+                tsStatus.Text = tsStatus.Text + ", Request Charge: " + charge;
 
                 if (itemCountValue != null)
                 {

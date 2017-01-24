@@ -93,5 +93,17 @@ namespace Microsoft.Azure.DocumentDBStudio.Properties {
                 this["ExpandPrettyPrintJson"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("100")]
+        public int DocumentTreeCount {
+            get {
+                return ((int)(this["DocumentTreeCount"]));
+            }
+            set {
+                this["DocumentTreeCount"] = value;
+            }
+        }
     }
 }

@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Azure.DocumentDBStudio.CustomDocumentListDisplay;
 using Microsoft.Azure.DocumentDBStudio.Helpers;
+using Microsoft.Azure.DocumentDBStudio.Properties;
 using Microsoft.Azure.Documents;
 using Microsoft.Azure.Documents.Client;
 using Microsoft.Azure.Documents.Linq;
@@ -497,7 +498,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             try
             {
                 var docs = new List<dynamic>();
-                NameValueCollection responseHeaders = null;
+                var responseHeaders = new List<NameValueCollection>();
                 var dc = (DocumentCollection)Tag;
                 var dcId = dc.Id;
 
@@ -505,12 +506,11 @@ namespace Microsoft.Azure.DocumentDBStudio
                 {
                     var feedReader = CreateDocumentQuery("Select * from c", new FeedOptions {EnableCrossPartitionQuery = true});
 
-                    while (feedReader.HasMoreResults && docs.Count() < 100)
+                    while (feedReader.HasMoreResults && docs.Count() < Settings.Default.DocumentTreeCount)
                     {
-                        FeedResponse<Document> response = feedReader.ExecuteNextAsync<Document>().Result;
+                        var response = feedReader.ExecuteNextAsync<Document>().Result;
                         docs.AddRange(response);
-
-                        responseHeaders = response.ResponseHeaders;
+                        responseHeaders.Add(response.ResponseHeaders);
                     }
                 }
 

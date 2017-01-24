@@ -31,12 +31,14 @@
             this.btnCancel = new System.Windows.Forms.Button();
             this.btnSave = new System.Windows.Forms.Button();
             this.cbExpandJson = new System.Windows.Forms.CheckBox();
+            this.label1 = new System.Windows.Forms.Label();
+            this.cbDocumentTreeCount = new System.Windows.Forms.ComboBox();
             this.SuspendLayout();
             // 
             // btnCancel
             // 
             this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.btnCancel.Location = new System.Drawing.Point(281, 41);
+            this.btnCancel.Location = new System.Drawing.Point(281, 69);
             this.btnCancel.Name = "btnCancel";
             this.btnCancel.Size = new System.Drawing.Size(75, 23);
             this.btnCancel.TabIndex = 11;
@@ -46,7 +48,7 @@
             // 
             // btnSave
             // 
-            this.btnSave.Location = new System.Drawing.Point(362, 41);
+            this.btnSave.Location = new System.Drawing.Point(362, 69);
             this.btnSave.Name = "btnSave";
             this.btnSave.Size = new System.Drawing.Size(75, 23);
             this.btnSave.TabIndex = 10;
@@ -65,12 +67,39 @@
             this.cbExpandJson.UseVisualStyleBackColor = true;
             this.cbExpandJson.CheckedChanged += new System.EventHandler(this.cbExpandJson_CheckedChanged);
             // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(9, 41);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(186, 13);
+            this.label1.TabIndex = 13;
+            this.label1.Text = "Max number of documents in treeview";
+            // 
+            // cbDocumentTreeCount
+            // 
+            this.cbDocumentTreeCount.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cbDocumentTreeCount.FormattingEnabled = true;
+            this.cbDocumentTreeCount.Items.AddRange(new object[] {
+            "50",
+            "100",
+            "200",
+            "300",
+            "400",
+            "500"});
+            this.cbDocumentTreeCount.Location = new System.Drawing.Point(201, 38);
+            this.cbDocumentTreeCount.Name = "cbDocumentTreeCount";
+            this.cbDocumentTreeCount.Size = new System.Drawing.Size(236, 21);
+            this.cbDocumentTreeCount.TabIndex = 14;
+            // 
             // AppSettingsForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(449, 74);
+            this.ClientSize = new System.Drawing.Size(449, 103);
             this.ControlBox = false;
+            this.Controls.Add(this.cbDocumentTreeCount);
+            this.Controls.Add(this.label1);
             this.Controls.Add(this.cbExpandJson);
             this.Controls.Add(this.btnCancel);
             this.Controls.Add(this.btnSave);
@@ -87,5 +116,7 @@
         private System.Windows.Forms.Button btnCancel;
         private System.Windows.Forms.Button btnSave;
         private System.Windows.Forms.CheckBox cbExpandJson;
+        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.ComboBox cbDocumentTreeCount;
     }
 }

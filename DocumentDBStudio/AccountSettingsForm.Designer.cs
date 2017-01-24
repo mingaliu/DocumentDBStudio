@@ -1,6 +1,6 @@
 ﻿namespace Microsoft.Azure.DocumentDBStudio
 {
-    partial class SettingsForm
+    partial class AccountSettingsForm
     {
         /// <summary>
         /// Required designer variable.

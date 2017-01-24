@@ -275,7 +275,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             var workJson = DocumentHelper.RemoveInternalDocumentValues(currentJson);
             if (tsbViewType.Checked)
             {
-                PrettyPrintJson(workJson, currentText);
+                PrettyPrintJson(workJson, currentText, Settings.Default.ExpandPrettyPrintJson);
             }
             else
             {
@@ -415,8 +415,8 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         private void settingsToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            // Bring up account setings dialog
-            SettingsForm dlg = new SettingsForm();
+            // Bring up account settings dialog
+            AccountSettingsForm dlg = new AccountSettingsForm();
             DialogResult dr = dlg.ShowDialog(this);
             if (dr == DialogResult.OK)
             {
@@ -434,8 +434,8 @@ namespace Microsoft.Azure.DocumentDBStudio
                 {
                     AccountSettings accountSettings = (AccountSettings)JsonConvert.DeserializeObject(Settings.Default.AccountSettingsList[i + 1], typeof(AccountSettings));
 
-                    // Bring up account setings dialog
-                    SettingsForm dlg = new SettingsForm
+                    // Bring up account settings dialog
+                    AccountSettingsForm dlg = new AccountSettingsForm
                     {
                         AccountEndpoint = accountEndpoint,
                         AccountSettings = accountSettings
@@ -1098,7 +1098,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             tsStatus.Text = status;
         }
 
-        private void PrettyPrintJson(string json, string extraText)
+        private void PrettyPrintJson(string json, string extraText, bool expandAllNodes)
         {
             if (string.IsNullOrEmpty(json))
             {
@@ -1112,6 +1112,15 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
 
             prettyPrint = prettyPrint.Replace("&EXTRASTRINGREPLACE&", Helper.FormatTextAsHtml(extraText, false, false));
+
+            if (expandAllNodes)
+            {
+                prettyPrint = prettyPrint.Replace("&EXPANDALLNODES&", "node.expandAll();");
+            }
+            else
+            {
+                prettyPrint = prettyPrint.Replace("&EXPANDALLNODES&", "");
+            }
 
             // save prettyePrint to file.
             string prettyPrintHtml = Path.Combine(SystemInfoProvider.LocalApplicationDataPath, "prettyPrint.Html");
@@ -1127,35 +1136,48 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         public void SetResponseHeaders(NameValueCollection responseHeaders)
         {
+            SetResponseHeaders(new List<NameValueCollection> {responseHeaders});
+        }
+
+        public void SetResponseHeaders(List<NameValueCollection> responseHeaders)
+        {
             if (responseHeaders != null)
             {
                 string headers = "";
 
-                string itemCountValue = null;
-                string continuationValue = null;
+                int? itemCountValue = null;
+                decimal charge = 0;
+                var hasContinuation = false;
 
-                foreach (string key in responseHeaders.Keys)
+                foreach (var nvc in responseHeaders)
                 {
-                    headers += string.Format(CultureInfo.InvariantCulture, "{0}: {1}\r\n", key, responseHeaders[key]);
+                    hasContinuation = false;
+                    foreach (string key in nvc.Keys)
+                    {
+                        headers += string.Format(CultureInfo.InvariantCulture, "{0}: {1}\r\n", key, nvc[key]);
 
-                    if (string.Compare("x-ms-request-charge", key, StringComparison.OrdinalIgnoreCase) == 0)
-                    {
-                        tsStatus.Text = tsStatus.Text + ", Request Charge: " + responseHeaders[key];
-                    }
-                    if (string.Compare("x-ms-item-count", key, StringComparison.OrdinalIgnoreCase) == 0)
-                    {
-                        itemCountValue = responseHeaders[key];
-                    }
-                    if (string.Compare("x-ms-continuation", key, StringComparison.OrdinalIgnoreCase) == 0)
-                    {
-                        continuationValue = responseHeaders[key];
+                        if (string.Compare("x-ms-request-charge", key, StringComparison.OrdinalIgnoreCase) == 0)
+                        {
+                            charge += decimal.Parse(nvc[key].Replace(".", ","));
+                        }
+                        if (string.Compare("x-ms-item-count", key, StringComparison.OrdinalIgnoreCase) == 0)
+                        {
+                            if (itemCountValue == null) itemCountValue = 0;
+                            itemCountValue += Convert.ToInt32(nvc[key]);
+                        }
+                        if (string.Compare("x-ms-continuation", key, StringComparison.OrdinalIgnoreCase) == 0)
+                        {
+                            hasContinuation = true;
+                        }
                     }
                 }
+
+                tsStatus.Text = tsStatus.Text + ", Request Charge: " + charge;
 
                 if (itemCountValue != null)
                 {
                     tsStatus.Text = tsStatus.Text + ", Count: " + itemCountValue;
-                    if (continuationValue != null)
+                    if (hasContinuation)
                     {
                         tsStatus.Text = tsStatus.Text + "+";
                     }
@@ -1582,6 +1604,13 @@ namespace Microsoft.Azure.DocumentDBStudio
             tsbHideDocumentSystemProperties.Text = Settings.Default.HideDocumentSystemProperties
                 ? "Hide System resources"
                 : "Show System resources";
+        }
+
+        private void settingsToolStripMenuItem_Click_1(object sender, EventArgs e)
+        {
+            // Bring up account settings dialog
+            var dlg = new AppSettingsForm();
+            DialogResult dr = dlg.ShowDialog(this);
         }
     }
 }

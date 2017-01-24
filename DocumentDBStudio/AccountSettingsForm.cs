@@ -6,9 +6,9 @@ using Microsoft.Azure.Documents.Client;
 
 namespace Microsoft.Azure.DocumentDBStudio
 {
-    public partial class SettingsForm : Form
+    public partial class AccountSettingsForm : Form
     {
-        public SettingsForm()
+        public AccountSettingsForm()
         {
             InitializeComponent();
             AccountSettings = new AccountSettings();

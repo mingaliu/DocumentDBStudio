@@ -149,6 +149,8 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.btnDeleteEntity = new System.Windows.Forms.ToolStripButton();
             this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
             this.tsbEditTemplate = new System.Windows.Forms.ToolStripButton();
+            this.settingsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator4 = new System.Windows.Forms.ToolStripSeparator();
             this.statusStrip.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainerOuter)).BeginInit();
             this.splitContainerOuter.Panel1.SuspendLayout();
@@ -224,7 +226,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             // 
             this.splitContainerOuter.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.splitContainerOuter.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.splitContainerOuter.Location = new System.Drawing.Point(0, 49);
+            this.splitContainerOuter.Location = new System.Drawing.Point(0, 50);
             this.splitContainerOuter.Margin = new System.Windows.Forms.Padding(4);
             this.splitContainerOuter.Name = "splitContainerOuter";
             // 
@@ -235,7 +237,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             // splitContainerOuter.Panel2
             // 
             this.splitContainerOuter.Panel2.Controls.Add(this.splitContainerInner);
-            this.splitContainerOuter.Size = new System.Drawing.Size(1372, 794);
+            this.splitContainerOuter.Size = new System.Drawing.Size(1372, 793);
             this.splitContainerOuter.SplitterDistance = 457;
             this.splitContainerOuter.SplitterWidth = 5;
             this.splitContainerOuter.TabIndex = 2;
@@ -246,13 +248,12 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.treeView1.Location = new System.Drawing.Point(0, 0);
             this.treeView1.Margin = new System.Windows.Forms.Padding(4);
             this.treeView1.Name = "treeView1";
-            this.treeView1.Size = new System.Drawing.Size(455, 792);
+            this.treeView1.Size = new System.Drawing.Size(455, 791);
             this.treeView1.TabIndex = 0;
             this.treeView1.BeforeExpand += new System.Windows.Forms.TreeViewCancelEventHandler(this.treeView1_BeforeExpand);
             this.treeView1.NodeMouseClick += new System.Windows.Forms.TreeNodeMouseClickEventHandler(this.treeView1_NodeMouseClick);
-            this.treeView1.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.treeView1_NodeKeyPress);
             this.treeView1.KeyDown += new System.Windows.Forms.KeyEventHandler(this.treeView1_NodeKeyDown);
-
+            this.treeView1.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.treeView1_NodeKeyPress);
             // 
             // splitContainerInner
             // 
@@ -269,8 +270,8 @@ namespace Microsoft.Azure.DocumentDBStudio
             // splitContainerInner.Panel2
             // 
             this.splitContainerInner.Panel2.Controls.Add(this.ButtomSplitContainer);
-            this.splitContainerInner.Size = new System.Drawing.Size(908, 792);
-            this.splitContainerInner.SplitterDistance = 208;
+            this.splitContainerInner.Size = new System.Drawing.Size(908, 791);
+            this.splitContainerInner.SplitterDistance = 207;
             this.splitContainerInner.SplitterWidth = 5;
             this.splitContainerInner.TabIndex = 0;
             // 
@@ -287,7 +288,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.tabControl.Margin = new System.Windows.Forms.Padding(4);
             this.tabControl.Name = "tabControl";
             this.tabControl.SelectedIndex = 0;
-            this.tabControl.Size = new System.Drawing.Size(908, 208);
+            this.tabControl.Size = new System.Drawing.Size(908, 207);
             this.tabControl.TabIndex = 1;
             // 
             // tabRequest
@@ -297,7 +298,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.tabRequest.Margin = new System.Windows.Forms.Padding(4);
             this.tabRequest.Name = "tabRequest";
             this.tabRequest.Padding = new System.Windows.Forms.Padding(4);
-            this.tabRequest.Size = new System.Drawing.Size(900, 178);
+            this.tabRequest.Size = new System.Drawing.Size(900, 177);
             this.tabRequest.TabIndex = 0;
             this.tabRequest.Text = "Request Headers";
             this.tabRequest.UseVisualStyleBackColor = true;
@@ -312,7 +313,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.tbRequest.Name = "tbRequest";
             this.tbRequest.ReadOnly = true;
             this.tbRequest.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.tbRequest.Size = new System.Drawing.Size(892, 170);
+            this.tbRequest.Size = new System.Drawing.Size(892, 169);
             this.tbRequest.TabIndex = 0;
             // 
             // tabCrudContext
@@ -1152,7 +1153,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.btnEditRequests,
             this.tsbViewType,
             this.tsbHideDocumentSystemProperties});
-            this.tsMenu.Location = new System.Drawing.Point(0, 24);
+            this.tsMenu.Location = new System.Drawing.Point(0, 25);
             this.tsMenu.Name = "tsMenu";
             this.tsMenu.RenderMode = System.Windows.Forms.ToolStripRenderMode.System;
             this.tsMenu.Size = new System.Drawing.Size(1372, 25);
@@ -1248,7 +1249,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.tsbHideDocumentSystemProperties.Image = ((System.Drawing.Image)(resources.GetObject("tsbHideDocumentSystemProperties.Image")));
             this.tsbHideDocumentSystemProperties.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.tsbHideDocumentSystemProperties.Name = "tsbHideDocumentSystemProperties";
-            this.tsbHideDocumentSystemProperties.Size = new System.Drawing.Size(106, 22);
+            this.tsbHideDocumentSystemProperties.Size = new System.Drawing.Size(125, 22);
             this.tsbHideDocumentSystemProperties.Text = "Show System resources";
             this.tsbHideDocumentSystemProperties.Click += new System.EventHandler(this.tsbHideDocumentSystemProperties_Click);
             // 
@@ -1299,7 +1300,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
             this.menuStrip1.Padding = new System.Windows.Forms.Padding(8, 3, 0, 3);
-            this.menuStrip1.Size = new System.Drawing.Size(1372, 24);
+            this.menuStrip1.Size = new System.Drawing.Size(1372, 25);
             this.menuStrip1.TabIndex = 5;
             this.menuStrip1.Text = "menuStrip1";
             // 
@@ -1307,22 +1308,24 @@ namespace Microsoft.Azure.DocumentDBStudio
             // 
             this.fileToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.optionsToolStripMenuItem,
+            this.settingsToolStripMenuItem,
+            this.toolStripSeparator4,
             this.exitToolStripMenuItem});
             this.fileToolStripMenuItem.Name = "fileToolStripMenuItem";
-            this.fileToolStripMenuItem.Size = new System.Drawing.Size(35, 18);
+            this.fileToolStripMenuItem.Size = new System.Drawing.Size(35, 19);
             this.fileToolStripMenuItem.Text = "&File";
             // 
             // optionsToolStripMenuItem
             // 
             this.optionsToolStripMenuItem.Name = "optionsToolStripMenuItem";
-            this.optionsToolStripMenuItem.Size = new System.Drawing.Size(135, 22);
+            this.optionsToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
             this.optionsToolStripMenuItem.Text = "&Add Account";
             this.optionsToolStripMenuItem.Click += new System.EventHandler(this.settingsToolStripMenuItem_Click);
             // 
             // exitToolStripMenuItem
             // 
             this.exitToolStripMenuItem.Name = "exitToolStripMenuItem";
-            this.exitToolStripMenuItem.Size = new System.Drawing.Size(135, 22);
+            this.exitToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
             this.exitToolStripMenuItem.Text = "E&xit";
             this.exitToolStripMenuItem.Click += new System.EventHandler(this.exitToolStripMenuItem_Click);
             // 
@@ -1331,7 +1334,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.helpToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.aboutToolStripMenuItem});
             this.helpToolStripMenuItem.Name = "helpToolStripMenuItem";
-            this.helpToolStripMenuItem.Size = new System.Drawing.Size(40, 18);
+            this.helpToolStripMenuItem.Size = new System.Drawing.Size(40, 19);
             this.helpToolStripMenuItem.Text = "&Help";
             // 
             // aboutToolStripMenuItem
@@ -1473,6 +1476,18 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.tsbEditTemplate.Name = "tsbEditTemplate";
             this.tsbEditTemplate.Size = new System.Drawing.Size(76, 30);
             this.tsbEditTemplate.Text = "Edit Template";
+            // 
+            // settingsToolStripMenuItem
+            // 
+            this.settingsToolStripMenuItem.Name = "settingsToolStripMenuItem";
+            this.settingsToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.settingsToolStripMenuItem.Text = "Settings...";
+            this.settingsToolStripMenuItem.Click += new System.EventHandler(this.settingsToolStripMenuItem_Click_1);
+            // 
+            // toolStripSeparator4
+            // 
+            this.toolStripSeparator4.Name = "toolStripSeparator4";
+            this.toolStripSeparator4.Size = new System.Drawing.Size(149, 6);
             // 
             // MainForm
             // 
@@ -1675,6 +1690,8 @@ namespace Microsoft.Azure.DocumentDBStudio
         private System.Windows.Forms.ToolStripLabel MaxItemCount;
         private System.Windows.Forms.ToolStripSeparator Separator2;
         private System.Windows.Forms.ToolStripButton tsbHideDocumentSystemProperties;
+        private System.Windows.Forms.ToolStripMenuItem settingsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator4;
     }
 }
 

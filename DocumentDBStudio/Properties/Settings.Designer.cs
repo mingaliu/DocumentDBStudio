@@ -81,5 +81,29 @@ namespace Microsoft.Azure.DocumentDBStudio.Properties {
                 this["TextView"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool ExpandPrettyPrintJson {
+            get {
+                return ((bool)(this["ExpandPrettyPrintJson"]));
+            }
+            set {
+                this["ExpandPrettyPrintJson"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("100")]
+        public int DocumentTreeCount {
+            get {
+                return ((int)(this["DocumentTreeCount"]));
+            }
+            set {
+                this["DocumentTreeCount"] = value;
+            }
+        }
     }
 }

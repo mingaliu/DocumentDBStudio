@@ -81,7 +81,6 @@
             this.cbDocumentTreeCount.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cbDocumentTreeCount.FormattingEnabled = true;
             this.cbDocumentTreeCount.Items.AddRange(new object[] {
-            "50",
             "100",
             "200",
             "300",

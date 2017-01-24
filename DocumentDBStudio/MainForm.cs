@@ -1146,11 +1146,12 @@ namespace Microsoft.Azure.DocumentDBStudio
                 string headers = "";
 
                 int? itemCountValue = null;
-                string continuationValue = null;
                 decimal charge = 0;
+                var hasContinuation = false;
 
                 foreach (var nvc in responseHeaders)
                 {
+                    hasContinuation = false;
                     foreach (string key in nvc.Keys)
                     {
                         headers += string.Format(CultureInfo.InvariantCulture, "{0}: {1}\r\n", key, nvc[key]);
@@ -1166,11 +1167,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                         }
                         if (string.Compare("x-ms-continuation", key, StringComparison.OrdinalIgnoreCase) == 0)
                         {
-                            continuationValue = nvc[key];
-                        }
-                        else
-                        {
-                            continuationValue = null;
+                            hasContinuation = true;
                         }
                     }
                 }
@@ -1180,7 +1177,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 if (itemCountValue != null)
                 {
                     tsStatus.Text = tsStatus.Text + ", Count: " + itemCountValue;
-                    if (continuationValue != null)
+                    if (hasContinuation)
                     {
                         tsStatus.Text = tsStatus.Text + "+";
                     }

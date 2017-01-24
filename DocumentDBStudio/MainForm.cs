@@ -415,7 +415,7 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         private void settingsToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            // Bring up account setings dialog
+            // Bring up account settings dialog
             AccountSettingsForm dlg = new AccountSettingsForm();
             DialogResult dr = dlg.ShowDialog(this);
             if (dr == DialogResult.OK)
@@ -434,7 +434,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 {
                     AccountSettings accountSettings = (AccountSettings)JsonConvert.DeserializeObject(Settings.Default.AccountSettingsList[i + 1], typeof(AccountSettings));
 
-                    // Bring up account setings dialog
+                    // Bring up account settings dialog
                     AccountSettingsForm dlg = new AccountSettingsForm
                     {
                         AccountEndpoint = accountEndpoint,
@@ -1611,7 +1611,7 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         private void settingsToolStripMenuItem_Click_1(object sender, EventArgs e)
         {
-            // Bring up account setings dialog
+            // Bring up account settings dialog
             var dlg = new AppSettingsForm();
             DialogResult dr = dlg.ShowDialog(this);
         }

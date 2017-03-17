@@ -18,33 +18,50 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             this.index = index;
 
-            if (index.Kind == IndexKind.Hash)
+            switch(index.Kind)
             {
-                this.rbHash.Checked = true;
-                if (((HashIndex)index).DataType == DataType.Number)
-                {
-                    this.rbNumber.Checked = true;
-                }
-                else
-                {
-                    this.rbString.Checked = true;
-                }
+                case IndexKind.Hash:
+                    {
+                        this.rbHash.Checked = true;
+                        if (((HashIndex)index).DataType == DataType.Number)
+                        {
+                            this.rbNumber.Checked = true;
+                        }
+                        else
+                        {
+                            this.rbString.Checked = true;
+                        }
 
-                this.tbPrecision.Text = ((HashIndex)index).Precision.HasValue ? ((HashIndex)index).Precision.Value.ToString(CultureInfo.InvariantCulture) : string.Empty; 
-            }
-            else
-            {
-                this.rbRange.Checked = true;
-                if (((RangeIndex)index).DataType == DataType.Number)
-                {
-                    this.rbNumber.Checked = true;
-                }
-                else
-                {
-                    this.rbString.Checked = true;
-                }
-
-                this.tbPrecision.Text = ((RangeIndex)index).Precision.HasValue ? ((RangeIndex)index).Precision.Value.ToString(CultureInfo.InvariantCulture) : string.Empty;
+                        this.tbPrecision.Text = ((HashIndex)index).Precision.HasValue ? ((HashIndex)index).Precision.Value.ToString(CultureInfo.InvariantCulture) : string.Empty;
+                    }
+                    break;
+                case IndexKind.Range:
+                    {
+                        this.rbRange.Checked = true;
+                        if (((RangeIndex)index).DataType == DataType.Number)
+                        {
+                            this.rbNumber.Checked = true;
+                        }
+                        else
+                        {
+                            this.rbString.Checked = true;
+                        }
+                        this.tbPrecision.Text = ((RangeIndex)index).Precision.HasValue ? ((RangeIndex)index).Precision.Value.ToString(CultureInfo.InvariantCulture) : string.Empty;
+                    }
+                    break;
+                case IndexKind.Spatial:
+                    {
+                        this.rbSpatial.Checked = true;
+                        switch(((SpatialIndex)index).DataType)
+                        {
+                            case DataType.Number: rbNumber.Checked=true; break;
+                            case DataType.String : rbString.Checked=true; break;
+                            case DataType.LineString: rbLineString.Checked=true; break;
+                            case DataType.Point: rbPoint.Checked=true; break;
+                            case DataType.Polygon: rbPolygon.Checked=true; break;
+                        }
+                    }
+                    break;
             }
         }
 
@@ -75,9 +92,19 @@ namespace Microsoft.Azure.DocumentDBStudio
             {
                 this.index = new HashIndex(this.rbNumber.Checked ? DataType.Number : DataType.String) { Precision = precision };
             }
-            else
+            else if (this.rbRange.Checked)
             {
                 this.index = new RangeIndex(this.rbNumber.Checked ? DataType.Number : DataType.String) { Precision = precision };
+            }
+            else
+            {
+                DataType target = DataType.String;
+                if (rbNumber.Checked) target = DataType.Number;
+                if (rbString.Checked) target = DataType.String ;
+                if (rbPoint.Checked) target = DataType.Point;
+                if (rbPolygon.Checked) target = DataType.Polygon;
+                if (rbLineString.Checked) target = DataType.LineString;
+                this.index = new SpatialIndex(target);
             }
 
             this.DialogResult = DialogResult.OK;

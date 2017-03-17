@@ -695,8 +695,8 @@ namespace Microsoft.Azure.DocumentDBStudio
                 // Update the map.
                 DocumentClientExtension.AddOrUpdate(client.ServiceEndpoint.Host, accountSettings.IsNameBased);
 
-                dbaNode.ForeColor = accountSettings.IsNameBased 
-                    ? Color.Green 
+                dbaNode.ForeColor = accountSettings.IsNameBased
+                    ? Color.Green
                     : Color.Blue;
             }
             catch (Exception e)
@@ -791,11 +791,11 @@ namespace Microsoft.Azure.DocumentDBStudio
         }
 
         internal void SetCrudContext(
-            TreeNode node, 
-            OperationType operation, 
-            ResourceType resourceType, 
-            string bodytext, 
-            Action<object, RequestOptions> func, 
+            TreeNode node,
+            OperationType operation,
+            ResourceType resourceType,
+            string bodytext,
+            Action<object, RequestOptions> func,
             CommandContext commandContext = null
         )
         {
@@ -897,7 +897,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                     int throughput;
                     if (!int.TryParse(tbThroughput.Text, NumberStyles.Integer, CultureInfo.CurrentCulture, out throughput))
                     {
-                        MessageBox.Show(this, 
+                        MessageBox.Show(this,
                                         "Offer throughput has to be integer",
                                         Constants.ApplicationName + "\nVersion " + Constants.ProductVersion,
                                         MessageBoxButtons.OK);
@@ -906,7 +906,7 @@ namespace Microsoft.Azure.DocumentDBStudio
 
                     if (throughput % 100 != 0)
                     {
-                        MessageBox.Show(this, 
+                        MessageBox.Show(this,
                                         "Offer throughput has to be multiple of 100",
                                         Constants.ApplicationName + "\nVersion " + Constants.ProductVersion,
                                         MessageBoxButtons.OK);
@@ -918,7 +918,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                         // remove 250K from the internal version
                         if (throughput < 10000)
                         {
-                            MessageBox.Show(this, 
+                            MessageBox.Show(this,
                                             "Offer throughput has to be between 10K and 250K for partitioned collection",
                                             Constants.ApplicationName + "\nVersion " + Constants.ProductVersion,
                                             MessageBoxButtons.OK);
@@ -929,7 +929,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                         string partitionKey = tbPartitionKeyForCollectionCreate.Text;
                         if (string.IsNullOrEmpty(partitionKey) || partitionKey[0] != '/' || partitionKey[partitionKey.Length -1 ] == ' ')
                         {
-                            MessageBox.Show(this, 
+                            MessageBox.Show(this,
                                             "PartitionKey is not in valid format",
                                             Constants.ApplicationName + "\nVersion " + Constants.ProductVersion,
                                             MessageBoxButtons.OK);
@@ -940,7 +940,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                     {
                         if (throughput < 400 || throughput > 10000)
                         {
-                            MessageBox.Show(this, 
+                            MessageBox.Show(this,
                                             "Offer throughput has to be between 400 and 10000 for single partition collection",
                                             Constants.ApplicationName + "\nVersion " + Constants.ProductVersion,
                                             MessageBoxButtons.OK);
@@ -1028,7 +1028,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                     Id = textBoxforId.Text
                 };
                 currentOperationCallback(trigger, requestOptions);
-           }
+            }
 
             else if (resourceType == ResourceType.UserDefinedFunction
                  && (operationType == OperationType.Create || operationType == OperationType.Replace))
@@ -1151,24 +1151,29 @@ namespace Microsoft.Azure.DocumentDBStudio
 
                 foreach (var nvc in responseHeaders)
                 {
-                    hasContinuation = false;
-                    foreach (string key in nvc.Keys)
-                    {
-                        headers += string.Format(CultureInfo.InvariantCulture, "{0}: {1}\r\n", key, nvc[key]);
 
-                        if (string.Compare("x-ms-request-charge", key, StringComparison.OrdinalIgnoreCase) == 0)
+                    if (nvc != null)
+                    {
+                        hasContinuation = false;
+                        foreach (string key in nvc.Keys)
                         {
-                            charge += decimal.Parse(nvc[key].Replace(".", ","));
+                            headers += string.Format(CultureInfo.InvariantCulture, "{0}: {1}\r\n", key, nvc[key]);
+
+                            if (string.Compare("x-ms-request-charge", key, StringComparison.OrdinalIgnoreCase) == 0)
+                            {
+                                charge += decimal.Parse(nvc[key].Replace(".", ","));
+                            }
+                            if (string.Compare("x-ms-item-count", key, StringComparison.OrdinalIgnoreCase) == 0)
+                            {
+                                if (itemCountValue == null) itemCountValue = 0;
+                                itemCountValue += Convert.ToInt32(nvc[key]);
+                            }
+                            if (string.Compare("x-ms-continuation", key, StringComparison.OrdinalIgnoreCase) == 0)
+                            {
+                                hasContinuation = true;
+                            }
                         }
-                        if (string.Compare("x-ms-item-count", key, StringComparison.OrdinalIgnoreCase) == 0)
-                        {
-                            if (itemCountValue == null) itemCountValue = 0;
-                            itemCountValue += Convert.ToInt32(nvc[key]);
-                        }
-                        if (string.Compare("x-ms-continuation", key, StringComparison.OrdinalIgnoreCase) == 0)
-                        {
-                            hasContinuation = true;
-                        }
+
                     }
                 }
 
@@ -1542,7 +1547,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 labelThroughput.Text = "Fixed 1000 RU. 10GB Storage ";
                 tbThroughput.Enabled = false;
                 tbThroughput.Text = "1000";
-             }
+            }
         }
 
         private void rbOfferS3_CheckedChanged(object sender, EventArgs e)

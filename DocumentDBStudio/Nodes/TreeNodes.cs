@@ -13,6 +13,10 @@ namespace Microsoft.Azure.DocumentDBStudio
         public Protocol Protocol;
         public bool IsNameBased;
         public bool EnableEndpointDiscovery;
+        /// <summary>
+        /// Specifies whether this account settings should be persisted locally  
+        /// </summary>
+        public bool IsPersistedLocally;
     }
 
     public class CommandContext
@@ -67,12 +71,12 @@ namespace Microsoft.Azure.DocumentDBStudio
         StandardElastic
     }
 
-   
 
-    
 
-    
 
-    
+
+
+
+
 
 }

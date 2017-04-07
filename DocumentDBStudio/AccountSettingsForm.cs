@@ -75,12 +75,12 @@ namespace Microsoft.Azure.DocumentDBStudio
         private void btnOK_Click(object sender, EventArgs e)
         {
             if (string.IsNullOrEmpty(tbAccountName.Text) || string.IsNullOrEmpty(tbAccountSecret.Text))
-                {
-                    MessageBox.Show("Please input the valid account settings", Constants.ApplicationName);
-                    this.DialogResult = DialogResult.None;
-                }
-                this.AccountEndpoint = tbAccountName.Text;
-                this.AccountSettings.MasterKey = tbAccountSecret.Text;
+            {
+                MessageBox.Show("Please input the valid account settings", Constants.ApplicationName);
+                this.DialogResult = DialogResult.None;
+            }
+            this.AccountEndpoint = tbAccountName.Text;
+            this.AccountSettings.MasterKey = tbAccountSecret.Text;
 
             if (this.radioButtonGateway.Checked)
             {
@@ -96,6 +96,8 @@ namespace Microsoft.Azure.DocumentDBStudio
                 this.AccountSettings.ConnectionMode = ConnectionMode.Direct;
                 this.AccountSettings.Protocol = Protocol.Tcp;
             }
+
+            this.AccountSettings.IsPersistedLocally = this.persistLocallyCheckBox.Checked;
 
             this.AccountSettings.EnableEndpointDiscovery = cbEnableEndpointDiscovery.Checked;
             this.AccountSettings.IsNameBased = !cbNameBased.Checked;

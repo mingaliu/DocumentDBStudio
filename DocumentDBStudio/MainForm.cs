@@ -470,10 +470,13 @@ namespace Microsoft.Azure.DocumentDBStudio
 
             if (!found)
             {
-                Settings.Default.AccountSettingsList.Add(accountEndpoint);
-                Settings.Default.AccountSettingsList.Add(JsonConvert.SerializeObject(accountSettings));
+                if (accountSettings.IsPersistedLocally)
+                {
+                    Settings.Default.AccountSettingsList.Add(accountEndpoint);
+                    Settings.Default.AccountSettingsList.Add(JsonConvert.SerializeObject(accountSettings));
 
-                Settings.Default.Save();
+                    Settings.Default.Save();
+                }
 
                 AddConnectionTreeNode(accountEndpoint, accountSettings);
             }
@@ -695,8 +698,8 @@ namespace Microsoft.Azure.DocumentDBStudio
                 // Update the map.
                 DocumentClientExtension.AddOrUpdate(client.ServiceEndpoint.Host, accountSettings.IsNameBased);
 
-                dbaNode.ForeColor = accountSettings.IsNameBased 
-                    ? Color.Green 
+                dbaNode.ForeColor = accountSettings.IsNameBased
+                    ? Color.Green
                     : Color.Blue;
             }
             catch (Exception e)
@@ -791,11 +794,11 @@ namespace Microsoft.Azure.DocumentDBStudio
         }
 
         internal void SetCrudContext(
-            TreeNode node, 
-            OperationType operation, 
-            ResourceType resourceType, 
-            string bodytext, 
-            Action<object, RequestOptions> func, 
+            TreeNode node,
+            OperationType operation,
+            ResourceType resourceType,
+            string bodytext,
+            Action<object, RequestOptions> func,
             CommandContext commandContext = null
         )
         {
@@ -897,7 +900,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                     int throughput;
                     if (!int.TryParse(tbThroughput.Text, NumberStyles.Integer, CultureInfo.CurrentCulture, out throughput))
                     {
-                        MessageBox.Show(this, 
+                        MessageBox.Show(this,
                                         "Offer throughput has to be integer",
                                         Constants.ApplicationName + "\nVersion " + Constants.ProductVersion,
                                         MessageBoxButtons.OK);
@@ -906,7 +909,7 @@ namespace Microsoft.Azure.DocumentDBStudio
 
                     if (throughput % 100 != 0)
                     {
-                        MessageBox.Show(this, 
+                        MessageBox.Show(this,
                                         "Offer throughput has to be multiple of 100",
                                         Constants.ApplicationName + "\nVersion " + Constants.ProductVersion,
                                         MessageBoxButtons.OK);
@@ -918,7 +921,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                         // remove 250K from the internal version
                         if (throughput < 10000)
                         {
-                            MessageBox.Show(this, 
+                            MessageBox.Show(this,
                                             "Offer throughput has to be between 10K and 250K for partitioned collection",
                                             Constants.ApplicationName + "\nVersion " + Constants.ProductVersion,
                                             MessageBoxButtons.OK);
@@ -927,9 +930,9 @@ namespace Microsoft.Azure.DocumentDBStudio
 
                         // now verify partition key
                         string partitionKey = tbPartitionKeyForCollectionCreate.Text;
-                        if (string.IsNullOrEmpty(partitionKey) || partitionKey[0] != '/' || partitionKey[partitionKey.Length -1 ] == ' ')
+                        if (string.IsNullOrEmpty(partitionKey) || partitionKey[0] != '/' || partitionKey[partitionKey.Length - 1] == ' ')
                         {
-                            MessageBox.Show(this, 
+                            MessageBox.Show(this,
                                             "PartitionKey is not in valid format",
                                             Constants.ApplicationName + "\nVersion " + Constants.ProductVersion,
                                             MessageBoxButtons.OK);
@@ -940,7 +943,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                     {
                         if (throughput < 400 || throughput > 10000)
                         {
-                            MessageBox.Show(this, 
+                            MessageBox.Show(this,
                                             "Offer throughput has to be between 400 and 10000 for single partition collection",
                                             Constants.ApplicationName + "\nVersion " + Constants.ProductVersion,
                                             MessageBoxButtons.OK);
@@ -1028,7 +1031,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                     Id = textBoxforId.Text
                 };
                 currentOperationCallback(trigger, requestOptions);
-           }
+            }
 
             else if (resourceType == ResourceType.UserDefinedFunction
                  && (operationType == OperationType.Create || operationType == OperationType.Replace))
@@ -1136,7 +1139,14 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         public void SetResponseHeaders(NameValueCollection responseHeaders)
         {
-            SetResponseHeaders(new List<NameValueCollection> {responseHeaders});
+            List<NameValueCollection> responseHeadersList = null;
+            // responseHeaders = null in case of an exception thrown 
+            if (responseHeaders != null)
+            {
+                responseHeadersList = new List<NameValueCollection> { responseHeaders };
+            }
+
+            SetResponseHeaders(responseHeadersList);
         }
 
         public void SetResponseHeaders(List<NameValueCollection> responseHeaders)
@@ -1542,7 +1552,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 labelThroughput.Text = "Fixed 1000 RU. 10GB Storage ";
                 tbThroughput.Enabled = false;
                 tbThroughput.Text = "1000";
-             }
+            }
         }
 
         private void rbOfferS3_CheckedChanged(object sender, EventArgs e)

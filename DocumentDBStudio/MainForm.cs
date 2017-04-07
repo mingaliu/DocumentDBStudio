@@ -1161,24 +1161,29 @@ namespace Microsoft.Azure.DocumentDBStudio
 
                 foreach (var nvc in responseHeaders)
                 {
-                    hasContinuation = false;
-                    foreach (string key in nvc.Keys)
-                    {
-                        headers += string.Format(CultureInfo.InvariantCulture, "{0}: {1}\r\n", key, nvc[key]);
 
-                        if (string.Compare("x-ms-request-charge", key, StringComparison.OrdinalIgnoreCase) == 0)
+                    if (nvc != null)
+                    {
+                        hasContinuation = false;
+                        foreach (string key in nvc.Keys)
                         {
-                            charge += decimal.Parse(nvc[key].Replace(".", ","));
+                            headers += string.Format(CultureInfo.InvariantCulture, "{0}: {1}\r\n", key, nvc[key]);
+
+                            if (string.Compare("x-ms-request-charge", key, StringComparison.OrdinalIgnoreCase) == 0)
+                            {
+                                charge += decimal.Parse(nvc[key].Replace(".", ","));
+                            }
+                            if (string.Compare("x-ms-item-count", key, StringComparison.OrdinalIgnoreCase) == 0)
+                            {
+                                if (itemCountValue == null) itemCountValue = 0;
+                                itemCountValue += Convert.ToInt32(nvc[key]);
+                            }
+                            if (string.Compare("x-ms-continuation", key, StringComparison.OrdinalIgnoreCase) == 0)
+                            {
+                                hasContinuation = true;
+                            }
                         }
-                        if (string.Compare("x-ms-item-count", key, StringComparison.OrdinalIgnoreCase) == 0)
-                        {
-                            if (itemCountValue == null) itemCountValue = 0;
-                            itemCountValue += Convert.ToInt32(nvc[key]);
-                        }
-                        if (string.Compare("x-ms-continuation", key, StringComparison.OrdinalIgnoreCase) == 0)
-                        {
-                            hasContinuation = true;
-                        }
+
                     }
                 }
 

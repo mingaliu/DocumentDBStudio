@@ -187,7 +187,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             dynamic d = new System.Dynamic.ExpandoObject();
             d.id = "Here is your Database Id";
             string x = JsonConvert.SerializeObject(d, Newtonsoft.Json.Formatting.Indented);
-            Program.GetMain().SetCrudContext(this, OperationType.Create,  ResourceType.Database, x, this.CreateDatabaseAsync);
+            Program.GetMain().SetCrudContext(this, OperationType.Create, ResourceType.Database, x, this.CreateDatabaseAsync);
         }
 
         void myMenuItemQueryDatabase_Click(object sender, EventArgs e)
@@ -405,7 +405,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             string x = this.Tag.ToString();
             CommandContext context = new CommandContext();
             context.IsDelete = true;
-            Program.GetMain().SetCrudContext(this, OperationType.Delete,  ResourceType.Database, x, this.DeleteDatabaseAsync, context);
+            Program.GetMain().SetCrudContext(this, OperationType.Delete, ResourceType.Database, x, this.DeleteDatabaseAsync, context);
         }
 
         void myMenuItemCreateDocumentCollection_Click(object sender, EventArgs e)
@@ -414,7 +414,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             d.id = "Here is your DocumentCollection Id";
 
             string x = JsonConvert.SerializeObject(d, Newtonsoft.Json.Formatting.Indented);
-            Program.GetMain().SetCrudContext(this, OperationType.Create,  ResourceType.DocumentCollection, x, this.CreateDocumentCollectionAsync);
+            Program.GetMain().SetCrudContext(this, OperationType.Create, ResourceType.DocumentCollection, x, this.CreateDocumentCollectionAsync);
         }
 
         override public void ShowContextMenu(TreeView treeview, Point p)
@@ -610,7 +610,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             string x = this.Tag.ToString();
             CommandContext context = new CommandContext();
             context.IsDelete = true;
-            Program.GetMain().SetCrudContext(this, OperationType.Delete,  ResourceType.DocumentCollection, x, this.DeleteDocumentCollectionAsync, context);
+            Program.GetMain().SetCrudContext(this, OperationType.Delete, ResourceType.DocumentCollection, x, this.DeleteDocumentCollectionAsync, context);
         }
 
         void myMenuItemReplaceDocumentCollection_Click(object sender, EventArgs e)
@@ -762,7 +762,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             dynamic d = new System.Dynamic.ExpandoObject();
             d.id = "Here is your Document Id";
             string x = JsonConvert.SerializeObject(d, Newtonsoft.Json.Formatting.Indented);
-            Program.GetMain().SetCrudContext(this, OperationType.Create,  ResourceType.Document, x, this.CreateDocumentAsync);
+            Program.GetMain().SetCrudContext(this, OperationType.Create, ResourceType.Document, x, this.CreateDocumentAsync);
         }
 
 
@@ -912,25 +912,37 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             try
             {
-                List<dynamic> docs = new List<dynamic>();
+                var docs = new List<dynamic>();
                 NameValueCollection responseHeaders = null;
 
                 using (PerfStatus.Start("ReadDocumentFeed"))
                 {
-                    ResourceFeedReader<Document> feedReader = this.client.CreateDocumentFeedReader(((DocumentCollection)this.Tag).GetLink(this.client), new FeedOptions { EnableCrossPartitionQuery = true });
-                    while (feedReader.HasMoreResults && docs.Count() < 100)
+                    string requestContinuation = null;
+                    do
                     {
-                        FeedResponse<Document> response = feedReader.ExecuteNextAsync().Result;
-                        docs.AddRange(response);
+                        var feedResponse = this.client
+                            .ReadDocumentFeedAsync(((DocumentCollection)this.Tag).GetLink(this.client)
+                                , new FeedOptions
+                                {
+                                    EnableCrossPartitionQuery = true
+                                    ,
+                                    RequestContinuation = requestContinuation
+                                })
+                            .GetAwaiter().GetResult();
 
-                        responseHeaders = response.ResponseHeaders;
+                        docs.AddRange(feedResponse);
+                        requestContinuation = feedResponse.ResponseContinuation;
+                        responseHeaders = feedResponse.ResponseHeaders;
+
                     }
+                    while (requestContinuation != null && docs.Count() < 100);
+
                 }
                 docs.Sort((first, second) => string.Compare(((Document)first).Id, ((Document)second).Id, StringComparison.Ordinal));
 
                 foreach (var doc in docs)
                 {
-                    ResourceNode node = new ResourceNode(client, doc, ResourceType.Document, ((DocumentCollection)this.Tag).PartitionKey);
+                    var node = new ResourceNode(client, doc, ResourceType.Document, ((DocumentCollection)this.Tag).PartitionKey);
                     this.Nodes.Add(node);
                 }
 
@@ -938,7 +950,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
             catch (AggregateException e)
             {
-                Program.GetMain().SetResultInBrowser(null, e.InnerException.ToString(), true);
+                Program.GetMain().SetResultInBrowser(null, e.InnerException?.ToString(), true);
             }
             catch (Exception e)
             {
@@ -959,7 +971,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             if (this.resourceType == ResourceType.Document)
             {
                 string prefix = string.Empty;
-                if (partitionKey !=null)
+                if (partitionKey != null)
                 {
                     if (partitionKey.Paths.Count > 0)
                     {
@@ -968,7 +980,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                         prefix = prefix + "_";
                     }
                 }
-                this.Text = prefix  + (document as Resource).Id;
+                this.Text = prefix + (document as Resource).Id;
             }
             else if (this.resourceType == ResourceType.Offer)
             {
@@ -1369,7 +1381,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                         };
 
                         ResourceResponse<Attachment> rr;
-                        
+
                         Document document = ((Document)this.Tag);
                         DocumentCollection collection = ((DocumentCollection)this.Parent.Tag);
 
@@ -1401,7 +1413,7 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         void myMenuItemExecuteStoredProcedure_Click(object sender, EventArgs e)
         {
-            Program.GetMain().SetCrudContext(this, OperationType.Execute, this.resourceType, 
+            Program.GetMain().SetCrudContext(this, OperationType.Execute, this.resourceType,
                 "Here is the input parameters to the storedProcedure. Input each parameter as one line without quotation mark.", this.ExecuteStoredProcedureAsync);
         }
 

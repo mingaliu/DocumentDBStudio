@@ -86,7 +86,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                 return;
             }
 
-            var query = _client.CreateDocumentQuery<Document>((Tag as DocumentCollection).GetLink(_client), "SELECT TOP 1 * FROM c");
+            var query = _client.CreateDocumentQuery<Document>((Tag as DocumentCollection).GetLink(_client), "SELECT TOP 1 * FROM c", new FeedOptions() { EnableCrossPartitionQuery = true });
             var doc = query.ToList().First();
             var docConverted = JsonConvert.DeserializeObject(DocumentHelper.RemoveInternalDocumentValues(JsonConvert.SerializeObject(doc)));
 

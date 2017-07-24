@@ -16,12 +16,16 @@ namespace Microsoft.Azure.DocumentDBStudio
         private readonly string _accountEndpoint;
         private readonly ContextMenu _contextMenu = new ContextMenu();
 
-        public DatabaseAccountNode(string endpointName, DocumentClient client)
+        public DatabaseAccountNode(string friendlyName, string endpointName, DocumentClient client)
         {
             _accountEndpoint = endpointName;
 
-            Text = endpointName;
+            Text = String.IsNullOrWhiteSpace(friendlyName) 
+                   ? endpointName 
+                   : $"{friendlyName} [{endpointName}]";
 
+            ToolTipText = endpointName;
+            
             ImageKey = "DatabaseAccount";
             SelectedImageKey = "DatabaseAccount";
 

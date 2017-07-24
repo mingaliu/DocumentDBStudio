@@ -81,6 +81,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             }
             this.AccountEndpoint = tbAccountName.Text;
             this.AccountSettings.MasterKey = tbAccountSecret.Text;
+            this.AccountSettings.FriendlyName = this.tbFriendlyName.Text;
 
             if (this.radioButtonGateway.Checked)
             {

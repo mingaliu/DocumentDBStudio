@@ -692,7 +692,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                         UserAgentSuffix = suffix
                     });
 
-                var dbaNode = new DatabaseAccountNode(accountEndpoint, client);
+                var dbaNode = new DatabaseAccountNode(accountSettings.FriendlyName, accountEndpoint, client);
                 treeView1.Nodes.Add(dbaNode);
 
                 // Update the map.

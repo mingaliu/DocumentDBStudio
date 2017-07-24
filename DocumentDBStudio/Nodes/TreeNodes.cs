@@ -8,6 +8,7 @@ namespace Microsoft.Azure.DocumentDBStudio
 
     internal class AccountSettings
     {
+        public string FriendlyName;
         public string MasterKey;
         public ConnectionMode ConnectionMode;
         public Protocol Protocol;
@@ -70,13 +71,4 @@ namespace Microsoft.Azure.DocumentDBStudio
         StandardSingle,
         StandardElastic
     }
-
-
-
-
-
-
-
-
-
 }

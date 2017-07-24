@@ -43,6 +43,8 @@
             this.cbNameBased = new System.Windows.Forms.CheckBox();
             this.cbEnableEndpointDiscovery = new System.Windows.Forms.CheckBox();
             this.persistLocallyCheckBox = new System.Windows.Forms.CheckBox();
+            this.label1 = new System.Windows.Forms.Label();
+            this.tbFriendlyName = new System.Windows.Forms.TextBox();
             this.groupBox1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -57,7 +59,7 @@
             // 
             // tbAccountSecret
             // 
-            this.tbAccountSecret.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
+            this.tbAccountSecret.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.tbAccountSecret.Location = new System.Drawing.Point(144, 80);
             this.tbAccountSecret.Name = "tbAccountSecret";
@@ -66,7 +68,7 @@
             // 
             // tbAccountName
             // 
-            this.tbAccountName.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
+            this.tbAccountName.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.tbAccountName.Location = new System.Drawing.Point(144, 52);
             this.tbAccountName.Name = "tbAccountName";
@@ -78,9 +80,9 @@
             this.label3.AutoSize = true;
             this.label3.Location = new System.Drawing.Point(12, 87);
             this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(81, 13);
+            this.label3.Size = new System.Drawing.Size(78, 13);
             this.label3.TabIndex = 20;
-            this.label3.Text = "AccountSecret:";
+            this.label3.Text = "AccountSecret";
             // 
             // label2
             // 
@@ -95,7 +97,7 @@
             // 
             this.btnOK.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.btnOK.DialogResult = System.Windows.Forms.DialogResult.OK;
-            this.btnOK.Location = new System.Drawing.Point(314, 204);
+            this.btnOK.Location = new System.Drawing.Point(314, 260);
             this.btnOK.Name = "btnOK";
             this.btnOK.Size = new System.Drawing.Size(75, 23);
             this.btnOK.TabIndex = 5;
@@ -107,7 +109,7 @@
             // 
             this.btnCancel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.btnCancel.Location = new System.Drawing.Point(411, 204);
+            this.btnCancel.Location = new System.Drawing.Point(411, 260);
             this.btnCancel.Name = "btnCancel";
             this.btnCancel.Size = new System.Drawing.Size(75, 23);
             this.btnCancel.TabIndex = 6;
@@ -118,7 +120,7 @@
             // 
             this.cbDevFabric.AllowDrop = true;
             this.cbDevFabric.AutoSize = true;
-            this.cbDevFabric.Location = new System.Drawing.Point(15, 179);
+            this.cbDevFabric.Location = new System.Drawing.Point(15, 204);
             this.cbDevFabric.Name = "cbDevFabric";
             this.cbDevFabric.Size = new System.Drawing.Size(113, 17);
             this.cbDevFabric.TabIndex = 25;
@@ -131,7 +133,7 @@
             this.groupBox1.Controls.Add(this.radioButtonDirectTcp);
             this.groupBox1.Controls.Add(this.radioButtonDirectHttp);
             this.groupBox1.Controls.Add(this.radioButtonGateway);
-            this.groupBox1.Location = new System.Drawing.Point(15, 119);
+            this.groupBox1.Location = new System.Drawing.Point(15, 144);
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.Size = new System.Drawing.Size(376, 48);
             this.groupBox1.TabIndex = 26;
@@ -177,7 +179,7 @@
             this.cbNameBased.AutoSize = true;
             this.cbNameBased.Checked = true;
             this.cbNameBased.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.cbNameBased.Location = new System.Drawing.Point(15, 208);
+            this.cbNameBased.Location = new System.Drawing.Point(15, 233);
             this.cbNameBased.Name = "cbNameBased";
             this.cbNameBased.Size = new System.Drawing.Size(114, 17);
             this.cbNameBased.TabIndex = 27;
@@ -188,7 +190,7 @@
             // 
             this.cbEnableEndpointDiscovery.AllowDrop = true;
             this.cbEnableEndpointDiscovery.AutoSize = true;
-            this.cbEnableEndpointDiscovery.Location = new System.Drawing.Point(144, 179);
+            this.cbEnableEndpointDiscovery.Location = new System.Drawing.Point(144, 204);
             this.cbEnableEndpointDiscovery.Name = "cbEnableEndpointDiscovery";
             this.cbEnableEndpointDiscovery.Size = new System.Drawing.Size(165, 17);
             this.cbEnableEndpointDiscovery.TabIndex = 28;
@@ -200,12 +202,30 @@
             this.persistLocallyCheckBox.AutoSize = true;
             this.persistLocallyCheckBox.Checked = true;
             this.persistLocallyCheckBox.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.persistLocallyCheckBox.Location = new System.Drawing.Point(144, 208);
+            this.persistLocallyCheckBox.Location = new System.Drawing.Point(144, 233);
             this.persistLocallyCheckBox.Name = "persistLocallyCheckBox";
             this.persistLocallyCheckBox.Size = new System.Drawing.Size(151, 17);
             this.persistLocallyCheckBox.TabIndex = 29;
             this.persistLocallyCheckBox.Text = "Persist account info locally";
             this.persistLocallyCheckBox.UseVisualStyleBackColor = true;
+            // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(12, 114);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(74, 13);
+            this.label1.TabIndex = 30;
+            this.label1.Text = "Friendly Name";
+            // 
+            // tbFriendlyName
+            // 
+            this.tbFriendlyName.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.tbFriendlyName.Location = new System.Drawing.Point(144, 111);
+            this.tbFriendlyName.Name = "tbFriendlyName";
+            this.tbFriendlyName.Size = new System.Drawing.Size(342, 20);
+            this.tbFriendlyName.TabIndex = 31;
             // 
             // AccountSettingsForm
             // 
@@ -213,7 +233,9 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.CancelButton = this.btnCancel;
-            this.ClientSize = new System.Drawing.Size(498, 239);
+            this.ClientSize = new System.Drawing.Size(498, 295);
+            this.Controls.Add(this.tbFriendlyName);
+            this.Controls.Add(this.label1);
             this.Controls.Add(this.persistLocallyCheckBox);
             this.Controls.Add(this.cbEnableEndpointDiscovery);
             this.Controls.Add(this.cbNameBased);
@@ -253,5 +275,7 @@
         private System.Windows.Forms.CheckBox cbNameBased;
         private System.Windows.Forms.CheckBox cbEnableEndpointDiscovery;
         private System.Windows.Forms.CheckBox persistLocallyCheckBox;
+        private System.Windows.Forms.Label label1;
+        public System.Windows.Forms.TextBox tbFriendlyName;
     }
 }

@@ -133,6 +133,8 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.menuStrip1 = new System.Windows.Forms.MenuStrip();
             this.fileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.optionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.settingsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator4 = new System.Windows.Forms.ToolStripSeparator();
             this.exitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -149,8 +151,6 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.btnDeleteEntity = new System.Windows.Forms.ToolStripButton();
             this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
             this.tsbEditTemplate = new System.Windows.Forms.ToolStripButton();
-            this.settingsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripSeparator4 = new System.Windows.Forms.ToolStripSeparator();
             this.statusStrip.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainerOuter)).BeginInit();
             this.splitContainerOuter.Panel1.SuspendLayout();
@@ -204,7 +204,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             // tsStatus
             // 
             this.tsStatus.Name = "tsStatus";
-            this.tsStatus.Size = new System.Drawing.Size(1182, 17);
+            this.tsStatus.Size = new System.Drawing.Size(1183, 17);
             this.tsStatus.Spring = true;
             this.tsStatus.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
@@ -218,7 +218,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.tsButtonZoom.Image = global::Microsoft.Azure.DocumentDBStudio.Properties.Resources.ZoomHS;
             this.tsButtonZoom.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.tsButtonZoom.Name = "tsButtonZoom";
-            this.tsButtonZoom.Size = new System.Drawing.Size(68, 20);
+            this.tsButtonZoom.Size = new System.Drawing.Size(67, 20);
             this.tsButtonZoom.Text = "100%";
             this.tsButtonZoom.ButtonClick += new System.EventHandler(this.tsButtonZoom_ButtonClick);
             // 
@@ -323,7 +323,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.tabCrudContext.Margin = new System.Windows.Forms.Padding(4);
             this.tabCrudContext.Name = "tabCrudContext";
             this.tabCrudContext.Padding = new System.Windows.Forms.Padding(4);
-            this.tabCrudContext.Size = new System.Drawing.Size(900, 182);
+            this.tabCrudContext.Size = new System.Drawing.Size(900, 181);
             this.tabCrudContext.TabIndex = 2;
             this.tabCrudContext.Text = "Operation Editor";
             this.tabCrudContext.UseVisualStyleBackColor = true;
@@ -346,7 +346,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             // splitContainerIntabPage.Panel2
             // 
             this.splitContainerIntabPage.Panel2.Controls.Add(this.tbCrudContext);
-            this.splitContainerIntabPage.Size = new System.Drawing.Size(892, 174);
+            this.splitContainerIntabPage.Size = new System.Drawing.Size(892, 173);
             this.splitContainerIntabPage.SplitterDistance = 35;
             this.splitContainerIntabPage.SplitterWidth = 5;
             this.splitContainerIntabPage.TabIndex = 0;
@@ -377,7 +377,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.tbCrudContext.Multiline = true;
             this.tbCrudContext.Name = "tbCrudContext";
             this.tbCrudContext.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.tbCrudContext.Size = new System.Drawing.Size(892, 134);
+            this.tbCrudContext.Size = new System.Drawing.Size(892, 133);
             this.tbCrudContext.TabIndex = 0;
             this.tbCrudContext.PreviewKeyDown += new System.Windows.Forms.PreviewKeyDownEventHandler(this.tbCrudContext_PreviewKeyDown);
             // 
@@ -388,7 +388,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.tabResponse.Margin = new System.Windows.Forms.Padding(4);
             this.tabResponse.Name = "tabResponse";
             this.tabResponse.Padding = new System.Windows.Forms.Padding(4);
-            this.tabResponse.Size = new System.Drawing.Size(900, 182);
+            this.tabResponse.Size = new System.Drawing.Size(900, 181);
             this.tabResponse.TabIndex = 1;
             this.tabResponse.Text = "Response Headers";
             this.tabResponse.UseVisualStyleBackColor = true;
@@ -403,7 +403,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.tbResponse.Name = "tbResponse";
             this.tbResponse.ReadOnly = true;
             this.tbResponse.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.tbResponse.Size = new System.Drawing.Size(892, 174);
+            this.tbResponse.Size = new System.Drawing.Size(892, 173);
             this.tbResponse.TabIndex = 0;
             // 
             // tabPageRequestOptions
@@ -421,7 +421,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.tabPageRequestOptions.Location = new System.Drawing.Point(4, 22);
             this.tabPageRequestOptions.Name = "tabPageRequestOptions";
             this.tabPageRequestOptions.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPageRequestOptions.Size = new System.Drawing.Size(900, 182);
+            this.tabPageRequestOptions.Size = new System.Drawing.Size(900, 181);
             this.tabPageRequestOptions.TabIndex = 3;
             this.tabPageRequestOptions.Text = "RequestOptions";
             this.tabPageRequestOptions.UseVisualStyleBackColor = true;
@@ -655,7 +655,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.tabDocumentCollection.Location = new System.Drawing.Point(4, 22);
             this.tabDocumentCollection.Name = "tabDocumentCollection";
             this.tabDocumentCollection.Padding = new System.Windows.Forms.Padding(3);
-            this.tabDocumentCollection.Size = new System.Drawing.Size(900, 182);
+            this.tabDocumentCollection.Size = new System.Drawing.Size(900, 181);
             this.tabDocumentCollection.TabIndex = 4;
             this.tabDocumentCollection.Text = "DocumentCollection";
             this.tabDocumentCollection.UseVisualStyleBackColor = true;
@@ -836,7 +836,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.tabOffer.Location = new System.Drawing.Point(4, 22);
             this.tabOffer.Name = "tabOffer";
             this.tabOffer.Padding = new System.Windows.Forms.Padding(3);
-            this.tabOffer.Size = new System.Drawing.Size(900, 182);
+            this.tabOffer.Size = new System.Drawing.Size(900, 181);
             this.tabOffer.TabIndex = 5;
             this.tabOffer.Text = "Offer";
             this.tabOffer.UseVisualStyleBackColor = true;
@@ -1063,7 +1063,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             // MaxItemCount
             // 
             this.MaxItemCount.Name = "MaxItemCount";
-            this.MaxItemCount.Size = new System.Drawing.Size(78, 28);
+            this.MaxItemCount.Size = new System.Drawing.Size(86, 28);
             this.MaxItemCount.Text = "MaxItemCount";
             // 
             // toolStripTextMaxItemCount
@@ -1086,7 +1086,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             // MaxDOP
             // 
             this.MaxDOP.Name = "MaxDOP";
-            this.MaxDOP.Size = new System.Drawing.Size(48, 28);
+            this.MaxDOP.Size = new System.Drawing.Size(53, 28);
             this.MaxDOP.Text = "MaxDOP";
             // 
             // toolStripTextMaxDop
@@ -1104,7 +1104,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             // MaxBuffItem
             // 
             this.MaxBuffItem.Name = "MaxBuffItem";
-            this.MaxBuffItem.Size = new System.Drawing.Size(69, 28);
+            this.MaxBuffItem.Size = new System.Drawing.Size(75, 28);
             this.MaxBuffItem.Text = "MaxBuffItem";
             // 
             // toolStripTextMaxBuffItem
@@ -1125,7 +1125,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.btnExecuteNext.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.btnExecuteNext.MergeAction = System.Windows.Forms.MergeAction.Insert;
             this.btnExecuteNext.Name = "btnExecuteNext";
-            this.btnExecuteNext.Size = new System.Drawing.Size(77, 28);
+            this.btnExecuteNext.Size = new System.Drawing.Size(80, 28);
             this.btnExecuteNext.Text = "Next Page";
             this.btnExecuteNext.Click += new System.EventHandler(this.btnExecuteNext_Click);
             // 
@@ -1165,7 +1165,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.btnBack.Image = global::Microsoft.Azure.DocumentDBStudio.Properties.Resources.NavBack;
             this.btnBack.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.btnBack.Name = "btnBack";
-            this.btnBack.Size = new System.Drawing.Size(49, 22);
+            this.btnBack.Size = new System.Drawing.Size(52, 22);
             this.btnBack.Text = "Back";
             // 
             // btnForward
@@ -1174,7 +1174,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.btnForward.Image = global::Microsoft.Azure.DocumentDBStudio.Properties.Resources.NavForward;
             this.btnForward.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.btnForward.Name = "btnForward";
-            this.btnForward.Size = new System.Drawing.Size(67, 22);
+            this.btnForward.Size = new System.Drawing.Size(70, 22);
             this.btnForward.Text = "Forward";
             // 
             // btnHome
@@ -1182,7 +1182,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.btnHome.Image = global::Microsoft.Azure.DocumentDBStudio.Properties.Resources.HomeHS;
             this.btnHome.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.btnHome.Name = "btnHome";
-            this.btnHome.Size = new System.Drawing.Size(54, 22);
+            this.btnHome.Size = new System.Drawing.Size(60, 22);
             this.btnHome.Text = "Home";
             this.btnHome.Click += new System.EventHandler(this.btnHome_Click);
             // 
@@ -1191,7 +1191,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.toolStripBtnExecute.Image = ((System.Drawing.Image)(resources.GetObject("toolStripBtnExecute.Image")));
             this.toolStripBtnExecute.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.toolStripBtnExecute.Name = "toolStripBtnExecute";
-            this.toolStripBtnExecute.Size = new System.Drawing.Size(66, 22);
+            this.toolStripBtnExecute.Size = new System.Drawing.Size(67, 22);
             this.toolStripBtnExecute.Text = "Execute";
             this.toolStripBtnExecute.Click += new System.EventHandler(this.toolStripBtnExecute_Click);
             // 
@@ -1200,7 +1200,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.btnRefresh.Image = global::Microsoft.Azure.DocumentDBStudio.Properties.Resources.RefreshDocViewHS;
             this.btnRefresh.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.btnRefresh.Name = "btnRefresh";
-            this.btnRefresh.Size = new System.Drawing.Size(65, 22);
+            this.btnRefresh.Size = new System.Drawing.Size(66, 22);
             this.btnRefresh.Text = "Refresh";
             this.btnRefresh.Visible = false;
             // 
@@ -1215,7 +1215,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.btnHeaders.Image = ((System.Drawing.Image)(resources.GetObject("btnHeaders.Image")));
             this.btnHeaders.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.btnHeaders.Name = "btnHeaders";
-            this.btnHeaders.Size = new System.Drawing.Size(130, 22);
+            this.btnHeaders.Size = new System.Drawing.Size(139, 22);
             this.btnHeaders.Text = "Show Response Headers";
             this.btnHeaders.ToolTipText = "Show response headers";
             this.btnHeaders.Click += new System.EventHandler(this.btnHeaders_Click);
@@ -1226,7 +1226,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.btnEditRequests.Image = ((System.Drawing.Image)(resources.GetObject("btnEditRequests.Image")));
             this.btnEditRequests.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.btnEditRequests.Name = "btnEditRequests";
-            this.btnEditRequests.Size = new System.Drawing.Size(72, 22);
+            this.btnEditRequests.Size = new System.Drawing.Size(76, 22);
             this.btnEditRequests.Text = "Edit Request";
             this.btnEditRequests.ToolTipText = "Edit next request  (Ctrl+Click)";
             this.btnEditRequests.Visible = false;
@@ -1238,7 +1238,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.tsbViewType.Image = ((System.Drawing.Image)(resources.GetObject("tsbViewType.Image")));
             this.tsbViewType.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.tsbViewType.Name = "tsbViewType";
-            this.tsbViewType.Size = new System.Drawing.Size(58, 22);
+            this.tsbViewType.Size = new System.Drawing.Size(61, 22);
             this.tsbViewType.Text = "Text View";
             this.tsbViewType.Click += new System.EventHandler(this.tsbViewType_Click);
             // 
@@ -1249,7 +1249,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.tsbHideDocumentSystemProperties.Image = ((System.Drawing.Image)(resources.GetObject("tsbHideDocumentSystemProperties.Image")));
             this.tsbHideDocumentSystemProperties.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.tsbHideDocumentSystemProperties.Name = "tsbHideDocumentSystemProperties";
-            this.tsbHideDocumentSystemProperties.Size = new System.Drawing.Size(125, 22);
+            this.tsbHideDocumentSystemProperties.Size = new System.Drawing.Size(134, 22);
             this.tsbHideDocumentSystemProperties.Text = "Show System resources";
             this.tsbHideDocumentSystemProperties.Click += new System.EventHandler(this.tsbHideDocumentSystemProperties_Click);
             // 
@@ -1273,7 +1273,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             // tsLabelUrl
             // 
             this.tsLabelUrl.Name = "tsLabelUrl";
-            this.tsLabelUrl.Size = new System.Drawing.Size(33, 30);
+            this.tsLabelUrl.Size = new System.Drawing.Size(34, 30);
             this.tsLabelUrl.Text = "URL: ";
             // 
             // cbUrl
@@ -1281,7 +1281,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.cbUrl.AutoSize = false;
             this.cbUrl.MaxDropDownItems = 1;
             this.cbUrl.Name = "cbUrl";
-            this.cbUrl.Size = new System.Drawing.Size(300, 21);
+            this.cbUrl.Size = new System.Drawing.Size(300, 23);
             // 
             // btnGo
             // 
@@ -1289,7 +1289,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.btnGo.Image = ((System.Drawing.Image)(resources.GetObject("btnGo.Image")));
             this.btnGo.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.btnGo.Name = "btnGo";
-            this.btnGo.Size = new System.Drawing.Size(24, 30);
+            this.btnGo.Size = new System.Drawing.Size(26, 30);
             this.btnGo.Text = "Go";
             // 
             // menuStrip1
@@ -1312,20 +1312,32 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.toolStripSeparator4,
             this.exitToolStripMenuItem});
             this.fileToolStripMenuItem.Name = "fileToolStripMenuItem";
-            this.fileToolStripMenuItem.Size = new System.Drawing.Size(35, 19);
+            this.fileToolStripMenuItem.Size = new System.Drawing.Size(37, 19);
             this.fileToolStripMenuItem.Text = "&File";
             // 
             // optionsToolStripMenuItem
             // 
             this.optionsToolStripMenuItem.Name = "optionsToolStripMenuItem";
-            this.optionsToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.optionsToolStripMenuItem.Size = new System.Drawing.Size(144, 22);
             this.optionsToolStripMenuItem.Text = "&Add Account";
             this.optionsToolStripMenuItem.Click += new System.EventHandler(this.settingsToolStripMenuItem_Click);
+            // 
+            // settingsToolStripMenuItem
+            // 
+            this.settingsToolStripMenuItem.Name = "settingsToolStripMenuItem";
+            this.settingsToolStripMenuItem.Size = new System.Drawing.Size(144, 22);
+            this.settingsToolStripMenuItem.Text = "Settings...";
+            this.settingsToolStripMenuItem.Click += new System.EventHandler(this.settingsToolStripMenuItem_Click_1);
+            // 
+            // toolStripSeparator4
+            // 
+            this.toolStripSeparator4.Name = "toolStripSeparator4";
+            this.toolStripSeparator4.Size = new System.Drawing.Size(141, 6);
             // 
             // exitToolStripMenuItem
             // 
             this.exitToolStripMenuItem.Name = "exitToolStripMenuItem";
-            this.exitToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.exitToolStripMenuItem.Size = new System.Drawing.Size(144, 22);
             this.exitToolStripMenuItem.Text = "E&xit";
             this.exitToolStripMenuItem.Click += new System.EventHandler(this.exitToolStripMenuItem_Click);
             // 
@@ -1334,13 +1346,13 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.helpToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.aboutToolStripMenuItem});
             this.helpToolStripMenuItem.Name = "helpToolStripMenuItem";
-            this.helpToolStripMenuItem.Size = new System.Drawing.Size(40, 19);
+            this.helpToolStripMenuItem.Size = new System.Drawing.Size(44, 19);
             this.helpToolStripMenuItem.Text = "&Help";
             // 
             // aboutToolStripMenuItem
             // 
             this.aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
-            this.aboutToolStripMenuItem.Size = new System.Drawing.Size(103, 22);
+            this.aboutToolStripMenuItem.Size = new System.Drawing.Size(107, 22);
             this.aboutToolStripMenuItem.Text = "&About";
             this.aboutToolStripMenuItem.Click += new System.EventHandler(this.aboutToolStripMenuItem_Click);
             // 
@@ -1375,7 +1387,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.btnQueryTable.Image = ((System.Drawing.Image)(resources.GetObject("btnQueryTable.Image")));
             this.btnQueryTable.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.btnQueryTable.Name = "btnQueryTable";
-            this.btnQueryTable.Size = new System.Drawing.Size(47, 30);
+            this.btnQueryTable.Size = new System.Drawing.Size(50, 30);
             this.btnQueryTable.Text = "QueryT";
             this.btnQueryTable.ToolTipText = "QueryTable";
             // 
@@ -1385,7 +1397,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.btnCreateTable.Image = ((System.Drawing.Image)(resources.GetObject("btnCreateTable.Image")));
             this.btnCreateTable.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.btnCreateTable.Name = "btnCreateTable";
-            this.btnCreateTable.Size = new System.Drawing.Size(50, 30);
+            this.btnCreateTable.Size = new System.Drawing.Size(52, 30);
             this.btnCreateTable.Text = "CreateT";
             this.btnCreateTable.ToolTipText = "CreateTable";
             // 
@@ -1395,7 +1407,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.btnDeleteTable.Image = ((System.Drawing.Image)(resources.GetObject("btnDeleteTable.Image")));
             this.btnDeleteTable.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.btnDeleteTable.Name = "btnDeleteTable";
-            this.btnDeleteTable.Size = new System.Drawing.Size(48, 30);
+            this.btnDeleteTable.Size = new System.Drawing.Size(51, 30);
             this.btnDeleteTable.Text = "DeleteT";
             this.btnDeleteTable.ToolTipText = "DeleteTable";
             // 
@@ -1410,7 +1422,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.btnQueryEntities.Image = ((System.Drawing.Image)(resources.GetObject("btnQueryEntities.Image")));
             this.btnQueryEntities.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.btnQueryEntities.Name = "btnQueryEntities";
-            this.btnQueryEntities.Size = new System.Drawing.Size(47, 30);
+            this.btnQueryEntities.Size = new System.Drawing.Size(49, 30);
             this.btnQueryEntities.Text = "QueryE";
             this.btnQueryEntities.ToolTipText = "QueryEntities";
             // 
@@ -1421,7 +1433,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.btnNextPage.Image = ((System.Drawing.Image)(resources.GetObject("btnNextPage.Image")));
             this.btnNextPage.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.btnNextPage.Name = "btnNextPage";
-            this.btnNextPage.Size = new System.Drawing.Size(58, 30);
+            this.btnNextPage.Size = new System.Drawing.Size(61, 30);
             this.btnNextPage.Text = "NextPage";
             // 
             // btnInsertEntity
@@ -1440,7 +1452,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.btnUpdateEntity.Image = ((System.Drawing.Image)(resources.GetObject("btnUpdateEntity.Image")));
             this.btnUpdateEntity.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.btnUpdateEntity.Name = "btnUpdateEntity";
-            this.btnUpdateEntity.Size = new System.Drawing.Size(52, 30);
+            this.btnUpdateEntity.Size = new System.Drawing.Size(55, 30);
             this.btnUpdateEntity.Text = "UpdateE";
             this.btnUpdateEntity.ToolTipText = "UpdateEntity";
             // 
@@ -1450,7 +1462,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.tsbMergeEntity.Image = ((System.Drawing.Image)(resources.GetObject("tsbMergeEntity.Image")));
             this.tsbMergeEntity.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.tsbMergeEntity.Name = "tsbMergeEntity";
-            this.tsbMergeEntity.Size = new System.Drawing.Size(47, 30);
+            this.tsbMergeEntity.Size = new System.Drawing.Size(51, 30);
             this.tsbMergeEntity.Text = "MergeE";
             // 
             // btnDeleteEntity
@@ -1459,7 +1471,7 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.btnDeleteEntity.Image = ((System.Drawing.Image)(resources.GetObject("btnDeleteEntity.Image")));
             this.btnDeleteEntity.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.btnDeleteEntity.Name = "btnDeleteEntity";
-            this.btnDeleteEntity.Size = new System.Drawing.Size(48, 30);
+            this.btnDeleteEntity.Size = new System.Drawing.Size(50, 30);
             this.btnDeleteEntity.Text = "DeleteE";
             this.btnDeleteEntity.ToolTipText = "DeleteEntity";
             // 
@@ -1474,20 +1486,8 @@ namespace Microsoft.Azure.DocumentDBStudio
             this.tsbEditTemplate.Image = ((System.Drawing.Image)(resources.GetObject("tsbEditTemplate.Image")));
             this.tsbEditTemplate.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.tsbEditTemplate.Name = "tsbEditTemplate";
-            this.tsbEditTemplate.Size = new System.Drawing.Size(76, 30);
+            this.tsbEditTemplate.Size = new System.Drawing.Size(84, 30);
             this.tsbEditTemplate.Text = "Edit Template";
-            // 
-            // settingsToolStripMenuItem
-            // 
-            this.settingsToolStripMenuItem.Name = "settingsToolStripMenuItem";
-            this.settingsToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
-            this.settingsToolStripMenuItem.Text = "Settings...";
-            this.settingsToolStripMenuItem.Click += new System.EventHandler(this.settingsToolStripMenuItem_Click_1);
-            // 
-            // toolStripSeparator4
-            // 
-            this.toolStripSeparator4.Name = "toolStripSeparator4";
-            this.toolStripSeparator4.Size = new System.Drawing.Size(149, 6);
             // 
             // MainForm
             // 

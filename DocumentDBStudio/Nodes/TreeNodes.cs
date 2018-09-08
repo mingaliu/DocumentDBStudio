@@ -5,10 +5,12 @@
 namespace Microsoft.Azure.DocumentDBStudio
 {
     using Documents.Client;
+	using System.Collections.Generic;
 
-    internal class AccountSettings
+	internal class AccountSettings
     {
         public string MasterKey;
+		public string DatabaseName;
         public ConnectionMode ConnectionMode;
         public Protocol Protocol;
         public bool IsNameBased;
@@ -17,6 +19,8 @@ namespace Microsoft.Azure.DocumentDBStudio
         /// Specifies whether this account settings should be persisted locally  
         /// </summary>
         public bool IsPersistedLocally;
+		public List<string> collectionTokens;
+		public List<string> collections;
     }
 
     public class CommandContext

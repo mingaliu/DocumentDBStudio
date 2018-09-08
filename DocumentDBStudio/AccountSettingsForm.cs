@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Windows.Forms;
 using Microsoft.Azure.DocumentDBStudio.Helpers;
 using Microsoft.Azure.DocumentDBStudio.Properties;
@@ -80,7 +81,14 @@ namespace Microsoft.Azure.DocumentDBStudio
                 this.DialogResult = DialogResult.None;
             }
             this.AccountEndpoint = tbAccountName.Text;
-            this.AccountSettings.MasterKey = tbAccountSecret.Text;
+			if (!this.cbEnableTokenLogin.Checked)
+			{
+				this.AccountSettings.MasterKey = tbAccountSecret.Text;
+			}
+			else
+			{
+				ProcessTokensString(tbAccountSecret.Text);
+			}
 
             if (this.radioButtonGateway.Checked)
             {
@@ -105,11 +113,41 @@ namespace Microsoft.Azure.DocumentDBStudio
             Settings.Default.Save();
         }
 
-        private void cbDevFabric_CheckedChanged(object sender, EventArgs e)
+		private void ProcessTokensString(string tokenText)
+		{
+			//format type=resource=token;associatedColection;otherTokens
+			this.AccountSettings.collectionTokens = new List<string>();
+			this.AccountSettings.collections = new List<string>();
+			string tokenBeggining = "type=resource";
+			List<int> tokenStartingPoints = AllIndexesOf(tokenText, tokenBeggining);
+			tokenStartingPoints.Add(tokenText.Length - 1);
+			for (int i = 0 ; i < tokenStartingPoints.Count - 1 ; i++)
+			{
+				string currentToken = tokenText.Substring(tokenStartingPoints[i], tokenStartingPoints[i + 1]);
+				string[] split = currentToken.Split(';');
+				string currentCollection = split[split.Length - 1];
+				string token = "";
+				for (int j = 0; j < split.Length - 1; j++)
+				{
+					token = token + split[j];
+				}
+				this.AccountSettings.collectionTokens.Add(token);
+				this.AccountSettings.collections.Add(currentCollection);
+			}
+			this.AccountSettings.MasterKey = null;
+		}
+
+		private void cbDevFabric_CheckedChanged(object sender, EventArgs e)
         {
             ApplyDevFabricSettings();
         }
-        private void ApplyDevFabricSettings()
+
+		private void cbEnableTokenLogin_CheckedChanged(object sender, EventArgs e)
+		{
+			ApplyResourceTokenSettings();
+		}
+
+		private void ApplyDevFabricSettings()
         {
             if (cbDevFabric.Checked)
             {
@@ -124,5 +162,33 @@ namespace Microsoft.Azure.DocumentDBStudio
                 tbAccountSecret.Text = "";
             }
         }
-    }
+
+		private void ApplyResourceTokenSettings()
+		{
+			if (cbEnableTokenLogin.Checked)
+			{
+				tbDbName.Visible = true;
+				label1.Visible = true;
+			}
+			else
+			{
+				tbDbName.Visible = false;
+				label1.Visible = false;
+			}
+		}
+
+		private static List<int> AllIndexesOf(this string str, string value)
+		{
+			if (String.IsNullOrEmpty(value))
+				throw new ArgumentException("the string to find may not be empty", "value");
+			List<int> indexes = new List<int>();
+			for (int index = 0; ; index += value.Length)
+			{
+				index = str.IndexOf(value, index);
+				if (index == -1)
+					return indexes;
+				indexes.Add(index);
+			}
+		}
+	}
 }

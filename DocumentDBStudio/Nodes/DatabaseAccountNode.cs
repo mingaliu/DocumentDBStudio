@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
 using System.Linq;
@@ -179,28 +178,23 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             try
             {
-				//FeedResponse<Database> databases;
-				//using (PerfStatus.Start("ReadDatabaseFeed"))
-				//{
-				//    databases = await _client.ReadDatabaseFeedAsync();
-				//}
+                FeedResponse<Database> databases;
+                using (PerfStatus.Start("ReadDatabaseFeed"))
+                {
+                    databases = await _client.ReadDatabaseFeedAsync();
+                }
 
-				////databases.Sort((first, second) => string.Compare(((Document)first).Id, ((Document)second).Id, StringComparison.Ordinal));
-				////databases = databases.Sort()
+                //databases.Sort((first, second) => string.Compare(((Document)first).Id, ((Document)second).Id, StringComparison.Ordinal));
+                //databases = databases.Sort()
 
-				//var dbNodeList = databases.Select(db => new DatabaseNode(_client, db)).ToList();
-				//dbNodeList.Sort((first, second) => string.Compare((first).Text, (second).Text, StringComparison.Ordinal));
-				//foreach (var databaseNode in dbNodeList)
-				//{
-				//    Nodes.Add(databaseNode);
-				//}
+                var dbNodeList = databases.Select(db => new DatabaseNode(_client, db)).ToList();
+                dbNodeList.Sort((first, second) => string.Compare((first).Text, (second).Text, StringComparison.Ordinal));
+                foreach (var databaseNode in dbNodeList)
+                {
+                    Nodes.Add(databaseNode);
+                }
 
-				//Program.GetMain().SetResponseHeaders(databases.ResponseHeaders);
-				DocumentCollection collection = await _client.ReadDocumentCollectionAsync(UriFactory.CreateDocumentCollectionUri("db1", "coll1"));
-				DocumentCollectionNode collectionNode = new DocumentCollectionNode(_client, collection, "db1");
-				TreeNode[] collectionList = new TreeNode[] {collectionNode};
-				TreeNode dbNode = new TreeNode("db1",collectionList);
-				Nodes.Add(dbNode);
+                Program.GetMain().SetResponseHeaders(databases.ResponseHeaders);
             }
             catch (AggregateException e)
             {

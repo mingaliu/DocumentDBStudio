@@ -46,6 +46,8 @@
 			this.cbEnableTokenLogin = new System.Windows.Forms.CheckBox();
 			this.tbDbName = new System.Windows.Forms.TextBox();
 			this.label1 = new System.Windows.Forms.Label();
+			this.label5 = new System.Windows.Forms.Label();
+			this.tbCollections = new System.Windows.Forms.TextBox();
 			this.groupBox1.SuspendLayout();
 			this.SuspendLayout();
 			// 
@@ -103,7 +105,7 @@
 			// 
 			this.btnOK.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
 			this.btnOK.DialogResult = System.Windows.Forms.DialogResult.OK;
-			this.btnOK.Location = new System.Drawing.Point(419, 362);
+			this.btnOK.Location = new System.Drawing.Point(419, 391);
 			this.btnOK.Margin = new System.Windows.Forms.Padding(4);
 			this.btnOK.Name = "btnOK";
 			this.btnOK.Size = new System.Drawing.Size(100, 28);
@@ -116,7 +118,7 @@
 			// 
 			this.btnCancel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
 			this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-			this.btnCancel.Location = new System.Drawing.Point(548, 362);
+			this.btnCancel.Location = new System.Drawing.Point(548, 391);
 			this.btnCancel.Margin = new System.Windows.Forms.Padding(4);
 			this.btnCancel.Name = "btnCancel";
 			this.btnCancel.Size = new System.Drawing.Size(100, 28);
@@ -128,7 +130,7 @@
 			// 
 			this.cbDevFabric.AllowDrop = true;
 			this.cbDevFabric.AutoSize = true;
-			this.cbDevFabric.Location = new System.Drawing.Point(20, 317);
+			this.cbDevFabric.Location = new System.Drawing.Point(19, 349);
 			this.cbDevFabric.Margin = new System.Windows.Forms.Padding(4);
 			this.cbDevFabric.Name = "cbDevFabric";
 			this.cbDevFabric.Size = new System.Drawing.Size(147, 21);
@@ -142,7 +144,7 @@
 			this.groupBox1.Controls.Add(this.radioButtonDirectTcp);
 			this.groupBox1.Controls.Add(this.radioButtonDirectHttp);
 			this.groupBox1.Controls.Add(this.radioButtonGateway);
-			this.groupBox1.Location = new System.Drawing.Point(20, 182);
+			this.groupBox1.Location = new System.Drawing.Point(24, 205);
 			this.groupBox1.Margin = new System.Windows.Forms.Padding(4);
 			this.groupBox1.Name = "groupBox1";
 			this.groupBox1.Padding = new System.Windows.Forms.Padding(4);
@@ -193,7 +195,7 @@
 			this.cbNameBased.AutoSize = true;
 			this.cbNameBased.Checked = true;
 			this.cbNameBased.CheckState = System.Windows.Forms.CheckState.Checked;
-			this.cbNameBased.Location = new System.Drawing.Point(19, 272);
+			this.cbNameBased.Location = new System.Drawing.Point(19, 286);
 			this.cbNameBased.Margin = new System.Windows.Forms.Padding(4);
 			this.cbNameBased.Name = "cbNameBased";
 			this.cbNameBased.Size = new System.Drawing.Size(147, 21);
@@ -205,7 +207,7 @@
 			// 
 			this.cbEnableEndpointDiscovery.AllowDrop = true;
 			this.cbEnableEndpointDiscovery.AutoSize = true;
-			this.cbEnableEndpointDiscovery.Location = new System.Drawing.Point(192, 272);
+			this.cbEnableEndpointDiscovery.Location = new System.Drawing.Point(192, 349);
 			this.cbEnableEndpointDiscovery.Margin = new System.Windows.Forms.Padding(4);
 			this.cbEnableEndpointDiscovery.Name = "cbEnableEndpointDiscovery";
 			this.cbEnableEndpointDiscovery.Size = new System.Drawing.Size(215, 21);
@@ -218,7 +220,7 @@
 			this.persistLocallyCheckBox.AutoSize = true;
 			this.persistLocallyCheckBox.Checked = true;
 			this.persistLocallyCheckBox.CheckState = System.Windows.Forms.CheckState.Checked;
-			this.persistLocallyCheckBox.Location = new System.Drawing.Point(192, 317);
+			this.persistLocallyCheckBox.Location = new System.Drawing.Point(192, 286);
 			this.persistLocallyCheckBox.Margin = new System.Windows.Forms.Padding(4);
 			this.persistLocallyCheckBox.Name = "persistLocallyCheckBox";
 			this.persistLocallyCheckBox.Size = new System.Drawing.Size(197, 21);
@@ -230,7 +232,7 @@
 			// 
 			this.cbEnableTokenLogin.AllowDrop = true;
 			this.cbEnableTokenLogin.AutoSize = true;
-			this.cbEnableTokenLogin.Location = new System.Drawing.Point(433, 272);
+			this.cbEnableTokenLogin.Location = new System.Drawing.Point(419, 286);
 			this.cbEnableTokenLogin.Margin = new System.Windows.Forms.Padding(4);
 			this.cbEnableTokenLogin.Name = "cbEnableTokenLogin";
 			this.cbEnableTokenLogin.Size = new System.Drawing.Size(164, 21);
@@ -243,7 +245,7 @@
 			// 
 			this.tbDbName.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-			this.tbDbName.Location = new System.Drawing.Point(192, 135);
+			this.tbDbName.Location = new System.Drawing.Point(192, 133);
 			this.tbDbName.Margin = new System.Windows.Forms.Padding(4);
 			this.tbDbName.Name = "tbDbName";
 			this.tbDbName.Size = new System.Drawing.Size(455, 22);
@@ -253,7 +255,7 @@
 			// label1
 			// 
 			this.label1.AutoSize = true;
-			this.label1.Location = new System.Drawing.Point(21, 135);
+			this.label1.Location = new System.Drawing.Point(21, 133);
 			this.label1.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
 			this.label1.Name = "label1";
 			this.label1.Size = new System.Drawing.Size(112, 17);
@@ -261,13 +263,37 @@
 			this.label1.Text = "Database name:";
 			this.label1.Visible = false;
 			// 
+			// label5
+			// 
+			this.label5.AutoSize = true;
+			this.label5.Location = new System.Drawing.Point(21, 169);
+			this.label5.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+			this.label5.Name = "label5";
+			this.label5.Size = new System.Drawing.Size(80, 17);
+			this.label5.TabIndex = 33;
+			this.label5.Text = "Collections:";
+			this.label5.Visible = false;
+			// 
+			// tbCollections
+			// 
+			this.tbCollections.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+			this.tbCollections.Location = new System.Drawing.Point(192, 169);
+			this.tbCollections.Margin = new System.Windows.Forms.Padding(4);
+			this.tbCollections.Name = "tbCollections";
+			this.tbCollections.Size = new System.Drawing.Size(455, 22);
+			this.tbCollections.TabIndex = 34;
+			this.tbCollections.Visible = false;
+			// 
 			// AccountSettingsForm
 			// 
 			this.AcceptButton = this.btnOK;
 			this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.CancelButton = this.btnCancel;
-			this.ClientSize = new System.Drawing.Size(664, 405);
+			this.ClientSize = new System.Drawing.Size(664, 434);
+			this.Controls.Add(this.tbCollections);
+			this.Controls.Add(this.label5);
 			this.Controls.Add(this.label1);
 			this.Controls.Add(this.tbDbName);
 			this.Controls.Add(this.cbEnableTokenLogin);
@@ -311,8 +337,10 @@
         private System.Windows.Forms.CheckBox cbNameBased;
         private System.Windows.Forms.CheckBox cbEnableEndpointDiscovery;
         private System.Windows.Forms.CheckBox persistLocallyCheckBox;
-		private System.Windows.Forms.CheckBox cbEnableTokenLogin;
-		public System.Windows.Forms.TextBox tbDbName;
-		private System.Windows.Forms.Label label1;
-	}
+        private System.Windows.Forms.CheckBox cbEnableTokenLogin;
+        public System.Windows.Forms.TextBox tbDbName;
+        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.Label label5;
+        public System.Windows.Forms.TextBox tbCollections;
+    }
 }

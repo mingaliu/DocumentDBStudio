@@ -668,39 +668,72 @@ namespace Microsoft.Azure.DocumentDBStudio
             {
                 Settings.Default.AccountSettingsList = new List<string>();
             }
-            // load the account settings from the List.
-            for (int i = 0; i < Settings.Default.AccountSettingsList.Count; i = i + 2)
-            {
-                var accountSettings = (AccountSettings)JsonConvert.DeserializeObject(Settings.Default.AccountSettingsList[i + 1], typeof(AccountSettings));
-                AddConnectionTreeNode(Settings.Default.AccountSettingsList[i], accountSettings);
-            }
-        }
+			for (int i = Settings.Default.AccountSettingsList.Count-2; i < Settings.Default.AccountSettingsList.Count; i = i + 2)
+			{
+				var accountSettings = (AccountSettings)JsonConvert.DeserializeObject(Settings.Default.AccountSettingsList[i + 1], typeof(AccountSettings));
+				AddConnectionTreeNode(Settings.Default.AccountSettingsList[i], accountSettings);
+			}
+		}
 
-        private void AddConnectionTreeNode(string accountEndpoint, AccountSettings accountSettings)
+		private void AddConnectionTreeNode(string accountEndpoint, AccountSettings accountSettings)
         {
             try
             {
                 var suffix = Constants.ApplicationName + "/" + Constants.ProductVersion;
 
-                var client = new DocumentClient(new Uri(accountEndpoint), accountSettings.MasterKey,
-                    new ConnectionPolicy
-                    {
-                        ConnectionMode = accountSettings.ConnectionMode,
-                        ConnectionProtocol = accountSettings.Protocol,
-                        // enable after we support the automatic failover from client .
-                        EnableEndpointDiscovery = accountSettings.EnableEndpointDiscovery,
-                        UserAgentSuffix = suffix
-                    });
+				if (accountSettings.MasterKey != null)
+				{
+					var client = new DocumentClient(new Uri(accountEndpoint), accountSettings.MasterKey,
+						new ConnectionPolicy
+						{
+							ConnectionMode = accountSettings.ConnectionMode,
+							ConnectionProtocol = accountSettings.Protocol,
+						// enable after we support the automatic failover from client .
+						EnableEndpointDiscovery = accountSettings.EnableEndpointDiscovery,
+							UserAgentSuffix = suffix
+						});
 
-                var dbaNode = new DatabaseAccountNode(accountEndpoint, client);
-                treeView1.Nodes.Add(dbaNode);
+					var dbaNode = new DatabaseAccountNode(accountEndpoint, client);
+					treeView1.Nodes.Add(dbaNode);
 
-                // Update the map.
-                DocumentClientExtension.AddOrUpdate(client.ServiceEndpoint.Host, accountSettings.IsNameBased);
+					// Update the map.
+					DocumentClientExtension.AddOrUpdate(client.ServiceEndpoint.Host, accountSettings.IsNameBased);
 
-                dbaNode.ForeColor = accountSettings.IsNameBased
-                    ? Color.Green
-                    : Color.Blue;
+					dbaNode.ForeColor = accountSettings.IsNameBased
+						? Color.Green
+						: Color.Blue;
+				}
+
+				else
+				{
+					IDictionary<string, string> resourceTokens = new Dictionary<string, string>();
+					for (int i = 0; i < accountSettings.collections.Count; i++)
+					{
+						resourceTokens.Add(accountSettings.collections[i],accountSettings.collectionTokens[i]);
+					}
+
+					var client = new DocumentClient(new Uri(accountEndpoint), resourceTokens,
+						new ConnectionPolicy
+						{
+							ConnectionMode = accountSettings.ConnectionMode,
+							ConnectionProtocol = accountSettings.Protocol,
+							// enable after we support the automatic failover from client .
+							EnableEndpointDiscovery = accountSettings.EnableEndpointDiscovery,
+							UserAgentSuffix = suffix
+						});
+
+					var dbaNode = new MockDatabaseAccountNode(accountEndpoint, client,accountSettings.DatabaseName,accountSettings.collections,accountSettings.collectionTokens);
+					treeView1.Nodes.Add(dbaNode);
+
+					// Update the map.
+					DocumentClientExtension.AddOrUpdate(client.ServiceEndpoint.Host, accountSettings.IsNameBased);
+
+					dbaNode.ForeColor = accountSettings.IsNameBased
+						? Color.Green
+						: Color.Blue;
+
+				}
+
             }
             catch (Exception e)
             {

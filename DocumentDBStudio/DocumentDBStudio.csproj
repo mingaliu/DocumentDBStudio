@@ -143,6 +143,7 @@
     <Compile Include="Helpers\DocumentPatternParser.cs" />
     <Compile Include="Helpers\DynamicHelper.cs" />
     <Compile Include="CustomDocumentListDisplay\CustomDocumentListDisplayManager.cs" />
+    <Compile Include="Nodes\MockDatabaseAccountNode.cs" />
     <Compile Include="Providers\EmbeddedResourceProvider.cs" />
     <Compile Include="Providers\SettingsProvider.cs" />
     <Compile Include="CustomDocumentListDisplay\Models\CustomDocumentListDisplay.cs" />

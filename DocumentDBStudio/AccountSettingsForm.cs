@@ -87,6 +87,7 @@ namespace Microsoft.Azure.DocumentDBStudio
 			}
 			else
 			{
+				this.AccountSettings.DatabaseName = tbDbName.Text;
 				ProcessTokensString(tbAccountSecret.Text);
 			}
 
@@ -120,17 +121,19 @@ namespace Microsoft.Azure.DocumentDBStudio
 			this.AccountSettings.collections = new List<string>();
 			string tokenBeggining = "type=resource";
 			List<int> tokenStartingPoints = AllIndexesOf(tokenText, tokenBeggining);
-			tokenStartingPoints.Add(tokenText.Length - 1);
+			tokenStartingPoints.Add(tokenText.Length);
 			for (int i = 0 ; i < tokenStartingPoints.Count - 1 ; i++)
 			{
-				string currentToken = tokenText.Substring(tokenStartingPoints[i], tokenStartingPoints[i + 1]);
+				string currentToken = tokenText.Substring(tokenStartingPoints[i], tokenStartingPoints[i + 1]-tokenStartingPoints[i]);
 				string[] split = currentToken.Split(';');
+				Array.Resize(ref split, split.Length - 1);
 				string currentCollection = split[split.Length - 1];
 				string token = "";
 				for (int j = 0; j < split.Length - 1; j++)
 				{
-					token = token + split[j];
+					token = token + split[j] + ";";
 				}
+				token = token.Substring(0, token.Length - 1);
 				this.AccountSettings.collectionTokens.Add(token);
 				this.AccountSettings.collections.Add(currentCollection);
 			}
@@ -177,7 +180,7 @@ namespace Microsoft.Azure.DocumentDBStudio
 			}
 		}
 
-		private static List<int> AllIndexesOf(this string str, string value)
+		private static List<int> AllIndexesOf(string str, string value)
 		{
 			if (String.IsNullOrEmpty(value))
 				throw new ArgumentException("the string to find may not be empty", "value");

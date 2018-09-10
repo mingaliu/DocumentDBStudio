@@ -194,6 +194,7 @@ namespace Microsoft.Azure.DocumentDBStudio
 					collectionList[i] = collectionNode;
 				}
 				TreeNode dbNode = new TreeNode(_database,collectionList);
+				dbNode.ToolTipText = "This database node uses resource tokens. \n The default leave time for resource tokens is one hour. \n In case of authorization problems please create new tokens and add the connection again."; 
 				Nodes.Add(dbNode);
             }
             catch (AggregateException e)

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
 using System.Linq;
@@ -10,14 +11,20 @@ using Newtonsoft.Json;
 
 namespace Microsoft.Azure.DocumentDBStudio
 {
-    class DatabaseAccountNode : FeedNode
+    class MockDatabaseAccountNode : FeedNode
     {
         private readonly DocumentClient _client;
         private readonly string _accountEndpoint;
         private readonly ContextMenu _contextMenu = new ContextMenu();
+        private List<string> _collections;
+        private List<string> _tokens;
+        private string _database;
 
-        public DatabaseAccountNode(string endpointName, DocumentClient client)
+        public MockDatabaseAccountNode(string endpointName, DocumentClient client, string database, List<string> collections, List<string> tokens)
         {
+            _collections = collections;
+            _tokens = tokens;
+            _database = database;
             _accountEndpoint = endpointName;
 
             Text = endpointName;
@@ -178,23 +185,17 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             try
             {
-                FeedResponse<Database> databases;
-                using (PerfStatus.Start("ReadDatabaseFeed"))
+                TreeNode[] collectionList = new TreeNode[_collections.Count];
+                for (int i = 0; i < _collections.Count; i++)
                 {
-                    databases = await _client.ReadDatabaseFeedAsync();
+                    DocumentClient client = new DocumentClient(new Uri(_accountEndpoint), _tokens[i]);
+                    DocumentCollection collection = await client.ReadDocumentCollectionAsync(UriFactory.CreateDocumentCollectionUri(_database, _collections[i]));
+                    DocumentCollectionNode collectionNode = new DocumentCollectionNode(client, collection, _database);
+                    collectionList[i] = collectionNode;
                 }
-
-                //databases.Sort((first, second) => string.Compare(((Document)first).Id, ((Document)second).Id, StringComparison.Ordinal));
-                //databases = databases.Sort()
-
-                var dbNodeList = databases.Select(db => new DatabaseNode(_client, db)).ToList();
-                dbNodeList.Sort((first, second) => string.Compare((first).Text, (second).Text, StringComparison.Ordinal));
-                foreach (var databaseNode in dbNodeList)
-                {
-                    Nodes.Add(databaseNode);
-                }
-
-                Program.GetMain().SetResponseHeaders(databases.ResponseHeaders);
+                TreeNode dbNode = new TreeNode(_database,collectionList);
+                dbNode.ToolTipText = "This database node uses resource tokens. \n The default leave time for resource tokens is one hour. \n In case of authorization problems please create new tokens and add the connection again."; 
+                Nodes.Add(dbNode);
             }
             catch (AggregateException e)
             {

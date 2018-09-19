@@ -16,15 +16,15 @@ namespace Microsoft.Azure.DocumentDBStudio
         private readonly DocumentClient _client;
         private readonly string _accountEndpoint;
         private readonly ContextMenu _contextMenu = new ContextMenu();
-		private List<string> _collections;
-		private List<string> _tokens;
-		private string _database;
+        private List<string> _collections;
+        private List<string> _tokens;
+        private string _database;
 
         public MockDatabaseAccountNode(string endpointName, DocumentClient client, string database, List<string> collections, List<string> tokens)
         {
-			_collections = collections;
-			_tokens = tokens;
-			_database = database;
+            _collections = collections;
+            _tokens = tokens;
+            _database = database;
             _accountEndpoint = endpointName;
 
             Text = endpointName;
@@ -185,17 +185,17 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             try
             {
-				TreeNode[] collectionList = new TreeNode[_collections.Count];
-				for (int i = 0; i < _collections.Count; i++)
-				{
-					DocumentClient client = new DocumentClient(new Uri(_accountEndpoint), _tokens[i]);
-					DocumentCollection collection = await client.ReadDocumentCollectionAsync(UriFactory.CreateDocumentCollectionUri(_database, _collections[i]));
-					DocumentCollectionNode collectionNode = new DocumentCollectionNode(client, collection, _database);
-					collectionList[i] = collectionNode;
-				}
-				TreeNode dbNode = new TreeNode(_database,collectionList);
-				dbNode.ToolTipText = "This database node uses resource tokens. \n The default leave time for resource tokens is one hour. \n In case of authorization problems please create new tokens and add the connection again."; 
-				Nodes.Add(dbNode);
+                TreeNode[] collectionList = new TreeNode[_collections.Count];
+                for (int i = 0; i < _collections.Count; i++)
+                {
+                    DocumentClient client = new DocumentClient(new Uri(_accountEndpoint), _tokens[i]);
+                    DocumentCollection collection = await client.ReadDocumentCollectionAsync(UriFactory.CreateDocumentCollectionUri(_database, _collections[i]));
+                    DocumentCollectionNode collectionNode = new DocumentCollectionNode(client, collection, _database);
+                    collectionList[i] = collectionNode;
+                }
+                TreeNode dbNode = new TreeNode(_database,collectionList);
+                dbNode.ToolTipText = "This database node uses resource tokens. \n The default leave time for resource tokens is one hour. \n In case of authorization problems please create new tokens and add the connection again."; 
+                Nodes.Add(dbNode);
             }
             catch (AggregateException e)
             {

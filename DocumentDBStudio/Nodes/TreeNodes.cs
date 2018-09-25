@@ -19,8 +19,7 @@ namespace Microsoft.Azure.DocumentDBStudio
         /// Specifies whether this account settings should be persisted locally  
         /// </summary>
         public bool IsPersistedLocally;
-        public List<string> collectionTokens;
-        public List<string> collections;
+        public List<KeyValuePair<string,string>> collectionTokens;
     }
 
     public class CommandContext

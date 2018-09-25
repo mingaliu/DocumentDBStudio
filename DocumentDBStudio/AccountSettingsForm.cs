@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows.Forms;
 using Microsoft.Azure.DocumentDBStudio.Helpers;
 using Microsoft.Azure.DocumentDBStudio.Properties;
@@ -116,27 +117,15 @@ namespace Microsoft.Azure.DocumentDBStudio
 
         private void ProcessTokensString(string tokenText, string collections)
         {
-            //format type=resource=token;associatedColection;otherTokens
-            this.AccountSettings.collectionTokens = new List<string>();
-            this.AccountSettings.collections = new List<string>();
+            this.AccountSettings.collectionTokens = new List<KeyValuePair<string, string>>();
             string tokenBeggining = "type=resource";
-            List<int> tokenStartingPoints = AllIndexesOf(tokenText, tokenBeggining);
             string[] collectionSplit = collections.Split(';');
-            tokenStartingPoints.Add(tokenText.Length);
-            for (int i = 0 ; i < tokenStartingPoints.Count - 1 ; i++)
+            string[] tokens = tokenText.Split(new[] { tokenBeggining }, StringSplitOptions.RemoveEmptyEntries);
+            var tokensAndCollections = tokens.Zip(collectionSplit, (token, collection) => new { Token = token, Collection = collection });
+            foreach (var tokenCollection in tokensAndCollections)
             {
-                string currentToken = tokenText.Substring(tokenStartingPoints[i], tokenStartingPoints[i + 1]-tokenStartingPoints[i]);
-                string[] split = currentToken.Split(';');
-                Array.Resize(ref split, split.Length - 1);
-                string currentCollection = collectionSplit[i];
-                string token = "";
-                for (int j = 0; j < split.Length; j++)
-                {
-                    token = token + split[j] + ";";
-                }
-                token = token.Substring(0, token.Length - 1);
-                this.AccountSettings.collectionTokens.Add(token);
-                this.AccountSettings.collections.Add(currentCollection);
+                string currentToken = String.Concat(tokenBeggining, tokenCollection.Token);
+                this.AccountSettings.collectionTokens.Add(new KeyValuePair<string, string>(tokenCollection.Collection, currentToken));
             }
             this.AccountSettings.MasterKey = null;
         }
@@ -182,20 +171,6 @@ namespace Microsoft.Azure.DocumentDBStudio
                 label1.Visible = false;
                 tbCollections.Visible = false;
                 label5.Visible = false;
-            }
-        }
-
-        private static List<int> AllIndexesOf(string str, string value)
-        {
-            if (String.IsNullOrEmpty(value))
-                throw new ArgumentException("the string to find may not be empty", "value");
-            List<int> indexes = new List<int>();
-            for (int index = 0; ; index += value.Length)
-            {
-                index = str.IndexOf(value, index);
-                if (index == -1)
-                    return indexes;
-                indexes.Add(index);
             }
         }
     }

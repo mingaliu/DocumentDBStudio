@@ -16,14 +16,12 @@ namespace Microsoft.Azure.DocumentDBStudio
         private readonly DocumentClient _client;
         private readonly string _accountEndpoint;
         private readonly ContextMenu _contextMenu = new ContextMenu();
-        private List<string> _collections;
-        private List<string> _tokens;
+        private IList<KeyValuePair<string, string>> _tokenCollections;
         private string _database;
 
-        public MockDatabaseAccountNode(string endpointName, DocumentClient client, string database, List<string> collections, List<string> tokens)
+        public MockDatabaseAccountNode(string endpointName, string database, IList<KeyValuePair<string, string>> tokens)
         {
-            _collections = collections;
-            _tokens = tokens;
+            _tokenCollections = tokens;
             _database = database;
             _accountEndpoint = endpointName;
 
@@ -32,8 +30,9 @@ namespace Microsoft.Azure.DocumentDBStudio
             ImageKey = "DatabaseAccount";
             SelectedImageKey = "DatabaseAccount";
 
-            _client = client;
-            Tag = "This represents the DatabaseAccount. Right click to add Database";
+            Tag = "This represents the DatabaseAccount that uses tokens for authentification. \n" +
+                "Database level operations are not supported. \n" +
+                "Collection and lower level operations such as collection queries, document editing and deleting are still available.";
 
             Nodes.Add(new OfferNode(_client));
 
@@ -185,13 +184,14 @@ namespace Microsoft.Azure.DocumentDBStudio
         {
             try
             {
-                TreeNode[] collectionList = new TreeNode[_collections.Count];
-                for (int i = 0; i < _collections.Count; i++)
+                TreeNode[] collectionList = new TreeNode[_tokenCollections.Count];
+                int i = 0;
+                foreach (var tokenCollection in _tokenCollections)
                 {
-                    DocumentClient client = new DocumentClient(new Uri(_accountEndpoint), _tokens[i]);
-                    DocumentCollection collection = await client.ReadDocumentCollectionAsync(UriFactory.CreateDocumentCollectionUri(_database, _collections[i]));
+                    DocumentClient client = new DocumentClient(new Uri(_accountEndpoint), tokenCollection.Value);
+                    DocumentCollection collection = await client.ReadDocumentCollectionAsync(UriFactory.CreateDocumentCollectionUri(_database, tokenCollection.Key));
                     DocumentCollectionNode collectionNode = new DocumentCollectionNode(client, collection, _database);
-                    collectionList[i] = collectionNode;
+                    collectionList[i++] = collectionNode;
                 }
                 TreeNode dbNode = new TreeNode(_database,collectionList);
                 dbNode.ToolTipText = "This database node uses resource tokens. \n The default leave time for resource tokens is one hour. \n In case of authorization problems please create new tokens and add the connection again."; 

@@ -710,7 +710,7 @@ namespace Microsoft.Azure.DocumentDBStudio
                     treeView1.Nodes.Add(dbaNode);
 
                     // Update the map.
-                    DocumentClientExtension.AddOrUpdate(accountEndpoint, accountSettings.IsNameBased);
+                    DocumentClientExtension.AddOrUpdate(new Uri(accountEndpoint).Host, accountSettings.IsNameBased);
 
                     dbaNode.ForeColor = accountSettings.IsNameBased
                         ? Color.Green

@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Windows.Forms;
 using Microsoft.Azure.DocumentDBStudio.Helpers;
 using Microsoft.Azure.DocumentDBStudio.Properties;
@@ -80,7 +82,15 @@ namespace Microsoft.Azure.DocumentDBStudio
                 this.DialogResult = DialogResult.None;
             }
             this.AccountEndpoint = tbAccountName.Text;
-            this.AccountSettings.MasterKey = tbAccountSecret.Text;
+            if (!this.cbEnableTokenLogin.Checked)
+            {
+                this.AccountSettings.MasterKey = tbAccountSecret.Text;
+            }
+            else
+            {
+                this.AccountSettings.DatabaseName = tbDbName.Text;
+                ProcessTokensString(tbAccountSecret.Text, tbCollections.Text);
+            }
 
             if (this.radioButtonGateway.Checked)
             {
@@ -105,10 +115,31 @@ namespace Microsoft.Azure.DocumentDBStudio
             Settings.Default.Save();
         }
 
+        private void ProcessTokensString(string tokenText, string collections)
+        {
+            this.AccountSettings.collectionTokens = new List<KeyValuePair<string, string>>();
+            string tokenBeggining = "type=resource";
+            string[] collectionSplit = collections.Split(';');
+            string[] tokens = tokenText.Split(new[] { tokenBeggining }, StringSplitOptions.RemoveEmptyEntries);
+            var tokensAndCollections = tokens.Zip(collectionSplit, (token, collection) => new { Token = token, Collection = collection });
+            foreach (var tokenCollection in tokensAndCollections)
+            {
+                string currentToken = String.Concat(tokenBeggining, tokenCollection.Token);
+                this.AccountSettings.collectionTokens.Add(new KeyValuePair<string, string>(tokenCollection.Collection, currentToken));
+            }
+            this.AccountSettings.MasterKey = null;
+        }
+
         private void cbDevFabric_CheckedChanged(object sender, EventArgs e)
         {
             ApplyDevFabricSettings();
         }
+
+        private void cbEnableTokenLogin_CheckedChanged(object sender, EventArgs e)
+        {
+            ApplyResourceTokenSettings();
+        }
+
         private void ApplyDevFabricSettings()
         {
             if (cbDevFabric.Checked)
@@ -122,6 +153,24 @@ namespace Microsoft.Azure.DocumentDBStudio
                 tbAccountSecret.Enabled = true;
                 tbAccountName.Text = "";
                 tbAccountSecret.Text = "";
+            }
+        }
+
+        private void ApplyResourceTokenSettings()
+        {
+            if (cbEnableTokenLogin.Checked)
+            {
+                tbDbName.Visible = true;
+                label1.Visible = true;
+                tbCollections.Visible = true;
+                label5.Visible = true;
+            }
+            else
+            {
+                tbDbName.Visible = false;
+                label1.Visible = false;
+                tbCollections.Visible = false;
+                label5.Visible = false;
             }
         }
     }

@@ -668,7 +668,6 @@ namespace Microsoft.Azure.DocumentDBStudio
             {
                 Settings.Default.AccountSettingsList = new List<string>();
             }
-            // load the account settings from the List.
             for (int i = 0; i < Settings.Default.AccountSettingsList.Count; i = i + 2)
             {
                 var accountSettings = (AccountSettings)JsonConvert.DeserializeObject(Settings.Default.AccountSettingsList[i + 1], typeof(AccountSettings));
@@ -682,25 +681,43 @@ namespace Microsoft.Azure.DocumentDBStudio
             {
                 var suffix = Constants.ApplicationName + "/" + Constants.ProductVersion;
 
-                var client = new DocumentClient(new Uri(accountEndpoint), accountSettings.MasterKey,
-                    new ConnectionPolicy
-                    {
-                        ConnectionMode = accountSettings.ConnectionMode,
-                        ConnectionProtocol = accountSettings.Protocol,
+                if (accountSettings.MasterKey != null)
+                {
+                    var client = new DocumentClient(new Uri(accountEndpoint), accountSettings.MasterKey,
+                        new ConnectionPolicy
+                        {
+                            ConnectionMode = accountSettings.ConnectionMode,
+                            ConnectionProtocol = accountSettings.Protocol,
                         // enable after we support the automatic failover from client .
                         EnableEndpointDiscovery = accountSettings.EnableEndpointDiscovery,
-                        UserAgentSuffix = suffix
-                    });
+                            UserAgentSuffix = suffix
+                        });
 
-                var dbaNode = new DatabaseAccountNode(accountEndpoint, client);
-                treeView1.Nodes.Add(dbaNode);
+                    var dbaNode = new DatabaseAccountNode(accountEndpoint, client);
+                    treeView1.Nodes.Add(dbaNode);
 
-                // Update the map.
-                DocumentClientExtension.AddOrUpdate(client.ServiceEndpoint.Host, accountSettings.IsNameBased);
+                    // Update the map.
+                    DocumentClientExtension.AddOrUpdate(client.ServiceEndpoint.Host, accountSettings.IsNameBased);
 
-                dbaNode.ForeColor = accountSettings.IsNameBased
-                    ? Color.Green
-                    : Color.Blue;
+                    dbaNode.ForeColor = accountSettings.IsNameBased
+                        ? Color.Green
+                        : Color.Blue;
+                }
+
+                else
+                {
+                    var dbaNode = new MockDatabaseAccountNode(accountEndpoint, accountSettings.DatabaseName, accountSettings.collectionTokens);
+                    treeView1.Nodes.Add(dbaNode);
+
+                    // Update the map.
+                    DocumentClientExtension.AddOrUpdate(new Uri(accountEndpoint).Host, accountSettings.IsNameBased);
+
+                    dbaNode.ForeColor = accountSettings.IsNameBased
+                        ? Color.Green
+                        : Color.Blue;
+
+                }
+
             }
             catch (Exception e)
             {
